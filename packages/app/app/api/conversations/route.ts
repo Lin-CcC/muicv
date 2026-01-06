@@ -1,12 +1,13 @@
 import type { Conversation } from '@muicv/shared';
-import { inMemoryChatStore } from '@/src/server/in-memory-chat-store';
+import { getChatStore } from '@/src/server/chat-store';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const DEMO_USER_ID = 'demo';
 
 export async function GET() {
-  const conversations = inMemoryChatStore.listConversations(DEMO_USER_ID);
+  const conversations = await getChatStore().listConversations(DEMO_USER_ID);
   return Response.json(conversations);
 }
 
@@ -17,7 +18,7 @@ type CreateConversationBody = {
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as CreateConversationBody;
 
-  const conversation: Conversation = inMemoryChatStore.createConversation({
+  const conversation: Conversation = await getChatStore().createConversation({
     userId: DEMO_USER_ID,
     ...(body.title === undefined ? {} : { title: body.title }),
   });

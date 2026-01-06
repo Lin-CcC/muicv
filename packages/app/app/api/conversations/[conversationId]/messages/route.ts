@@ -1,7 +1,8 @@
 import type { ChatMessage } from '@muicv/shared';
-import { inMemoryChatStore } from '@/src/server/in-memory-chat-store';
+import { getChatStore } from '@/src/server/chat-store';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 type ConversationMessagesRouteContext = {
   params: Promise<{ conversationId: string }>;
@@ -9,12 +10,12 @@ type ConversationMessagesRouteContext = {
 
 export async function GET(_request: Request, context: ConversationMessagesRouteContext) {
   const { conversationId } = await context.params;
-  const conversation = inMemoryChatStore.getConversation(conversationId);
+  const conversation = await getChatStore().getConversation(conversationId);
   if (!conversation) {
     return Response.json({ message: '对话不存在' }, { status: 404 });
   }
 
-  const messages = inMemoryChatStore.listMessages(conversationId);
+  const messages = await getChatStore().listMessages(conversationId);
   return Response.json(messages);
 }
 
@@ -25,7 +26,7 @@ type AddMessageBody = {
 
 export async function POST(request: Request, context: ConversationMessagesRouteContext) {
   const { conversationId } = await context.params;
-  const conversation = inMemoryChatStore.getConversation(conversationId);
+  const conversation = await getChatStore().getConversation(conversationId);
   if (!conversation) {
     return Response.json({ message: '对话不存在' }, { status: 404 });
   }
@@ -37,7 +38,7 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
     return Response.json({ message: 'content 不能为空' }, { status: 400 });
   }
 
-  const message = inMemoryChatStore.addMessage({
+  const message = await getChatStore().addMessage({
     conversationId,
     role,
     content,

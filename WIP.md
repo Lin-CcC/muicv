@@ -1,6 +1,6 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-01-05
+最后更新：2026-01-06
 
 ## 目标与原则
 
@@ -72,8 +72,8 @@
 
 ### 2) 数据模型（先定契约）
 
-- [ ] 设计 D1 schema：`users`、`conversations`、`messages`、`resume_snapshots`、`usage_logs`
-- [ ] 定义 `ResumeJson`（结构化简历数据）：基本信息、经历、项目、技能、亮点、求职意向等
+- [x] 设计 D1 schema：`users`、`conversations`、`messages`、`resume_snapshots`、`usage_logs`
+- [x] 定义 `ResumeJson`（结构化简历数据）：基本信息、经历、项目、技能、亮点、求职意向等
 - [ ] 定义「抽取事件」与「来源引用」结构：每条简历字段可追溯到消息片段
 - [ ] 定义 KV 使用范围（仅缓存/幂等/会话临时状态），避免 KV 当主存储
 

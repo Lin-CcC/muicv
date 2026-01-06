@@ -10,3 +10,7 @@ dist
 
 .env
 .env.*
+
+.data
+*.sqlite
+*.sqlite3

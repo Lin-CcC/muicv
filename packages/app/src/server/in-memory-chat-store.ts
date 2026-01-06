@@ -2,26 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { ChatMessage, Conversation, ConversationId, UserId } from '@muicv/shared';
 
-export type CreateConversationParams = {
-  userId: UserId;
-  title?: string;
-};
-
-export type AddMessageParams = {
-  conversationId: ConversationId;
-  role: ChatMessage['role'];
-  content: string;
-};
-
-export type InMemoryChatStore = {
-  listConversations(userId: UserId): Conversation[];
-  getConversation(conversationId: ConversationId): Conversation | undefined;
-  createConversation(params: CreateConversationParams): Conversation;
-  deleteConversation(conversationId: ConversationId): void;
-
-  listMessages(conversationId: ConversationId): ChatMessage[];
-  addMessage(params: AddMessageParams): ChatMessage;
-};
+import type { AddMessageParams, ChatStore, CreateConversationParams } from './chat-store.ts';
 
 type InMemoryChatStoreState = {
   conversations: Map<ConversationId, Conversation>;
@@ -29,14 +10,14 @@ type InMemoryChatStoreState = {
   messagesByConversationId: Map<ConversationId, ChatMessage[]>;
 };
 
-export function createInMemoryChatStore(): InMemoryChatStore {
+export function createInMemoryChatStore(): ChatStore {
   const state: InMemoryChatStoreState = {
     conversations: new Map(),
     conversationIdsByUserId: new Map(),
     messagesByConversationId: new Map(),
   };
 
-  function listConversations(userId: UserId): Conversation[] {
+  async function listConversations(userId: UserId): Promise<Conversation[]> {
     const ids = state.conversationIdsByUserId.get(userId) ?? [];
     const conversations = ids
       .map((id) => state.conversations.get(id))
@@ -51,11 +32,11 @@ export function createInMemoryChatStore(): InMemoryChatStore {
     return conversations;
   }
 
-  function getConversation(conversationId: ConversationId) {
+  async function getConversation(conversationId: ConversationId): Promise<Conversation | undefined> {
     return state.conversations.get(conversationId);
   }
 
-  function createConversation(params: CreateConversationParams): Conversation {
+  async function createConversation(params: CreateConversationParams): Promise<Conversation> {
     const now = new Date().toISOString();
     const conversationId = randomUUID();
     const title = params.title?.trim() ? params.title.trim() : '新对话';
@@ -78,7 +59,7 @@ export function createInMemoryChatStore(): InMemoryChatStore {
     return conversation;
   }
 
-  function deleteConversation(conversationId: ConversationId) {
+  async function deleteConversation(conversationId: ConversationId) {
     const conversation = state.conversations.get(conversationId);
     if (!conversation) return;
 
@@ -92,11 +73,11 @@ export function createInMemoryChatStore(): InMemoryChatStore {
     );
   }
 
-  function listMessages(conversationId: ConversationId): ChatMessage[] {
+  async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
     return state.messagesByConversationId.get(conversationId) ?? [];
   }
 
-  function addMessage(params: AddMessageParams): ChatMessage {
+  async function addMessage(params: AddMessageParams): Promise<ChatMessage> {
     const conversation = state.conversations.get(params.conversationId);
     if (!conversation) {
       throw new Error(`对话不存在：${params.conversationId}`);
@@ -133,7 +114,7 @@ export function createInMemoryChatStore(): InMemoryChatStore {
 }
 
 type GlobalWithChatStore = typeof globalThis & {
-  __muicvInMemoryChatStore?: InMemoryChatStore;
+  __muicvInMemoryChatStore?: ChatStore;
 };
 
 const globalWithChatStore = globalThis as GlobalWithChatStore;
