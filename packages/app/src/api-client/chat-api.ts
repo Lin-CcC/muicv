@@ -43,6 +43,17 @@ export async function createConversation(title?: string): Promise<Conversation> 
   });
 }
 
+export async function renameConversation(conversationId: ConversationId, title: string): Promise<Conversation> {
+  return fetchJson<Conversation>(`/api/conversations/${conversationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ title }),
+  });
+}
+
+export async function deleteConversation(conversationId: ConversationId): Promise<void> {
+  await fetchJson<{ ok: true }>(`/api/conversations/${conversationId}`, { method: 'DELETE' });
+}
+
 export async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
   return fetchJson<ChatMessage[]>(`/api/conversations/${conversationId}/messages`, { method: 'GET' });
 }
@@ -50,9 +61,12 @@ export async function listMessages(conversationId: ConversationId): Promise<Chat
 export async function addMessage(
   conversationId: ConversationId,
   params: { role: ChatMessage['role']; content: string },
-): Promise<ChatMessage> {
-  return fetchJson<ChatMessage>(`/api/conversations/${conversationId}/messages`, {
-    method: 'POST',
-    body: JSON.stringify(params),
-  });
+): Promise<{ messages: ChatMessage[]; assistantError?: string }> {
+  return fetchJson<{ messages: ChatMessage[]; assistantError?: string }>(
+    `/api/conversations/${conversationId}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify(params),
+    },
+  );
 }

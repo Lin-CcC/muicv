@@ -6,7 +6,14 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cf:build": "opennextjs-cloudflare build --config wrangler.jsonc",
+    "cf:preview": "opennextjs-cloudflare preview --config wrangler.jsonc",
+    "dev:cf": "opennextjs-cloudflare preview --config wrangler.jsonc",
+    "cf:deploy": "opennextjs-cloudflare deploy --config wrangler.jsonc",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "start": "next start",
+    "db:migrate:local": "wrangler -c wrangler.jsonc d1 migrations apply MUICV_DB --local",
+    "db:migrate": "wrangler -c wrangler.jsonc d1 migrations apply MUICV_DB",
     "test": "node --test"
   },
   "dependencies": {

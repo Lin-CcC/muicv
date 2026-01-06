@@ -18,7 +18,7 @@
 
 交付物：
 - `packages/` 目录落地：`app`、`shared`、`ui`、`cron`、`website`
-- Next + OpenNext 的 Cloudflare 部署基础结构（Worker/D1/KV 连接方式明确）
+- Next + OpenNext 的 Cloudflare 部署基础结构（Worker/D1/R2/KV 连接方式明确）
 - 基础工程能力：lint、测试、CI（至少本地可运行）
 
 ### M1：对话系统（核心闭环）
@@ -26,7 +26,7 @@
 交付物：
 - Chat UI（流式输出、错误重试、消息状态）
 - 多对话管理（创建/切换/重命名/删除）
-- 会话与消息持久化（D1），必要的缓存（KV）
+- 会话与消息持久化（D1），必要的缓存（Next：R2；应用：KV 可选）
 - AI provider 统一适配层（接口、鉴权、重试、超时、速率限制）
 
 ### M2：信息抽取与简历生成（产品差异化）
@@ -67,6 +67,7 @@
 - [x] 初始化 `packages/shared`：领域类型、AI provider 接口、通用工具
 - [x] 初始化 `packages/ui`：封装 coss UI + Tailwind 的基础组件
 - [x] 初始化 `packages/cron`：Cloudflare Cron/队列（若需要）骨架
+- [x] 接入 OpenNext for Cloudflare（`wrangler.jsonc` / `open-next.config.ts`），支持本地 preview
 - [x] 新增 `TESTING.md`：本地测试命令、覆盖率要求（先从最低标准开始）
 - [x] 新增 `DEPLOYMENT.md`：Cloudflare/OpenNext 的部署步骤与环境变量清单（不包含 `.env` 内容）
 
@@ -75,13 +76,14 @@
 - [x] 设计 D1 schema：`users`、`conversations`、`messages`、`resume_snapshots`、`usage_logs`
 - [x] 定义 `ResumeJson`（结构化简历数据）：基本信息、经历、项目、技能、亮点、求职意向等
 - [ ] 定义「抽取事件」与「来源引用」结构：每条简历字段可追溯到消息片段
-- [ ] 定义 KV 使用范围（仅缓存/幂等/会话临时状态），避免 KV 当主存储
+- [ ] 定义 KV/R2 使用范围（Next 增量缓存：R2；应用：KV），避免 KV 当主存储
 
 ### 3) AI 适配层（可测、可替换）
 
-- [ ] 设计 `AiProvider` 接口：流式输出、非流式、工具调用/结构化输出
-- [ ] 实现 OpenAI 兼容 provider
-- [ ] 实现 Gemini provider
+- [x] 设计 `AiProvider` 接口：流式输出、非流式、工具调用/结构化输出
+- [x] 实现 OpenAI 兼容 provider（基于 `OPENAI_API_KEY`）
+- [x] 实现 Gemini provider（基于 `GOOGLE_API_KEY`）
+- [x] 修复运行时环境变量读取优先级：Cloudflare env 优先于 `process.env`（避免本地 Wrangler 预览被系统环境变量覆盖）
 - [ ] 统一错误类型与重试策略（超时、429、5xx）
 - [ ] Prompt 策略：系统提示、用户上下文裁剪、PII/安全提示
 
@@ -90,9 +92,10 @@
 - [x] Chat 页面：消息列表、输入框、发送（MVP）
 - [ ] Chat 页面：流式渲染、停止生成、重试
 - [x] 多对话列表：创建/切换（MVP）
-- [ ] 多对话列表：重命名/删除
+- [x] 多对话列表：重命名/删除
 - [ ] 简历预览：对 `ResumeJson` 的实时渲染（右侧面板/分页）
 - [ ] 自动抽取：对话过程中增量更新 `ResumeJson`，并可手动回滚/编辑
+- [x] 简历版本：`resume_snapshots` 保留最近 N 份 + 回滚（默认 10，可通过 `MUICV_RESUME_SNAPSHOT_LIMIT` 配置）
 - [ ] 导出：先支持 Markdown/HTML；PDF 延后评估（Cloudflare 环境限制需确认）
 
 ### 5) 登录与计费（尽早打通）

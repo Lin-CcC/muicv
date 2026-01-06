@@ -4,12 +4,16 @@ node_modules
 .next
 dist
 
+.open-next
+
 .wrangler
 
 .idea
 
 .env
 .env.*
+.dev.vars
+.dev.vars.*
 
 .data
 *.sqlite

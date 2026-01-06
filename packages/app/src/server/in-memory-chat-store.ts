@@ -1,8 +1,6 @@
-import { randomUUID } from 'node:crypto';
-
 import type { ChatMessage, Conversation, ConversationId, UserId } from '@muicv/shared';
 
-import type { AddMessageParams, ChatStore, CreateConversationParams } from './chat-store.ts';
+import type { AddMessageParams, ChatStore, CreateConversationParams } from './chat-store-types.ts';
 
 type InMemoryChatStoreState = {
   conversations: Map<ConversationId, Conversation>;
@@ -38,7 +36,7 @@ export function createInMemoryChatStore(): ChatStore {
 
   async function createConversation(params: CreateConversationParams): Promise<Conversation> {
     const now = new Date().toISOString();
-    const conversationId = randomUUID();
+    const conversationId = crypto.randomUUID();
     const title = params.title?.trim() ? params.title.trim() : '新对话';
 
     const conversation: Conversation = {
@@ -73,6 +71,29 @@ export function createInMemoryChatStore(): ChatStore {
     );
   }
 
+  async function renameConversation(conversationId: ConversationId, title: string): Promise<Conversation> {
+    const conversation = state.conversations.get(conversationId);
+    if (!conversation) {
+      throw new Error(`对话不存在：${conversationId}`);
+    }
+
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      throw new Error('标题不能为空');
+    }
+
+    const now = new Date().toISOString();
+    const updatedConversation: Conversation = {
+      ...conversation,
+      title: normalizedTitle,
+      updatedAt: now,
+    };
+
+    state.conversations.set(conversationId, updatedConversation);
+
+    return updatedConversation;
+  }
+
   async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
     return state.messagesByConversationId.get(conversationId) ?? [];
   }
@@ -85,7 +106,7 @@ export function createInMemoryChatStore(): ChatStore {
 
     const now = new Date().toISOString();
     const message: ChatMessage = {
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       conversationId: params.conversationId,
       role: params.role,
       content: params.content,
@@ -110,6 +131,7 @@ export function createInMemoryChatStore(): ChatStore {
     getConversation,
     listConversations,
     listMessages,
+    renameConversation,
   };
 }
 

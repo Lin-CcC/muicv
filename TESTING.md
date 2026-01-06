@@ -49,11 +49,25 @@ pnpm dev:website
 ## 说明
 
 - 目前处于 M0 骨架阶段，尚未引入端到端测试；后续在对话/抽取闭环落地后补齐。
-- `packages/app` 使用 Node 内置 `node:sqlite` 做本地 SQLite 测试与开发（会看到 `ExperimentalWarning`，这是 Node 当前的特性状态，不影响功能）。
+- `packages/app` 的单测使用 Node 内置 `node:sqlite`（会看到 `ExperimentalWarning`，这是 Node 当前的特性状态，不影响功能）。
 
-## 本地数据（App）
+## Cloudflare 预览（App）
 
-目前 App 的对话数据会落到本地 SQLite（用于开发阶段的持久化验证）：
+`packages/app` 已接入 OpenNext for Cloudflare，本地可用 Wrangler 预览生产构建：
 
-- 默认路径：`packages/app/.data/muicv.sqlite`
-- 可通过环境变量覆盖：`MUICV_SQLITE_PATH=/path/to/db.sqlite`
+```bash
+pnpm --filter @muicv/app db:migrate:local
+pnpm --filter @muicv/app dev:cf
+```
+
+说明：
+
+- `db:migrate:local` 会在本地 wrangler 状态目录创建/更新 D1（不会改动你的线上资源）。
+- 本项目使用 `wrangler.jsonc`，相关脚本已显式传入 `--config/-c`；如果你直接运行 wrangler 命令，也建议带上 `-c wrangler.jsonc`。
+- 如果你只跑 `pnpm dev:app`（next dev），也会尝试通过 OpenNext 的 dev 集成读取 `wrangler.jsonc` 并提供 D1/KV/R2 绑定；但本地 D1 依然建议先跑一次迁移。
+
+环境变量（本地）：
+
+- `pnpm --filter @muicv/app dev:cf`（Wrangler/Worker 预览）：推荐在 `packages/app/.dev.vars` 中设置 `OPENAI_API_KEY` / `GOOGLE_API_KEY` 等变量（不要提交到仓库）。
+- `pnpm dev:app`（next dev）：读取 `process.env`；你可以用自己的方式注入（例如在 shell 中 `export OPENAI_API_KEY=...`），并确保敏感信息不进入版本控制。
+- 代码读取优先级：Cloudflare env（Wrangler 注入）优先于 `process.env`，避免系统级环境变量覆盖本地预览配置。

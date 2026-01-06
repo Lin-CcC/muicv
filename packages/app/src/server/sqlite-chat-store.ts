@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { ChatMessage, Conversation, ConversationId, UserId } from '@muicv/shared';
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
 
-import type { AddMessageParams, ChatStore, CreateConversationParams } from './chat-store.ts';
+import type { AddMessageParams, ChatStore, CreateConversationParams } from './chat-store-types.ts';
 import {
   getDefaultMigrationsDirectoryPath,
   getDefaultSqliteDatabaseFilePath,
@@ -35,7 +35,11 @@ type ChatStoreStatements = EnsureUserStatements & {
   listConversations: StatementSync;
   getConversation: StatementSync;
   insertConversation: StatementSync;
+  updateConversationTitleAndUpdatedAt: StatementSync;
   deleteConversation: StatementSync;
+  clearConversationReferencesFromResumeSnapshots: StatementSync;
+  clearConversationReferencesFromUsageLogs: StatementSync;
+  deleteMessagesByConversationId: StatementSync;
   listMessages: StatementSync;
   insertMessage: StatementSync;
   updateConversationUpdatedAt: StatementSync;
@@ -87,7 +91,21 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
     VALUES (?, ?, ?, ?, ?)
   `);
 
+  const updateConversationTitleAndUpdatedAt = database.prepare(
+    'UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?',
+  );
+
   const deleteConversation = database.prepare('DELETE FROM conversations WHERE id = ?');
+
+  const clearConversationReferencesFromResumeSnapshots = database.prepare(
+    'UPDATE resume_snapshots SET conversation_id = NULL WHERE conversation_id = ?',
+  );
+
+  const clearConversationReferencesFromUsageLogs = database.prepare(
+    'UPDATE usage_logs SET conversation_id = NULL WHERE conversation_id = ?',
+  );
+
+  const deleteMessagesByConversationId = database.prepare('DELETE FROM messages WHERE conversation_id = ?');
 
   const listMessages = database.prepare(`
     SELECT
@@ -109,13 +127,17 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
   const updateConversationUpdatedAt = database.prepare('UPDATE conversations SET updated_at = ? WHERE id = ?');
 
   return {
+    clearConversationReferencesFromResumeSnapshots,
+    clearConversationReferencesFromUsageLogs,
     deleteConversation,
+    deleteMessagesByConversationId,
     getConversation,
     insertConversation,
     insertMessage,
     insertOrIgnoreUser,
     listConversations,
     listMessages,
+    updateConversationTitleAndUpdatedAt,
     updateConversationUpdatedAt,
     updateUserUpdatedAt,
   };
@@ -175,8 +197,44 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
     };
   }
 
+  async function renameConversation(conversationId: ConversationId, title: string): Promise<Conversation> {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      throw new Error('标题不能为空');
+    }
+
+    const now = new Date().toISOString();
+
+    const updatedConversation = runInTransaction(storeParams.database, () => {
+      const updated = statements.updateConversationTitleAndUpdatedAt.run(normalizedTitle, now, conversationId);
+      if (Number(updated.changes) !== 1) {
+        throw new Error(`对话不存在：${conversationId}`);
+      }
+
+      const row = statements.getConversation.get(conversationId) as unknown as ConversationRow | undefined;
+      if (!row) {
+        throw new Error(`对话不存在：${conversationId}`);
+      }
+
+      return row;
+    });
+
+    return {
+      id: updatedConversation.id,
+      userId: updatedConversation.userId,
+      title: updatedConversation.title,
+      createdAt: updatedConversation.createdAt,
+      updatedAt: updatedConversation.updatedAt,
+    };
+  }
+
   async function deleteConversation(conversationId: ConversationId) {
-    statements.deleteConversation.run(conversationId);
+    runInTransaction(storeParams.database, () => {
+      statements.clearConversationReferencesFromResumeSnapshots.run(conversationId);
+      statements.clearConversationReferencesFromUsageLogs.run(conversationId);
+      statements.deleteMessagesByConversationId.run(conversationId);
+      statements.deleteConversation.run(conversationId);
+    });
   }
 
   async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
@@ -225,6 +283,7 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
     getConversation,
     listConversations,
     listMessages,
+    renameConversation,
   };
 }
 

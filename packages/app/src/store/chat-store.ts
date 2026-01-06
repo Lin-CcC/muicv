@@ -3,7 +3,14 @@
 import { create } from 'zustand';
 
 import type { ChatMessage, Conversation, ConversationId } from '@muicv/shared';
-import { addMessage, createConversation, listConversations, listMessages } from '@/src/api-client/chat-api';
+import {
+  addMessage,
+  createConversation as createConversationApi,
+  deleteConversation as deleteConversationApi,
+  listConversations,
+  listMessages,
+  renameConversation as renameConversationApi,
+} from '@/src/api-client/chat-api';
 
 type ChatStoreState = {
   conversations: Conversation[];
@@ -19,6 +26,8 @@ type ChatStoreActions = {
   loadConversations(): Promise<void>;
   setActiveConversationId(conversationId: ConversationId): Promise<void>;
   createConversation(title?: string): Promise<Conversation>;
+  renameConversation(conversationId: ConversationId, title: string): Promise<Conversation>;
+  deleteConversation(conversationId: ConversationId): Promise<void>;
   sendUserMessage(content: string): Promise<void>;
   clearError(): void;
 };
@@ -88,7 +97,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   async createConversation(title?: string) {
     set({ errorMessage: undefined });
     try {
-      const conversation = await createConversation(title);
+      const conversation = await createConversationApi(title);
       set((state) => ({ conversations: [conversation, ...state.conversations] }));
       await get().setActiveConversationId(conversation.id);
       return conversation;
@@ -96,6 +105,55 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       const errorMessage = error instanceof Error ? error.message : '创建对话失败';
       set({ errorMessage });
       throw new Error(errorMessage);
+    }
+  },
+
+  async renameConversation(conversationId: ConversationId, title: string) {
+    set({ errorMessage: undefined });
+    try {
+      const updatedConversation = await renameConversationApi(conversationId, title);
+      set((state) => ({
+        conversations: [
+          updatedConversation,
+          ...state.conversations.filter((conversation) => conversation.id !== conversationId),
+        ],
+      }));
+      return updatedConversation;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '重命名失败';
+      set({ errorMessage });
+      throw new Error(errorMessage);
+    }
+  },
+
+  async deleteConversation(conversationId: ConversationId) {
+    set({ errorMessage: undefined });
+    try {
+      await deleteConversationApi(conversationId);
+
+      set((state) => {
+        const remainingConversations = state.conversations.filter((conversation) => conversation.id !== conversationId);
+        const activeConversationId =
+          state.activeConversationId === conversationId ? remainingConversations[0]?.id : state.activeConversationId;
+
+        const { [conversationId]: _deletedMessages, ...messagesByConversationId } = state.messagesByConversationId;
+        const { [conversationId]: _deletedLoading, ...isLoadingMessagesByConversationId } =
+          state.isLoadingMessagesByConversationId;
+
+        return {
+          activeConversationId,
+          conversations: remainingConversations,
+          isLoadingMessagesByConversationId,
+          messagesByConversationId,
+        };
+      });
+
+      const activeConversationId = get().activeConversationId;
+      if (activeConversationId && get().messagesByConversationId[activeConversationId] === undefined) {
+        await get().setActiveConversationId(activeConversationId);
+      }
+    } catch (error) {
+      set({ errorMessage: error instanceof Error ? error.message : '删除失败' });
     }
   },
 
@@ -114,14 +172,15 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         conversationId = conversation.id;
       }
 
-      const message = await addMessage(conversationId, { role: 'user', content: trimmed });
+      const { messages, assistantError } = await addMessage(conversationId, { role: 'user', content: trimmed });
 
       set((state) => {
         const existing = state.messagesByConversationId[conversationId] ?? [];
         return {
+          ...(assistantError ? { errorMessage: assistantError } : {}),
           messagesByConversationId: {
             ...state.messagesByConversationId,
-            [conversationId]: [...existing, message],
+            [conversationId]: [...existing, ...messages],
           },
         };
       });

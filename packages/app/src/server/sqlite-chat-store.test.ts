@@ -60,3 +60,53 @@ test('sqlite store：对话列表按 updatedAt 倒序，追加消息会更新 up
   assert.equal(list2[0]?.id, first.id);
   assert.equal(list2[1]?.id, second.id);
 });
+
+test('sqlite store：重命名会更新标题并把对话顶到最前', async () => {
+  const database = new DatabaseSync(':memory:', { enableForeignKeyConstraints: true });
+  applySqliteMigrations({
+    database,
+    migrationsDirectoryPath: getDefaultMigrationsDirectoryPath(),
+  });
+
+  const store = createSqliteChatStore({ database });
+
+  const first = await store.createConversation({ userId: 'u1', title: '先创建' });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const second = await store.createConversation({ userId: 'u1', title: '后创建' });
+
+  const list1 = await store.listConversations('u1');
+  assert.equal(list1[0]?.id, second.id);
+  assert.equal(list1[1]?.id, first.id);
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const renamed = await store.renameConversation(first.id, '改名后');
+  assert.equal(renamed.title, '改名后');
+
+  const list2 = await store.listConversations('u1');
+  assert.equal(list2[0]?.id, first.id);
+  assert.equal(list2[0]?.title, '改名后');
+});
+
+test('sqlite store：删除对话会清理消息', async () => {
+  const database = new DatabaseSync(':memory:', { enableForeignKeyConstraints: true });
+  applySqliteMigrations({
+    database,
+    migrationsDirectoryPath: getDefaultMigrationsDirectoryPath(),
+  });
+
+  const store = createSqliteChatStore({ database });
+
+  const conversation = await store.createConversation({ userId: 'u1', title: '待删除' });
+  await store.addMessage({ conversationId: conversation.id, role: 'user', content: 'hello' });
+
+  await store.deleteConversation(conversation.id);
+
+  const found = await store.getConversation(conversation.id);
+  assert.equal(found, undefined);
+
+  const list = await store.listConversations('u1');
+  assert.equal(list.length, 0);
+
+  const messages = await store.listMessages(conversation.id);
+  assert.equal(messages.length, 0);
+});

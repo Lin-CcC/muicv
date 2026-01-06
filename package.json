@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "pnpm --filter @muicv/app dev",
     "dev:app": "pnpm --filter @muicv/app dev",
+    "dev:cf": "pnpm --filter @muicv/app dev:cf",
     "dev:website": "pnpm --filter @muicv/website dev",
     "dev:cron": "pnpm --filter @muicv/cron dev",
     "build": "pnpm -r --if-present build",
@@ -19,6 +20,12 @@
   "license": "UNLICENSED",
   "packageManager": "pnpm@10.26.2",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.11"
+    "@biomejs/biome": "^2.3.11",
+    "@cloudflare/workers-types": "^4.20260103.0",
+    "@opennextjs/cloudflare": "^1.14.7",
+    "wrangler": "^4.54.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "workerd"]
   }
 }

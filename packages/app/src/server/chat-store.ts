@@ -1,38 +1,37 @@
-import type { ChatMessage, Conversation, ConversationId, UserId } from '@muicv/shared';
+import type { ChatStore } from './chat-store-types.ts';
 
-import { createDefaultSqliteChatStore } from './sqlite-chat-store.ts';
+import { createD1ChatStore } from './d1-chat-store.ts';
+import { getRequiredMuicvDatabase, tryGetCloudflareEnv } from './cloudflare-bindings.ts';
 
-export type CreateConversationParams = {
-  userId: UserId;
-  title?: string;
-};
-
-export type AddMessageParams = {
-  conversationId: ConversationId;
-  role: ChatMessage['role'];
-  content: string;
-};
-
-export type ChatStore = {
-  listConversations(userId: UserId): Promise<Conversation[]>;
-  getConversation(conversationId: ConversationId): Promise<Conversation | undefined>;
-  createConversation(params: CreateConversationParams): Promise<Conversation>;
-  deleteConversation(conversationId: ConversationId): Promise<void>;
-
-  listMessages(conversationId: ConversationId): Promise<ChatMessage[]>;
-  addMessage(params: AddMessageParams): Promise<ChatMessage>;
-};
+export type { AddMessageParams, ChatStore, CreateConversationParams } from './chat-store-types.ts';
 
 type GlobalWithChatStore = typeof globalThis & {
   __muicvChatStore?: ChatStore;
+  __muicvChatStorePromise?: Promise<ChatStore>;
 };
 
 const globalWithChatStore = globalThis as GlobalWithChatStore;
 
-export function getChatStore() {
-  if (!globalWithChatStore.__muicvChatStore) {
-    globalWithChatStore.__muicvChatStore = createDefaultSqliteChatStore();
+async function createChatStore(): Promise<ChatStore> {
+  const env = tryGetCloudflareEnv();
+  if (env) {
+    const database = getRequiredMuicvDatabase(env);
+    return createD1ChatStore({ database });
   }
 
+  const { createDefaultSqliteChatStore } = await import('./sqlite-chat-store.ts');
+  return createDefaultSqliteChatStore();
+}
+
+export async function getChatStore(): Promise<ChatStore> {
+  if (globalWithChatStore.__muicvChatStore) {
+    return globalWithChatStore.__muicvChatStore;
+  }
+
+  if (!globalWithChatStore.__muicvChatStorePromise) {
+    globalWithChatStore.__muicvChatStorePromise = createChatStore();
+  }
+
+  globalWithChatStore.__muicvChatStore = await globalWithChatStore.__muicvChatStorePromise;
   return globalWithChatStore.__muicvChatStore;
 }

@@ -28,9 +28,14 @@ export function ChatShell() {
   const loadConversations = useChatStore((state) => state.loadConversations);
   const setActiveConversationId = useChatStore((state) => state.setActiveConversationId);
   const createNewConversation = useChatStore((state) => state.createConversation);
+  const renameConversation = useChatStore((state) => state.renameConversation);
+  const deleteConversation = useChatStore((state) => state.deleteConversation);
   const sendUserMessage = useChatStore((state) => state.sendUserMessage);
 
   const [draft, setDraft] = useState('');
+  const [editingConversationId, setEditingConversationId] = useState<string | undefined>(undefined);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   useEffect(() => {
     void loadConversations();
@@ -47,10 +52,14 @@ export function ChatShell() {
   }, [activeConversationId, isLoadingMessagesByConversationId]);
 
   function handleCreateConversation() {
+    setEditingConversationId(undefined);
+    setDraftTitle('');
     void createNewConversation();
   }
 
   function handleSelectConversation(conversationId: string) {
+    setEditingConversationId(undefined);
+    setDraftTitle('');
     void setActiveConversationId(conversationId);
   }
 
@@ -73,6 +82,61 @@ export function ChatShell() {
     handleSend();
   }
 
+  function handleStartEditingConversation(conversation: Conversation) {
+    setEditingConversationId(conversation.id);
+    setDraftTitle(conversation.title);
+  }
+
+  function handleCancelEditingConversation() {
+    setEditingConversationId(undefined);
+    setDraftTitle('');
+    setIsSavingTitle(false);
+  }
+
+  async function handleSaveEditingConversation() {
+    if (!editingConversationId) return;
+
+    const title = draftTitle.trim();
+    setIsSavingTitle(true);
+    try {
+      await renameConversation(editingConversationId, title);
+      if (title) {
+        handleCancelEditingConversation();
+      }
+    } catch {
+      // 错误消息由 store 统一处理并在左侧区域展示。
+    } finally {
+      setIsSavingTitle(false);
+    }
+  }
+
+  async function handleDeleteConversation(conversationId: string) {
+    if (!window.confirm('确定删除这个对话吗？')) return;
+
+    if (conversationId === editingConversationId) {
+      handleCancelEditingConversation();
+    }
+
+    await deleteConversation(conversationId);
+  }
+
+  function handleDraftTitleChange(event: ChangeEvent<HTMLInputElement>) {
+    if (errorMessage) clearError();
+    setDraftTitle(event.target.value);
+  }
+
+  function handleDraftTitleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      handleCancelEditingConversation();
+      return;
+    }
+
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    void handleSaveEditingConversation();
+  }
+
   return (
     <main className="mx-auto grid min-h-screen max-w-6xl grid-cols-12 gap-4 p-6">
       <aside className="col-span-3 flex flex-col gap-3 rounded-xl border border-border bg-card p-3">
@@ -92,16 +156,57 @@ export function ChatShell() {
 
           {conversations.map((conversation) => {
             const isActive = conversation.id === activeConversationId;
+            const isEditing = conversation.id === editingConversationId;
             return (
-              <Button
-                key={conversation.id}
-                type="button"
-                variant={isActive ? 'secondary' : 'ghost'}
-                className="h-9 w-full justify-start px-2"
-                onClick={() => handleSelectConversation(conversation.id)}
-              >
-                {formatConversationTitle(conversation)}
-              </Button>
+              <div key={conversation.id} className="flex items-center gap-1">
+                {isEditing ? (
+                  <Input
+                    value={draftTitle}
+                    className="h-9 flex-1"
+                    onChange={handleDraftTitleChange}
+                    onKeyDown={handleDraftTitleKeyDown}
+                  />
+                ) : (
+                  <Button
+                    type="button"
+                    variant={isActive ? 'secondary' : 'ghost'}
+                    className="h-9 flex-1 justify-start px-2"
+                    onClick={() => handleSelectConversation(conversation.id)}
+                  >
+                    {formatConversationTitle(conversation)}
+                  </Button>
+                )}
+
+                {isEditing ? (
+                  <>
+                    <Button
+                      size="xs"
+                      variant="secondary"
+                      onClick={handleSaveEditingConversation}
+                      disabled={isSavingTitle}
+                    >
+                      保存
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={handleCancelEditingConversation}
+                      disabled={isSavingTitle}
+                    >
+                      取消
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button size="xs" variant="ghost" onClick={() => handleStartEditingConversation(conversation)}>
+                      改名
+                    </Button>
+                    <Button size="xs" variant="ghost" onClick={() => void handleDeleteConversation(conversation.id)}>
+                      删除
+                    </Button>
+                  </>
+                )}
+              </div>
             );
           })}
         </div>
