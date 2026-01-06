@@ -1,0 +1,16 @@
+{
+  "name": "@muicv/cron",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/dev.ts",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@muicv/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0"
+  }
+}

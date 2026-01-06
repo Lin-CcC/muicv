@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+
+.next
+dist
+
+.wrangler
+
+.idea
+
+.env
+.env.*
