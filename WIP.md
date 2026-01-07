@@ -93,8 +93,10 @@
 - [ ] Chat 页面：流式渲染、停止生成、重试
 - [x] 多对话列表：创建/切换（MVP）
 - [x] 多对话列表：重命名/删除
-- [ ] 简历预览：对 `ResumeJson` 的实时渲染（右侧面板/分页）
-- [ ] 自动抽取：对话过程中增量更新 `ResumeJson`，并可手动回滚/编辑
+- [x] 简历预览（MVP）：右侧面板展示 `ResumeJson` 的基础信息/技能/总结 + 版本列表
+- [x] 自动抽取（MVP）：对话过程中增量更新 `ResumeJson`，仅在个人信息变更时保存新版本
+- [x] 简历回滚（MVP）：可回滚到历史版本（回滚会生成一个新版本，并触发裁剪）
+- [ ] 简历编辑：支持手动修改 `ResumeJson`（并生成版本）
 - [x] 简历版本：`resume_snapshots` 保留最近 N 份 + 回滚（默认 10，可通过 `MUICV_RESUME_SNAPSHOT_LIMIT` 配置）
 - [ ] 导出：先支持 Markdown/HTML；PDF 延后评估（Cloudflare 环境限制需确认）
 

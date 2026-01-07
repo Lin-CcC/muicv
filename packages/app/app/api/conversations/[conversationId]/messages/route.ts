@@ -2,10 +2,17 @@ import type { ChatMessage } from '@muicv/shared';
 import { getChatStore } from '@/src/server/chat-store';
 import type { AiProviderId } from '@/src/server/ai/ai-service';
 import { buildAiMessagesForAssistant, getAiClient } from '@/src/server/ai/ai-service';
+import { extractResumeUpdate } from '@/src/server/ai/resume-extractor';
 import { getDefaultChatSystemPrompt } from '@/src/server/ai/system-prompts';
+import { createMonotonicIsoTimestamp } from '@/src/server/monotonic-time';
+import { shouldAttemptResumeExtraction } from '@/src/server/resume-extraction-heuristics';
+import { getResumeStore } from '@/src/server/resume-store';
+import { isResumeMeaningfullyDifferent } from '@/src/server/resume-versioning';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+const DEMO_USER_ID = 'demo';
 
 type ConversationMessagesRouteContext = {
   params: Promise<{ conversationId: string }>;
@@ -31,8 +38,6 @@ type AddMessageBody = {
 };
 
 export async function POST(request: Request, context: ConversationMessagesRouteContext) {
-  console.log('xxx', process.env.GOOGLE_API_KEY);
-  console.log('xxx1', process.env.OPENAI_API_KEY);
   const { conversationId } = await context.params;
   const store = await getChatStore();
   const conversation = await store.getConversation(conversationId);
@@ -58,10 +63,12 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
   createdMessages.push(userMessage);
 
   let assistantError: string | undefined;
+  let resumeUpdated = false;
+  let resumeSnapshotId: string | undefined;
 
   if (role === 'user') {
+    const history = await store.listMessages(conversationId);
     try {
-      const history = await store.listMessages(conversationId);
       const aiMessages = buildAiMessagesForAssistant({
         messages: history,
         systemPrompt: getDefaultChatSystemPrompt(),
@@ -90,7 +97,48 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
     } catch (error) {
       assistantError = error instanceof Error ? error.message : 'AI 生成失败';
     }
+
+    if (shouldAttemptResumeExtraction(content)) {
+      try {
+        const resumeStore = await getResumeStore();
+        const currentSnapshot = await resumeStore.getCurrentResume(DEMO_USER_ID);
+        const currentResume = currentSnapshot?.resume ?? null;
+
+        const extraction = await extractResumeUpdate({
+          currentResume,
+          messages: history,
+          ...(body.model?.trim() ? { model: body.model.trim() } : {}),
+          ...(body.provider ? { provider: body.provider } : {}),
+        });
+
+        if (extraction.shouldUpdateResume && extraction.updatedResume) {
+          const resumeToSave = {
+            ...extraction.updatedResume,
+            lastUpdatedAt: createMonotonicIsoTimestamp(),
+          };
+
+          if (isResumeMeaningfullyDifferent(currentResume, resumeToSave)) {
+            const snapshot = await resumeStore.saveResumeSnapshot({
+              conversationId,
+              resume: resumeToSave,
+              userId: DEMO_USER_ID,
+            });
+            resumeUpdated = true;
+            resumeSnapshotId = snapshot.id;
+          }
+        }
+      } catch {
+        // 简历抽取失败不应影响对话主流程；后续接入日志/监控再补齐可观测性。
+      }
+    }
   }
 
-  return Response.json({ messages: createdMessages, assistantError }, { status: 201 });
+  return Response.json(
+    {
+      assistantError,
+      messages: createdMessages,
+      ...(resumeUpdated ? { resumeSnapshotId, resumeUpdated } : { resumeUpdated }),
+    },
+    { status: 201 },
+  );
 }

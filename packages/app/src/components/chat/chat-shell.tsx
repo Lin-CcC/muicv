@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ChatMessage, Conversation } from '@muicv/shared';
 import { Button, Input } from '@muicv/ui';
 import { useChatStore } from '@/src/store/chat-store';
+import { useResumeStore } from '@/src/store/resume-store';
 
 function formatConversationTitle(conversation: Conversation) {
   const title = conversation.title.trim();
@@ -32,6 +33,16 @@ export function ChatShell() {
   const deleteConversation = useChatStore((state) => state.deleteConversation);
   const sendUserMessage = useChatStore((state) => state.sendUserMessage);
 
+  const resume = useResumeStore((state) => state.current);
+  const resumeSnapshots = useResumeStore((state) => state.snapshots);
+  const resumeRetentionLimit = useResumeStore((state) => state.retentionLimit);
+  const isLoadingResume = useResumeStore((state) => state.isLoading);
+  const resumeErrorMessage = useResumeStore((state) => state.errorMessage);
+  const currentResumeSnapshotId = useResumeStore((state) => state.currentSnapshotId);
+  const rollbackSnapshot = useResumeStore((state) => state.rollbackSnapshot);
+  const isRollingBackSnapshotId = useResumeStore((state) => state.isRollingBackSnapshotId);
+  const loadResume = useResumeStore((state) => state.loadResume);
+
   const [draft, setDraft] = useState('');
   const [editingConversationId, setEditingConversationId] = useState<string | undefined>(undefined);
   const [draftTitle, setDraftTitle] = useState('');
@@ -39,7 +50,8 @@ export function ChatShell() {
 
   useEffect(() => {
     void loadConversations();
-  }, [loadConversations]);
+    void loadResume();
+  }, [loadConversations, loadResume]);
 
   const activeMessages = useMemo(() => {
     if (!activeConversationId) return undefined;
@@ -68,18 +80,10 @@ export function ChatShell() {
     setDraft(event.target.value);
   }
 
-  function handleSend() {
-    const content = draft.trim();
-    if (!content) return;
-
-    setDraft('');
-    void sendUserMessage(content);
-  }
-
   function handleDraftKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== 'Enter') return;
     event.preventDefault();
-    handleSend();
+    void handleSend();
   }
 
   function handleStartEditingConversation(conversation: Conversation) {
@@ -135,6 +139,25 @@ export function ChatShell() {
     if (event.key !== 'Enter') return;
     event.preventDefault();
     void handleSaveEditingConversation();
+  }
+
+  function formatResumeSnapshotTime(value: string) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN');
+  }
+
+  async function handleSend() {
+    const content = draft.trim();
+    if (!content) return;
+
+    setDraft('');
+    await sendUserMessage(content);
+    await loadResume();
+  }
+
+  async function handleRollbackSnapshot(snapshotId: string) {
+    if (!window.confirm('确定回滚到这个版本吗？回滚会生成一个新版本，旧版本仍会保留在列表中。')) return;
+    await rollbackSnapshot(snapshotId);
   }
 
   return (
@@ -265,7 +288,7 @@ export function ChatShell() {
             onChange={handleDraftChange}
             onKeyDown={handleDraftKeyDown}
           />
-          <Button type="button" onClick={handleSend} disabled={isSendingMessage}>
+          <Button type="button" onClick={() => void handleSend()} disabled={isSendingMessage}>
             {isSendingMessage ? '发送中...' : '发送'}
           </Button>
         </div>
@@ -273,9 +296,95 @@ export function ChatShell() {
 
       <aside className="col-span-3 rounded-xl border border-border bg-card p-4">
         <h2 className="text-sm font-semibold">简历预览</h2>
-        <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-          <div className="rounded-md border border-border bg-background p-3">这里会实时渲染 ResumeJson</div>
-          <div className="rounded-md border border-border bg-background p-3">并支持导出 Markdown/HTML</div>
+        <div className="mt-3 space-y-3 text-sm">
+          {isLoadingResume && <div className="text-sm text-muted-foreground">加载简历中...</div>}
+
+          {resumeErrorMessage && (
+            <div className="rounded-lg border border-destructive/24 bg-destructive/8 px-3 py-2 text-sm text-destructive-foreground">
+              {resumeErrorMessage}
+            </div>
+          )}
+
+          {!isLoadingResume && !resume && (
+            <div className="rounded-md border border-border bg-background p-3 text-muted-foreground">
+              还没有简历信息。你可以在对话里介绍你的经历与技能，我会自动帮你记录并生成版本。
+            </div>
+          )}
+
+          {resume && (
+            <div className="rounded-md border border-border bg-background p-3">
+              <div className="text-xs text-muted-foreground">基础信息</div>
+              <div className="mt-2 space-y-1">
+                <div>{resume.basicInfo.fullName ? `姓名：${resume.basicInfo.fullName}` : '姓名：未填写'}</div>
+                {resume.basicInfo.headline && <div>标题：{resume.basicInfo.headline}</div>}
+                {resume.basicInfo.location && <div>地点：{resume.basicInfo.location}</div>}
+                {resume.basicInfo.email && <div>Email：{resume.basicInfo.email}</div>}
+              </div>
+
+              <div className="mt-3 text-xs text-muted-foreground">技能</div>
+              <div className="mt-2">
+                {(resume.skills ?? []).length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {(resume.skills ?? []).map((skill) => (
+                      <span key={skill} className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-muted-foreground">未填写</div>
+                )}
+              </div>
+
+              {resume.summary && (
+                <>
+                  <div className="mt-3 text-xs text-muted-foreground">总结</div>
+                  <div className="mt-2 whitespace-pre-wrap text-sm">{resume.summary}</div>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="rounded-md border border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs text-muted-foreground">版本（保留最近 {resumeRetentionLimit} 个）</div>
+              <Button size="xs" variant="secondary" type="button" onClick={() => void loadResume()}>
+                刷新
+              </Button>
+            </div>
+
+            <div className="mt-2 space-y-2">
+              {resumeSnapshots.length === 0 && <div className="text-muted-foreground">暂无版本</div>}
+
+              {resumeSnapshots.map((snapshot) => {
+                const isCurrent = snapshot.id === currentResumeSnapshotId;
+                const isRollingBack = snapshot.id === isRollingBackSnapshotId;
+                return (
+                  <div
+                    key={snapshot.id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border p-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-xs">{formatResumeSnapshotTime(snapshot.createdAt)}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {isCurrent ? '当前版本' : '历史版本'} · {snapshot.id.slice(0, 8)}
+                      </div>
+                    </div>
+
+                    <Button
+                      size="xs"
+                      type="button"
+                      variant="ghost"
+                      disabled={isCurrent || Boolean(isRollingBackSnapshotId)}
+                      onClick={() => void handleRollbackSnapshot(snapshot.id)}
+                    >
+                      {isRollingBack ? '回滚中...' : '回滚'}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </aside>
     </main>
