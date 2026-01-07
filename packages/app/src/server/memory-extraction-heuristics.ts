@@ -1,4 +1,4 @@
-const EXPLICIT_RESUME_KEYWORDS = [
+const EXPLICIT_MEMORY_KEYWORDS = [
   '简历',
   '个人信息',
   '基本信息',
@@ -31,11 +31,15 @@ const EXPLICIT_RESUME_KEYWORDS = [
   '期望',
   '薪资',
   '转岗',
+  '离职',
+  '入职',
+  '毕业',
+  '面试',
 ];
 
-const FIRST_PERSON_HINTS = ['我', '我的', '目前', '最近', '这段时间'];
+const FIRST_PERSON_HINTS = ['我', '我的', '目前', '最近', '这段时间', '从', '已经', '一直', '主要'];
 
-const RESUME_UPDATE_VERBS = [
+const USER_FACT_VERBS = [
   '开始',
   '负责',
   '参与',
@@ -80,15 +84,29 @@ function includesAny(text: string, needles: string[]) {
   return false;
 }
 
-export function shouldAttemptResumeExtraction(userText: string): boolean {
+function looksLikeEmail(text: string) {
+  return /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(text);
+}
+
+function looksLikePhone(text: string) {
+  return /(\+?\d[\d\s-]{7,}\d)/.test(text);
+}
+
+function looksLikeUrl(text: string) {
+  return /https?:\/\//.test(text);
+}
+
+export function shouldAttemptMemoryExtraction(userText: string): boolean {
   const content = userText.trim();
   if (!content) return false;
 
   const lower = content.toLowerCase();
-  if (includesAny(content, EXPLICIT_RESUME_KEYWORDS)) return true;
-  if (includesAny(lower, EXPLICIT_RESUME_KEYWORDS)) return true;
+
+  if (looksLikeEmail(content) || looksLikePhone(content) || looksLikeUrl(lower)) return true;
+  if (includesAny(content, EXPLICIT_MEMORY_KEYWORDS)) return true;
+  if (includesAny(lower, EXPLICIT_MEMORY_KEYWORDS)) return true;
 
   const hasFirstPersonHint = includesAny(content, FIRST_PERSON_HINTS);
-  const hasUpdateVerb = includesAny(content, RESUME_UPDATE_VERBS);
-  return hasFirstPersonHint && hasUpdateVerb;
+  const hasFactVerb = includesAny(content, USER_FACT_VERBS);
+  return hasFirstPersonHint && hasFactVerb;
 }

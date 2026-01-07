@@ -1,5 +1,6 @@
 import type { Conversation } from '@muicv/shared';
 import { getChatStore } from '@/src/server/chat-store';
+import { getResumeStore } from '@/src/server/resume-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -23,6 +24,7 @@ export async function GET(_request: Request, context: ConversationRouteContext) 
 
 type PatchConversationBody = {
   title?: string;
+  contextResumeId?: string | null;
 };
 
 export async function PATCH(request: Request, context: ConversationRouteContext) {
@@ -34,12 +36,40 @@ export async function PATCH(request: Request, context: ConversationRouteContext)
   }
 
   const body = (await request.json().catch(() => ({}))) as PatchConversationBody;
-  const title = body.title?.trim() ?? '';
-  if (!title) {
-    return Response.json({ message: 'title 不能为空' }, { status: 400 });
+
+  const shouldPatchTitle = body.title !== undefined;
+  const shouldPatchContext = Object.prototype.hasOwnProperty.call(body, 'contextResumeId');
+
+  if (!shouldPatchTitle && !shouldPatchContext) {
+    return Response.json({ message: '缺少可更新字段' }, { status: 400 });
   }
 
-  const updated: Conversation = await store.renameConversation(conversationId, title);
+  let updated: Conversation = conversation;
+
+  if (shouldPatchTitle) {
+    const title = body.title?.trim() ?? '';
+    if (!title) {
+      return Response.json({ message: 'title 不能为空' }, { status: 400 });
+    }
+
+    updated = await store.renameConversation(conversationId, title);
+  }
+
+  if (shouldPatchContext) {
+    const raw = body.contextResumeId;
+    const contextResumeId = raw === null ? null : raw?.trim() ? raw.trim() : null;
+
+    if (contextResumeId) {
+      const resumeStore = await getResumeStore();
+      const resume = await resumeStore.getResume(DEMO_USER_ID, contextResumeId);
+      if (!resume) {
+        return Response.json({ message: '要关联的简历不存在' }, { status: 404 });
+      }
+    }
+
+    updated = await store.setConversationResumeContext(conversationId, contextResumeId);
+  }
+
   return Response.json(updated);
 }
 

@@ -14,6 +14,7 @@ type ConversationRow = {
   id: string;
   userId: string;
   title: string;
+  contextResumeId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -36,9 +37,11 @@ type ChatStoreStatements = EnsureUserStatements & {
   getConversation: StatementSync;
   insertConversation: StatementSync;
   updateConversationTitleAndUpdatedAt: StatementSync;
+  updateConversationResumeContext: StatementSync;
   deleteConversation: StatementSync;
   clearConversationReferencesFromResumeSnapshots: StatementSync;
   clearConversationReferencesFromUsageLogs: StatementSync;
+  clearConversationReferencesFromMemoryEntries: StatementSync;
   deleteMessagesByConversationId: StatementSync;
   listMessages: StatementSync;
   insertMessage: StatementSync;
@@ -68,6 +71,7 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
       id,
       user_id AS userId,
       title,
+      context_resume_id AS contextResumeId,
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM conversations
@@ -80,6 +84,7 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
       id,
       user_id AS userId,
       title,
+      context_resume_id AS contextResumeId,
       created_at AS createdAt,
       updated_at AS updatedAt
     FROM conversations
@@ -95,6 +100,10 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
     'UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?',
   );
 
+  const updateConversationResumeContext = database.prepare(
+    'UPDATE conversations SET context_resume_id = ?, updated_at = ? WHERE id = ?',
+  );
+
   const deleteConversation = database.prepare('DELETE FROM conversations WHERE id = ?');
 
   const clearConversationReferencesFromResumeSnapshots = database.prepare(
@@ -103,6 +112,10 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
 
   const clearConversationReferencesFromUsageLogs = database.prepare(
     'UPDATE usage_logs SET conversation_id = NULL WHERE conversation_id = ?',
+  );
+
+  const clearConversationReferencesFromMemoryEntries = database.prepare(
+    'UPDATE memory_entries SET conversation_id = NULL, message_id = NULL WHERE conversation_id = ?',
   );
 
   const deleteMessagesByConversationId = database.prepare('DELETE FROM messages WHERE conversation_id = ?');
@@ -129,6 +142,7 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
   return {
     clearConversationReferencesFromResumeSnapshots,
     clearConversationReferencesFromUsageLogs,
+    clearConversationReferencesFromMemoryEntries,
     deleteConversation,
     deleteMessagesByConversationId,
     getConversation,
@@ -138,6 +152,7 @@ function createChatStoreStatements(database: DatabaseSync): ChatStoreStatements 
     listConversations,
     listMessages,
     updateConversationTitleAndUpdatedAt,
+    updateConversationResumeContext,
     updateConversationUpdatedAt,
     updateUserUpdatedAt,
   };
@@ -161,6 +176,7 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
       id: row.id,
       userId: row.userId,
       title: row.title,
+      contextResumeId: row.contextResumeId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -173,6 +189,7 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
       id: row.id,
       userId: row.userId,
       title: row.title,
+      contextResumeId: row.contextResumeId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -192,6 +209,7 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
       id: conversationId,
       userId: createConversationParams.userId,
       title,
+      contextResumeId: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -223,6 +241,37 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
       id: updatedConversation.id,
       userId: updatedConversation.userId,
       title: updatedConversation.title,
+      contextResumeId: updatedConversation.contextResumeId,
+      createdAt: updatedConversation.createdAt,
+      updatedAt: updatedConversation.updatedAt,
+    };
+  }
+
+  async function setConversationResumeContext(
+    conversationId: ConversationId,
+    resumeId: string | null,
+  ): Promise<Conversation> {
+    const now = new Date().toISOString();
+
+    const updatedConversation = runInTransaction(storeParams.database, () => {
+      const updated = statements.updateConversationResumeContext.run(resumeId, now, conversationId);
+      if (Number(updated.changes) !== 1) {
+        throw new Error(`对话不存在：${conversationId}`);
+      }
+
+      const row = statements.getConversation.get(conversationId) as unknown as ConversationRow | undefined;
+      if (!row) {
+        throw new Error(`对话不存在：${conversationId}`);
+      }
+
+      return row;
+    });
+
+    return {
+      id: updatedConversation.id,
+      userId: updatedConversation.userId,
+      title: updatedConversation.title,
+      contextResumeId: updatedConversation.contextResumeId,
       createdAt: updatedConversation.createdAt,
       updatedAt: updatedConversation.updatedAt,
     };
@@ -232,6 +281,7 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
     runInTransaction(storeParams.database, () => {
       statements.clearConversationReferencesFromResumeSnapshots.run(conversationId);
       statements.clearConversationReferencesFromUsageLogs.run(conversationId);
+      statements.clearConversationReferencesFromMemoryEntries.run(conversationId);
       statements.deleteMessagesByConversationId.run(conversationId);
       statements.deleteConversation.run(conversationId);
     });
@@ -284,6 +334,7 @@ export function createSqliteChatStore(storeParams: CreateSqliteChatStoreParams):
     listConversations,
     listMessages,
     renameConversation,
+    setConversationResumeContext,
   };
 }
 

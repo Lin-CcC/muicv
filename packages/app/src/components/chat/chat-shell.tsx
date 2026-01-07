@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ChatMessage, Conversation } from '@muicv/shared';
 import { Button, Input } from '@muicv/ui';
 import { useChatStore } from '@/src/store/chat-store';
-import { useResumeStore } from '@/src/store/resume-store';
+import { useMemoryStore } from '@/src/store/memory-store';
 
 function formatConversationTitle(conversation: Conversation) {
   const title = conversation.title.trim();
@@ -33,15 +33,13 @@ export function ChatShell() {
   const deleteConversation = useChatStore((state) => state.deleteConversation);
   const sendUserMessage = useChatStore((state) => state.sendUserMessage);
 
-  const resume = useResumeStore((state) => state.current);
-  const resumeSnapshots = useResumeStore((state) => state.snapshots);
-  const resumeRetentionLimit = useResumeStore((state) => state.retentionLimit);
-  const isLoadingResume = useResumeStore((state) => state.isLoading);
-  const resumeErrorMessage = useResumeStore((state) => state.errorMessage);
-  const currentResumeSnapshotId = useResumeStore((state) => state.currentSnapshotId);
-  const rollbackSnapshot = useResumeStore((state) => state.rollbackSnapshot);
-  const isRollingBackSnapshotId = useResumeStore((state) => state.isRollingBackSnapshotId);
-  const loadResume = useResumeStore((state) => state.loadResume);
+  const memoryEntries = useMemoryStore((state) => state.entries);
+  const isLoadingMemory = useMemoryStore((state) => state.isLoading);
+  const isOrganizingMemory = useMemoryStore((state) => state.isOrganizing);
+  const memoryErrorMessage = useMemoryStore((state) => state.errorMessage);
+  const lastOrganizeSummary = useMemoryStore((state) => state.lastOrganizeSummary);
+  const loadMemoryEntries = useMemoryStore((state) => state.loadEntries);
+  const organizeEntries = useMemoryStore((state) => state.organizeEntries);
 
   const [draft, setDraft] = useState('');
   const [editingConversationId, setEditingConversationId] = useState<string | undefined>(undefined);
@@ -50,8 +48,12 @@ export function ChatShell() {
 
   useEffect(() => {
     void loadConversations();
-    void loadResume();
-  }, [loadConversations, loadResume]);
+    void loadMemoryEntries();
+  }, [loadConversations, loadMemoryEntries]);
+
+  useEffect(() => {
+    void loadMemoryEntries(activeConversationId);
+  }, [activeConversationId, loadMemoryEntries]);
 
   const activeMessages = useMemo(() => {
     if (!activeConversationId) return undefined;
@@ -141,9 +143,19 @@ export function ChatShell() {
     void handleSaveEditingConversation();
   }
 
-  function formatResumeSnapshotTime(value: string) {
+  function formatTimestamp(value: string) {
     const date = new Date(value);
     return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN');
+  }
+
+  function formatMemoryEntryKind(value: string) {
+    if (value === 'career_event') return '经历';
+    if (value === 'skill') return '技能';
+    if (value === 'project') return '项目';
+    if (value === 'education') return '教育';
+    if (value === 'preference') return '偏好';
+    if (value === 'contact') return '联系方式';
+    return '其它';
   }
 
   async function handleSend() {
@@ -152,16 +164,18 @@ export function ChatShell() {
 
     setDraft('');
     await sendUserMessage(content);
-    await loadResume();
+    await loadMemoryEntries(useChatStore.getState().activeConversationId);
   }
 
-  async function handleRollbackSnapshot(snapshotId: string) {
-    if (!window.confirm('确定回滚到这个版本吗？回滚会生成一个新版本，旧版本仍会保留在列表中。')) return;
-    await rollbackSnapshot(snapshotId);
+  async function handleOrganizeMemory() {
+    const shouldProceed = window.confirm('整理会调用 AI 并可能产生新的「用户记录」，确定继续吗？');
+    if (!shouldProceed) return;
+
+    await organizeEntries(activeConversationId ?? undefined);
   }
 
   return (
-    <main className="mx-auto grid min-h-screen max-w-6xl grid-cols-12 gap-4 p-6">
+    <main className="mx-auto grid min-h-[calc(100vh-56px)] max-w-6xl grid-cols-12 gap-4 p-6">
       <aside className="col-span-3 flex flex-col gap-3 rounded-xl border border-border bg-card p-3">
         <div className="flex items-center justify-between gap-2 px-1">
           <h2 className="text-sm font-semibold">对话</h2>
@@ -295,94 +309,77 @@ export function ChatShell() {
       </section>
 
       <aside className="col-span-3 rounded-xl border border-border bg-card p-4">
-        <h2 className="text-sm font-semibold">简历预览</h2>
+        <h2 className="text-sm font-semibold">用户记录</h2>
         <div className="mt-3 space-y-3 text-sm">
-          {isLoadingResume && <div className="text-sm text-muted-foreground">加载简历中...</div>}
+          {isLoadingMemory && <div className="text-sm text-muted-foreground">加载记录中...</div>}
+          {isOrganizingMemory && <div className="text-sm text-muted-foreground">整理记录中...</div>}
 
-          {resumeErrorMessage && (
+          {memoryErrorMessage && (
             <div className="rounded-lg border border-destructive/24 bg-destructive/8 px-3 py-2 text-sm text-destructive-foreground">
-              {resumeErrorMessage}
-            </div>
-          )}
-
-          {!isLoadingResume && !resume && (
-            <div className="rounded-md border border-border bg-background p-3 text-muted-foreground">
-              还没有简历信息。你可以在对话里介绍你的经历与技能，我会自动帮你记录并生成版本。
-            </div>
-          )}
-
-          {resume && (
-            <div className="rounded-md border border-border bg-background p-3">
-              <div className="text-xs text-muted-foreground">基础信息</div>
-              <div className="mt-2 space-y-1">
-                <div>{resume.basicInfo.fullName ? `姓名：${resume.basicInfo.fullName}` : '姓名：未填写'}</div>
-                {resume.basicInfo.headline && <div>标题：{resume.basicInfo.headline}</div>}
-                {resume.basicInfo.location && <div>地点：{resume.basicInfo.location}</div>}
-                {resume.basicInfo.email && <div>Email：{resume.basicInfo.email}</div>}
-              </div>
-
-              <div className="mt-3 text-xs text-muted-foreground">技能</div>
-              <div className="mt-2">
-                {(resume.skills ?? []).length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {(resume.skills ?? []).map((skill) => (
-                      <span key={skill} className="rounded-md border border-border bg-card px-2 py-0.5 text-xs">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-muted-foreground">未填写</div>
-                )}
-              </div>
-
-              {resume.summary && (
-                <>
-                  <div className="mt-3 text-xs text-muted-foreground">总结</div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm">{resume.summary}</div>
-                </>
-              )}
+              {memoryErrorMessage}
             </div>
           )}
 
           <div className="rounded-md border border-border bg-background p-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-xs text-muted-foreground">版本（保留最近 {resumeRetentionLimit} 个）</div>
-              <Button size="xs" variant="secondary" type="button" onClick={() => void loadResume()}>
-                刷新
-              </Button>
+              <div className="text-xs text-muted-foreground">{activeConversationId ? '当前对话记录' : '全部记录'}</div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  type="button"
+                  onClick={() => void loadMemoryEntries(activeConversationId)}
+                  disabled={isLoadingMemory || isOrganizingMemory}
+                >
+                  刷新
+                </Button>
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  type="button"
+                  onClick={() => void handleOrganizeMemory()}
+                  disabled={isLoadingMemory || isOrganizingMemory}
+                >
+                  {isOrganizingMemory ? '整理中...' : '整理'}
+                </Button>
+              </div>
             </div>
 
+            {lastOrganizeSummary && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                最近一次整理：新增 {lastOrganizeSummary.created} 条，跳过 {lastOrganizeSummary.skipped} 条
+              </div>
+            )}
+
             <div className="mt-2 space-y-2">
-              {resumeSnapshots.length === 0 && <div className="text-muted-foreground">暂无版本</div>}
+              {memoryEntries.length === 0 && <div className="text-muted-foreground">暂无记录</div>}
 
-              {resumeSnapshots.map((snapshot) => {
-                const isCurrent = snapshot.id === currentResumeSnapshotId;
-                const isRollingBack = snapshot.id === isRollingBackSnapshotId;
-                return (
-                  <div
-                    key={snapshot.id}
-                    className="flex items-center justify-between gap-2 rounded-md border border-border p-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-xs">{formatResumeSnapshotTime(snapshot.createdAt)}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">
-                        {isCurrent ? '当前版本' : '历史版本'} · {snapshot.id.slice(0, 8)}
-                      </div>
+              {memoryEntries.map((entry) => (
+                <div key={entry.id} className="rounded-md border border-border p-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="truncate text-xs">{formatTimestamp(entry.createdAt)}</div>
+                    <div className="shrink-0 text-[11px] text-muted-foreground">
+                      {formatMemoryEntryKind(entry.kind)}
                     </div>
-
-                    <Button
-                      size="xs"
-                      type="button"
-                      variant="ghost"
-                      disabled={isCurrent || Boolean(isRollingBackSnapshotId)}
-                      onClick={() => void handleRollbackSnapshot(snapshot.id)}
-                    >
-                      {isRollingBack ? '回滚中...' : '回滚'}
-                    </Button>
                   </div>
-                );
-              })}
+
+                  <div className="mt-1 whitespace-pre-wrap text-sm">{entry.title}</div>
+
+                  {entry.detail && (
+                    <div className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{entry.detail}</div>
+                  )}
+
+                  {entry.tags && entry.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {entry.tags.map((tag) => (
+                        <span key={tag} className="rounded-md border border-border bg-card px-2 py-0.5 text-[11px]">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

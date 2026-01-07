@@ -2,12 +2,10 @@ import type { ChatMessage } from '@muicv/shared';
 import { getChatStore } from '@/src/server/chat-store';
 import type { AiProviderId } from '@/src/server/ai/ai-service';
 import { buildAiMessagesForAssistant, getAiClient } from '@/src/server/ai/ai-service';
-import { extractResumeUpdate } from '@/src/server/ai/resume-extractor';
+import { extractMemoryEntries } from '@/src/server/ai/memory-extractor';
 import { getDefaultChatSystemPrompt } from '@/src/server/ai/system-prompts';
-import { createMonotonicIsoTimestamp } from '@/src/server/monotonic-time';
-import { shouldAttemptResumeExtraction } from '@/src/server/resume-extraction-heuristics';
-import { getResumeStore } from '@/src/server/resume-store';
-import { isResumeMeaningfullyDifferent } from '@/src/server/resume-versioning';
+import { shouldAttemptMemoryExtraction } from '@/src/server/memory-extraction-heuristics';
+import { getMemoryStore } from '@/src/server/memory-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -63,8 +61,6 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
   createdMessages.push(userMessage);
 
   let assistantError: string | undefined;
-  let resumeUpdated = false;
-  let resumeSnapshotId: string | undefined;
 
   if (role === 'user') {
     const history = await store.listMessages(conversationId);
@@ -98,47 +94,31 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
       assistantError = error instanceof Error ? error.message : 'AI 生成失败';
     }
 
-    if (shouldAttemptResumeExtraction(content)) {
+    if (shouldAttemptMemoryExtraction(content)) {
       try {
-        const resumeStore = await getResumeStore();
-        const currentSnapshot = await resumeStore.getCurrentResume(DEMO_USER_ID);
-        const currentResume = currentSnapshot?.resume ?? null;
-
-        const extraction = await extractResumeUpdate({
-          currentResume,
+        const extraction = await extractMemoryEntries({
           messages: history,
+          nowIso: new Date().toISOString(),
           ...(body.model?.trim() ? { model: body.model.trim() } : {}),
           ...(body.provider ? { provider: body.provider } : {}),
         });
 
-        if (extraction.shouldUpdateResume && extraction.updatedResume) {
-          const resumeToSave = {
-            ...extraction.updatedResume,
-            lastUpdatedAt: createMonotonicIsoTimestamp(),
-          };
-
-          if (isResumeMeaningfullyDifferent(currentResume, resumeToSave)) {
-            const snapshot = await resumeStore.saveResumeSnapshot({
+        if (extraction.shouldWriteMemory && extraction.entries.length > 0) {
+          const memoryStore = await getMemoryStore();
+          await memoryStore.addMemoryEntries(
+            extraction.entries.map((entry) => ({
+              ...entry,
               conversationId,
-              resume: resumeToSave,
+              messageId: userMessage.id,
               userId: DEMO_USER_ID,
-            });
-            resumeUpdated = true;
-            resumeSnapshotId = snapshot.id;
-          }
+            })),
+          );
         }
       } catch {
-        // 简历抽取失败不应影响对话主流程；后续接入日志/监控再补齐可观测性。
+        // 记忆抽取失败不应影响对话主流程；后续接入日志/监控再补齐可观测性。
       }
     }
   }
 
-  return Response.json(
-    {
-      assistantError,
-      messages: createdMessages,
-      ...(resumeUpdated ? { resumeSnapshotId, resumeUpdated } : { resumeUpdated }),
-    },
-    { status: 201 },
-  );
+  return Response.json({ messages: createdMessages, assistantError }, { status: 201 });
 }

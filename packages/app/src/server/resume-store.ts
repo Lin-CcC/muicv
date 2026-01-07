@@ -4,11 +4,16 @@ import { getRequiredMuicvDatabase, tryGetCloudflareEnv } from './cloudflare-bind
 import { createD1ResumeStore } from './d1-resume-store.ts';
 
 export type {
-  ResumeSnapshot,
-  ResumeSnapshotId,
-  ResumeSnapshotMeta,
+  CreateResumeParams,
+  CreateResumeWithVersionParams,
+  CreateResumeWithVersionResult,
+  ResumeId,
+  ResumeMeta,
   ResumeStore,
-  SaveResumeSnapshotParams,
+  ResumeVersion,
+  ResumeVersionId,
+  ResumeVersionMeta,
+  SaveResumeVersionParams,
 } from './resume-store-types.ts';
 
 type GlobalWithResumeStore = typeof globalThis & {

@@ -24,6 +24,16 @@ export async function deleteConversation(conversationId: ConversationId): Promis
   await fetchJson<{ ok: true }>(`/api/conversations/${conversationId}`, { method: 'DELETE' });
 }
 
+export async function setConversationResumeContext(
+  conversationId: ConversationId,
+  resumeId: string | null,
+): Promise<Conversation> {
+  return fetchJson<Conversation>(`/api/conversations/${conversationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ contextResumeId: resumeId }),
+  });
+}
+
 export async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
   return fetchJson<ChatMessage[]>(`/api/conversations/${conversationId}/messages`, { method: 'GET' });
 }
@@ -31,12 +41,10 @@ export async function listMessages(conversationId: ConversationId): Promise<Chat
 export async function addMessage(
   conversationId: ConversationId,
   params: { role: ChatMessage['role']; content: string },
-): Promise<{ messages: ChatMessage[]; assistantError?: string; resumeUpdated?: boolean; resumeSnapshotId?: string }> {
+): Promise<{ messages: ChatMessage[]; assistantError?: string }> {
   return fetchJson<{
     messages: ChatMessage[];
     assistantError?: string;
-    resumeUpdated?: boolean;
-    resumeSnapshotId?: string;
   }>(`/api/conversations/${conversationId}/messages`, {
     method: 'POST',
     body: JSON.stringify(params),

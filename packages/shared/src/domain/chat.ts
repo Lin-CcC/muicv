@@ -16,6 +16,7 @@ export type Conversation = {
   id: ConversationId;
   userId: UserId;
   title: string;
+  contextResumeId: string | null;
   createdAt: string;
   updatedAt: string;
 };

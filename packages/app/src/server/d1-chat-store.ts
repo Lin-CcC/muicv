@@ -6,6 +6,7 @@ type ConversationRow = {
   id: string;
   userId: string;
   title: string;
+  contextResumeId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -42,6 +43,7 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
         id,
         user_id AS userId,
         title,
+        context_resume_id AS contextResumeId,
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM conversations
@@ -54,6 +56,7 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
         id,
         user_id AS userId,
         title,
+        context_resume_id AS contextResumeId,
         created_at AS createdAt,
         updated_at AS updatedAt
       FROM conversations
@@ -69,6 +72,10 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
       'UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?',
     ),
 
+    updateConversationResumeContext: params.database.prepare(
+      'UPDATE conversations SET context_resume_id = ?, updated_at = ? WHERE id = ?',
+    ),
+
     deleteConversation: params.database.prepare('DELETE FROM conversations WHERE id = ?'),
 
     clearConversationReferencesFromResumeSnapshots: params.database.prepare(
@@ -77,6 +84,10 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
 
     clearConversationReferencesFromUsageLogs: params.database.prepare(
       'UPDATE usage_logs SET conversation_id = NULL WHERE conversation_id = ?',
+    ),
+
+    clearConversationReferencesFromMemoryEntries: params.database.prepare(
+      'UPDATE memory_entries SET conversation_id = NULL, message_id = NULL WHERE conversation_id = ?',
     ),
 
     deleteMessagesByConversationId: params.database.prepare('DELETE FROM messages WHERE conversation_id = ?'),
@@ -107,6 +118,7 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
       id: row.id,
       userId: row.userId,
       title: row.title,
+      contextResumeId: row.contextResumeId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -119,6 +131,7 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
       id: row.id,
       userId: row.userId,
       title: row.title,
+      contextResumeId: row.contextResumeId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -139,6 +152,7 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
       id: conversationId,
       userId: createConversationParams.userId,
       title,
+      contextResumeId: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -172,9 +186,28 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
     await params.database.batch([
       statements.clearConversationReferencesFromResumeSnapshots.bind(conversationId),
       statements.clearConversationReferencesFromUsageLogs.bind(conversationId),
+      statements.clearConversationReferencesFromMemoryEntries.bind(conversationId),
       statements.deleteMessagesByConversationId.bind(conversationId),
       statements.deleteConversation.bind(conversationId),
     ]);
+  }
+
+  async function setConversationResumeContext(
+    conversationId: ConversationId,
+    resumeId: string | null,
+  ): Promise<Conversation> {
+    const now = new Date().toISOString();
+    const updateResult = await statements.updateConversationResumeContext.bind(resumeId, now, conversationId).run();
+    if (updateResult.meta.changes !== 1) {
+      throw new Error(`对话不存在：${conversationId}`);
+    }
+
+    const updatedConversation = await getConversation(conversationId);
+    if (!updatedConversation) {
+      throw new Error(`对话不存在：${conversationId}`);
+    }
+
+    return updatedConversation;
   }
 
   async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
@@ -224,5 +257,6 @@ export function createD1ChatStore(params: CreateD1ChatStoreParams): ChatStore {
     listConversations,
     listMessages,
     renameConversation,
+    setConversationResumeContext,
   };
 }

@@ -4,10 +4,16 @@ import type { ConversationId, ResumeJson, UserId } from '@muicv/shared';
 import type { DatabaseSync, StatementSync } from 'node:sqlite';
 
 import type {
-  ResumeSnapshot,
-  ResumeSnapshotMeta,
+  CreateResumeParams,
+  CreateResumeWithVersionParams,
+  CreateResumeWithVersionResult,
+  ResumeId,
+  ResumeMeta,
   ResumeStore,
-  SaveResumeSnapshotParams,
+  ResumeVersion,
+  ResumeVersionId,
+  ResumeVersionMeta,
+  SaveResumeVersionParams,
 } from './resume-store-types.ts';
 import { getResumeSnapshotRetentionLimit } from './resume-snapshot-retention.ts';
 import {
@@ -17,18 +23,27 @@ import {
 } from './db/sqlite-database.ts';
 import { createMonotonicIsoTimestamp } from './monotonic-time.ts';
 
-type ResumeSnapshotRow = {
+type ResumeRow = {
   id: string;
   userId: string;
-  conversationId: string | null;
+  title: string;
+  sourceConversationId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ResumeVersionRow = {
+  id: string;
+  resumeId: string;
+  userId: string;
   resumeJson: string;
   createdAt: string;
 };
 
-type ResumeSnapshotMetaRow = {
+type ResumeVersionMetaRow = {
   id: string;
+  resumeId: string;
   userId: string;
-  conversationId: string | null;
   createdAt: string;
 };
 
@@ -38,12 +53,19 @@ type EnsureUserStatements = {
 };
 
 type ResumeStoreStatements = EnsureUserStatements & {
-  insertSnapshot: StatementSync;
-  getLatestSnapshot: StatementSync;
-  listSnapshots: StatementSync;
-  listSnapshotIdsBeyondLimit: StatementSync;
-  getSnapshotById: StatementSync;
-  deleteSnapshotById: StatementSync;
+  insertResume: StatementSync;
+  updateResumeTitle: StatementSync;
+  deleteResume: StatementSync;
+  listResumes: StatementSync;
+  getResume: StatementSync;
+
+  insertVersion: StatementSync;
+  updateResumeUpdatedAt: StatementSync;
+  getLatestVersion: StatementSync;
+  listVersions: StatementSync;
+  listVersionIdsBeyondLimit: StatementSync;
+  getVersionById: StatementSync;
+  deleteVersionById: StatementSync;
 };
 
 function runInTransaction<Result>(database: DatabaseSync, fn: () => Result) {
@@ -64,64 +86,109 @@ function createStatements(database: DatabaseSync): ResumeStoreStatements {
   );
   const updateUserUpdatedAt = database.prepare('UPDATE users SET updated_at = ? WHERE id = ?');
 
-  const insertSnapshot = database.prepare(`
-    INSERT INTO resume_snapshots (id, user_id, conversation_id, resume_json, created_at)
-    VALUES (?, ?, ?, ?, ?)
+  const insertResume = database.prepare(`
+    INSERT INTO resumes (id, user_id, title, created_at, updated_at, source_conversation_id)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  const getLatestSnapshot = database.prepare(`
+  const updateResumeTitle = database.prepare(
+    'UPDATE resumes SET title = ?, updated_at = ? WHERE user_id = ? AND id = ?',
+  );
+  const deleteResume = database.prepare('DELETE FROM resumes WHERE user_id = ? AND id = ?');
+
+  const listResumes = database.prepare(`
     SELECT
       id,
       user_id AS userId,
-      conversation_id AS conversationId,
+      title,
+      source_conversation_id AS sourceConversationId,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM resumes
+    WHERE user_id = ?
+    ORDER BY updated_at DESC, id DESC
+  `);
+
+  const getResume = database.prepare(`
+    SELECT
+      id,
+      user_id AS userId,
+      title,
+      source_conversation_id AS sourceConversationId,
+      created_at AS createdAt,
+      updated_at AS updatedAt
+    FROM resumes
+    WHERE user_id = ? AND id = ?
+  `);
+
+  const insertVersion = database.prepare(`
+    INSERT INTO resume_versions (id, resume_id, user_id, resume_json, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+
+  const updateResumeUpdatedAt = database.prepare('UPDATE resumes SET updated_at = ? WHERE user_id = ? AND id = ?');
+
+  const getLatestVersion = database.prepare(`
+    SELECT
+      id,
+      resume_id AS resumeId,
+      user_id AS userId,
       resume_json AS resumeJson,
       created_at AS createdAt
-    FROM resume_snapshots
-    WHERE user_id = ?
+    FROM resume_versions
+    WHERE user_id = ? AND resume_id = ?
     ORDER BY created_at DESC, id DESC
     LIMIT 1
   `);
 
-  const listSnapshots = database.prepare(`
+  const listVersions = database.prepare(`
     SELECT
       id,
+      resume_id AS resumeId,
       user_id AS userId,
-      conversation_id AS conversationId,
       created_at AS createdAt
-    FROM resume_snapshots
-    WHERE user_id = ?
+    FROM resume_versions
+    WHERE user_id = ? AND resume_id = ?
     ORDER BY created_at DESC, id DESC
   `);
 
-  const listSnapshotIdsBeyondLimit = database.prepare(`
+  const listVersionIdsBeyondLimit = database.prepare(`
     SELECT id
-    FROM resume_snapshots
-    WHERE user_id = ?
+    FROM resume_versions
+    WHERE user_id = ? AND resume_id = ?
     ORDER BY created_at DESC, id DESC
     LIMIT -1 OFFSET ?
   `);
 
-  const getSnapshotById = database.prepare(`
+  const getVersionById = database.prepare(`
     SELECT
       id,
+      resume_id AS resumeId,
       user_id AS userId,
-      conversation_id AS conversationId,
       resume_json AS resumeJson,
       created_at AS createdAt
-    FROM resume_snapshots
-    WHERE user_id = ? AND id = ?
+    FROM resume_versions
+    WHERE user_id = ? AND resume_id = ? AND id = ?
   `);
 
-  const deleteSnapshotById = database.prepare('DELETE FROM resume_snapshots WHERE user_id = ? AND id = ?');
+  const deleteVersionById = database.prepare(
+    'DELETE FROM resume_versions WHERE user_id = ? AND resume_id = ? AND id = ?',
+  );
 
   return {
-    deleteSnapshotById,
-    getLatestSnapshot,
-    getSnapshotById,
+    deleteResume,
+    deleteVersionById,
+    getLatestVersion,
+    getResume,
+    getVersionById,
     insertOrIgnoreUser,
-    insertSnapshot,
-    listSnapshotIdsBeyondLimit,
-    listSnapshots,
+    insertResume,
+    insertVersion,
+    listResumes,
+    listVersionIdsBeyondLimit,
+    listVersions,
+    updateResumeTitle,
+    updateResumeUpdatedAt,
     updateUserUpdatedAt,
   };
 }
@@ -145,11 +212,9 @@ function parseResumeJson(raw: string): ResumeJson {
   return parsed;
 }
 
-function trimOldSnapshots(statements: ResumeStoreStatements, userId: UserId, limit: number) {
-  const rows = statements.listSnapshotIdsBeyondLimit.all(userId, limit) as unknown as Array<{ id: string }>;
-  for (const row of rows) {
-    statements.deleteSnapshotById.run(userId, row.id);
-  }
+function normalizeTitle(value: string | undefined) {
+  const title = value?.trim();
+  return title ? title : '新简历';
 }
 
 export type CreateSqliteResumeStoreParams = {
@@ -159,74 +224,210 @@ export type CreateSqliteResumeStoreParams = {
 export function createSqliteResumeStore(params: CreateSqliteResumeStoreParams): ResumeStore {
   const statements = createStatements(params.database);
 
-  async function getCurrentResume(userId: UserId): Promise<ResumeSnapshot | undefined> {
-    const row = statements.getLatestSnapshot.get(userId) as unknown as ResumeSnapshotRow | undefined;
-    if (!row) return undefined;
-
-    return {
-      conversationId: row.conversationId,
-      createdAt: row.createdAt,
-      id: row.id,
-      resume: parseResumeJson(row.resumeJson),
-      userId: row.userId,
-    };
+  function trimOldVersions(userId: UserId, resumeId: ResumeId) {
+    const limit = getResumeSnapshotRetentionLimit();
+    const rows = statements.listVersionIdsBeyondLimit.all(userId, resumeId, limit) as unknown as Array<{ id: string }>;
+    for (const row of rows) {
+      statements.deleteVersionById.run(userId, resumeId, row.id);
+    }
   }
 
-  async function listResumeSnapshots(userId: UserId): Promise<ResumeSnapshotMeta[]> {
-    const limit = getResumeSnapshotRetentionLimit();
-    const rows = statements.listSnapshots.all(userId) as unknown as ResumeSnapshotMetaRow[];
-    return rows.slice(0, limit).map((row) => ({
-      conversationId: row.conversationId,
+  async function listResumes(userId: UserId): Promise<ResumeMeta[]> {
+    const rows = statements.listResumes.all(userId) as unknown as ResumeRow[];
+    return rows.map((row) => ({
       createdAt: row.createdAt,
       id: row.id,
+      sourceConversationId: row.sourceConversationId,
+      title: row.title,
+      updatedAt: row.updatedAt,
       userId: row.userId,
     }));
   }
 
-  async function saveResumeSnapshot(saveParams: SaveResumeSnapshotParams): Promise<ResumeSnapshotMeta> {
+  async function getResume(userId: UserId, resumeId: ResumeId): Promise<ResumeMeta | undefined> {
+    const row = statements.getResume.get(userId, resumeId) as unknown as ResumeRow | undefined;
+    if (!row) return undefined;
+    return {
+      createdAt: row.createdAt,
+      id: row.id,
+      sourceConversationId: row.sourceConversationId,
+      title: row.title,
+      updatedAt: row.updatedAt,
+      userId: row.userId,
+    };
+  }
+
+  async function createResume(createParams: CreateResumeParams): Promise<ResumeMeta> {
     const now = createMonotonicIsoTimestamp();
-    const snapshotId = randomUUID();
-    const retentionLimit = getResumeSnapshotRetentionLimit();
+    const resumeId = randomUUID();
+    const title = normalizeTitle(createParams.title);
+    const sourceConversationId = (createParams.sourceConversationId ?? null) satisfies ConversationId | null;
 
     runInTransaction(params.database, () => {
-      ensureUserExists(statements, saveParams.userId, now);
-      statements.insertSnapshot.run(
-        snapshotId,
-        saveParams.userId,
-        (saveParams.conversationId ?? null) satisfies ConversationId | null,
-        JSON.stringify(saveParams.resume),
-        now,
-      );
-      trimOldSnapshots(statements, saveParams.userId, retentionLimit);
+      ensureUserExists(statements, createParams.userId, now);
+      statements.insertResume.run(resumeId, createParams.userId, title, now, now, sourceConversationId);
     });
 
     return {
-      conversationId: saveParams.conversationId ?? null,
       createdAt: now,
-      id: snapshotId,
+      id: resumeId,
+      sourceConversationId,
+      title,
+      updatedAt: now,
+      userId: createParams.userId,
+    };
+  }
+
+  async function createResumeWithVersion(
+    createParams: CreateResumeWithVersionParams,
+  ): Promise<CreateResumeWithVersionResult> {
+    const now = createMonotonicIsoTimestamp();
+    const resumeId = randomUUID();
+    const versionId = randomUUID();
+    const title = normalizeTitle(createParams.title);
+    const sourceConversationId = (createParams.sourceConversationId ?? null) satisfies ConversationId | null;
+
+    runInTransaction(params.database, () => {
+      ensureUserExists(statements, createParams.userId, now);
+      statements.insertResume.run(resumeId, createParams.userId, title, now, now, sourceConversationId);
+      statements.insertVersion.run(versionId, resumeId, createParams.userId, JSON.stringify(createParams.resume), now);
+    });
+
+    return {
+      resume: {
+        createdAt: now,
+        id: resumeId,
+        sourceConversationId,
+        title,
+        updatedAt: now,
+        userId: createParams.userId,
+      },
+      version: {
+        createdAt: now,
+        id: versionId,
+        resumeId,
+        userId: createParams.userId,
+      },
+    };
+  }
+
+  async function renameResume(userId: UserId, resumeId: ResumeId, title: string): Promise<ResumeMeta> {
+    const normalizedTitle = title.trim();
+    if (!normalizedTitle) {
+      throw new Error('标题不能为空');
+    }
+
+    const now = createMonotonicIsoTimestamp();
+    const updated = runInTransaction(params.database, () => {
+      const result = statements.updateResumeTitle.run(normalizedTitle, now, userId, resumeId);
+      if (Number(result.changes) !== 1) {
+        throw new Error('简历不存在');
+      }
+
+      const row = statements.getResume.get(userId, resumeId) as unknown as ResumeRow | undefined;
+      if (!row) {
+        throw new Error('简历不存在');
+      }
+      return row;
+    });
+
+    return {
+      createdAt: updated.createdAt,
+      id: updated.id,
+      sourceConversationId: updated.sourceConversationId,
+      title: updated.title,
+      updatedAt: updated.updatedAt,
+      userId: updated.userId,
+    };
+  }
+
+  async function deleteResume(userId: UserId, resumeId: ResumeId): Promise<void> {
+    statements.deleteResume.run(userId, resumeId);
+  }
+
+  async function getCurrentResumeVersion(userId: UserId, resumeId: ResumeId): Promise<ResumeVersion | undefined> {
+    const row = statements.getLatestVersion.get(userId, resumeId) as unknown as ResumeVersionRow | undefined;
+    if (!row) return undefined;
+
+    return {
+      createdAt: row.createdAt,
+      id: row.id,
+      resume: parseResumeJson(row.resumeJson),
+      resumeId: row.resumeId,
+      userId: row.userId,
+    };
+  }
+
+  async function listResumeVersions(userId: UserId, resumeId: ResumeId): Promise<ResumeVersionMeta[]> {
+    const limit = getResumeSnapshotRetentionLimit();
+    const rows = statements.listVersions.all(userId, resumeId) as unknown as ResumeVersionMetaRow[];
+
+    return rows.slice(0, limit).map((row) => ({
+      createdAt: row.createdAt,
+      id: row.id,
+      resumeId: row.resumeId,
+      userId: row.userId,
+    }));
+  }
+
+  async function saveResumeVersion(saveParams: SaveResumeVersionParams): Promise<ResumeVersionMeta> {
+    const now = createMonotonicIsoTimestamp();
+    const versionId = randomUUID();
+
+    const resume = await getResume(saveParams.userId, saveParams.resumeId);
+    if (!resume) {
+      throw new Error('简历不存在');
+    }
+
+    runInTransaction(params.database, () => {
+      ensureUserExists(statements, saveParams.userId, now);
+      statements.insertVersion.run(
+        versionId,
+        saveParams.resumeId,
+        saveParams.userId,
+        JSON.stringify(saveParams.resume),
+        now,
+      );
+      statements.updateResumeUpdatedAt.run(now, saveParams.userId, saveParams.resumeId);
+      trimOldVersions(saveParams.userId, saveParams.resumeId);
+    });
+
+    return {
+      createdAt: now,
+      id: versionId,
+      resumeId: saveParams.resumeId,
       userId: saveParams.userId,
     };
   }
 
-  async function rollbackResumeSnapshot(userId: UserId, snapshotId: string): Promise<ResumeSnapshotMeta> {
-    const row = statements.getSnapshotById.get(userId, snapshotId) as unknown as ResumeSnapshotRow | undefined;
+  async function rollbackResumeVersion(
+    userId: UserId,
+    resumeId: ResumeId,
+    versionId: ResumeVersionId,
+  ): Promise<ResumeVersionMeta> {
+    const row = statements.getVersionById.get(userId, resumeId, versionId) as unknown as ResumeVersionRow | undefined;
     if (!row) {
       throw new Error('找不到要回滚的版本');
     }
 
-    const conversationId = row.conversationId ?? undefined;
-    return saveResumeSnapshot({
+    return saveResumeVersion({
       resume: parseResumeJson(row.resumeJson),
+      resumeId,
       userId,
-      ...(conversationId ? { conversationId } : {}),
     });
   }
 
   return {
-    getCurrentResume,
-    listResumeSnapshots,
-    rollbackResumeSnapshot,
-    saveResumeSnapshot,
+    createResume,
+    createResumeWithVersion,
+    deleteResume,
+    getCurrentResumeVersion,
+    getResume,
+    listResumes,
+    listResumeVersions,
+    renameResume,
+    rollbackResumeVersion,
+    saveResumeVersion,
   };
 }
 

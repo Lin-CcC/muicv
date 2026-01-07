@@ -1,27 +1,60 @@
 import type { ConversationId, ResumeJson, UserId } from '@muicv/shared';
 
-export type ResumeSnapshotId = string;
+export type ResumeId = string;
+export type ResumeVersionId = string;
 
-export type ResumeSnapshotMeta = {
-  id: ResumeSnapshotId;
+export type ResumeMeta = {
+  id: ResumeId;
   userId: UserId;
-  conversationId: ConversationId | null;
+  title: string;
+  sourceConversationId: ConversationId | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ResumeVersionMeta = {
+  id: ResumeVersionId;
+  resumeId: ResumeId;
+  userId: UserId;
   createdAt: string;
 };
 
-export type ResumeSnapshot = ResumeSnapshotMeta & {
+export type ResumeVersion = ResumeVersionMeta & {
   resume: ResumeJson;
 };
 
-export type SaveResumeSnapshotParams = {
+export type CreateResumeParams = {
   userId: UserId;
-  conversationId?: ConversationId;
+  title?: string;
+  sourceConversationId?: ConversationId;
+};
+
+export type SaveResumeVersionParams = {
+  userId: UserId;
+  resumeId: ResumeId;
   resume: ResumeJson;
+};
+
+export type CreateResumeWithVersionParams = CreateResumeParams & {
+  resume: ResumeJson;
+};
+
+export type CreateResumeWithVersionResult = {
+  resume: ResumeMeta;
+  version: ResumeVersionMeta;
 };
 
 export type ResumeStore = {
-  getCurrentResume(userId: UserId): Promise<ResumeSnapshot | undefined>;
-  listResumeSnapshots(userId: UserId): Promise<ResumeSnapshotMeta[]>;
-  saveResumeSnapshot(params: SaveResumeSnapshotParams): Promise<ResumeSnapshotMeta>;
-  rollbackResumeSnapshot(userId: UserId, snapshotId: ResumeSnapshotId): Promise<ResumeSnapshotMeta>;
+  listResumes(userId: UserId): Promise<ResumeMeta[]>;
+  getResume(userId: UserId, resumeId: ResumeId): Promise<ResumeMeta | undefined>;
+
+  createResume(params: CreateResumeParams): Promise<ResumeMeta>;
+  createResumeWithVersion(params: CreateResumeWithVersionParams): Promise<CreateResumeWithVersionResult>;
+  renameResume(userId: UserId, resumeId: ResumeId, title: string): Promise<ResumeMeta>;
+  deleteResume(userId: UserId, resumeId: ResumeId): Promise<void>;
+
+  getCurrentResumeVersion(userId: UserId, resumeId: ResumeId): Promise<ResumeVersion | undefined>;
+  listResumeVersions(userId: UserId, resumeId: ResumeId): Promise<ResumeVersionMeta[]>;
+  saveResumeVersion(params: SaveResumeVersionParams): Promise<ResumeVersionMeta>;
+  rollbackResumeVersion(userId: UserId, resumeId: ResumeId, versionId: ResumeVersionId): Promise<ResumeVersionMeta>;
 };

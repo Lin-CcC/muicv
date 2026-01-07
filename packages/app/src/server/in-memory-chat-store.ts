@@ -43,6 +43,7 @@ export function createInMemoryChatStore(): ChatStore {
       id: conversationId,
       userId: params.userId,
       title,
+      contextResumeId: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -94,6 +95,25 @@ export function createInMemoryChatStore(): ChatStore {
     return updatedConversation;
   }
 
+  async function setConversationResumeContext(
+    conversationId: ConversationId,
+    resumeId: string | null,
+  ): Promise<Conversation> {
+    const conversation = state.conversations.get(conversationId);
+    if (!conversation) {
+      throw new Error(`对话不存在：${conversationId}`);
+    }
+
+    const updatedConversation: Conversation = {
+      ...conversation,
+      contextResumeId: resumeId,
+      updatedAt: new Date().toISOString(),
+    };
+
+    state.conversations.set(conversationId, updatedConversation);
+    return updatedConversation;
+  }
+
   async function listMessages(conversationId: ConversationId): Promise<ChatMessage[]> {
     return state.messagesByConversationId.get(conversationId) ?? [];
   }
@@ -132,6 +152,7 @@ export function createInMemoryChatStore(): ChatStore {
     listConversations,
     listMessages,
     renameConversation,
+    setConversationResumeContext,
   };
 }
 
