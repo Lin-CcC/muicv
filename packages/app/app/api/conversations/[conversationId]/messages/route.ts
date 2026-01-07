@@ -1,11 +1,14 @@
-import type { ChatMessage } from '@muicv/shared';
+import type { ChatMessage, MemoryEntry } from '@muicv/shared';
 import { getChatStore } from '@/src/server/chat-store';
 import type { AiProviderId } from '@/src/server/ai/ai-service';
 import { buildAiMessagesForAssistant, getAiClient } from '@/src/server/ai/ai-service';
+import type { ChatContextResume } from '@/src/server/ai/chat-context';
+import { buildChatSystemPrompt } from '@/src/server/ai/chat-context';
 import { extractMemoryEntries } from '@/src/server/ai/memory-extractor';
 import { getDefaultChatSystemPrompt } from '@/src/server/ai/system-prompts';
 import { shouldAttemptMemoryExtraction } from '@/src/server/memory-extraction-heuristics';
 import { getMemoryStore } from '@/src/server/memory-store';
+import { getResumeStore } from '@/src/server/resume-store';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,7 +23,7 @@ export async function GET(_request: Request, context: ConversationMessagesRouteC
   const { conversationId } = await context.params;
   const store = await getChatStore();
   const conversation = await store.getConversation(conversationId);
-  if (!conversation) {
+  if (!conversation || conversation.userId !== DEMO_USER_ID) {
     return Response.json({ message: '对话不存在' }, { status: 404 });
   }
 
@@ -39,7 +42,7 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
   const { conversationId } = await context.params;
   const store = await getChatStore();
   const conversation = await store.getConversation(conversationId);
-  if (!conversation) {
+  if (!conversation || conversation.userId !== DEMO_USER_ID) {
     return Response.json({ message: '对话不存在' }, { status: 404 });
   }
 
@@ -64,10 +67,41 @@ export async function POST(request: Request, context: ConversationMessagesRouteC
 
   if (role === 'user') {
     const history = await store.listMessages(conversationId);
+
+    let memoryEntries: MemoryEntry[] = [];
+    try {
+      const memoryStore = await getMemoryStore();
+      memoryEntries = await memoryStore.listMemoryEntries(DEMO_USER_ID, { limit: 80 });
+    } catch {
+      memoryEntries = [];
+    }
+
+    let contextResume: ChatContextResume | undefined;
+    const contextResumeId = conversation.contextResumeId?.trim();
+    try {
+      if (contextResumeId) {
+        const resumeStore = await getResumeStore();
+        const resumeMeta = await resumeStore.getResume(DEMO_USER_ID, contextResumeId);
+        const resumeVersion = await resumeStore.getCurrentResumeVersion(DEMO_USER_ID, contextResumeId);
+        if (resumeMeta && resumeVersion) {
+          contextResume = {
+            resume: resumeVersion.resume,
+            title: resumeMeta.title,
+          };
+        }
+      }
+    } catch {
+      contextResume = undefined;
+    }
+
     try {
       const aiMessages = buildAiMessagesForAssistant({
         messages: history,
-        systemPrompt: getDefaultChatSystemPrompt(),
+        systemPrompt: buildChatSystemPrompt({
+          basePrompt: getDefaultChatSystemPrompt(),
+          contextResume,
+          memoryEntries,
+        }),
       });
 
       const client = getAiClient({

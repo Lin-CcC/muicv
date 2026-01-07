@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { ChatMessage, Conversation } from '@muicv/shared';
 import { Button, Input } from '@muicv/ui';
+import { ResumeContextBar } from './resume-context-bar';
 import { useChatStore } from '@/src/store/chat-store';
 import { useMemoryStore } from '@/src/store/memory-store';
 
@@ -54,6 +55,10 @@ export function ChatShell() {
   useEffect(() => {
     void loadMemoryEntries(activeConversationId);
   }, [activeConversationId, loadMemoryEntries]);
+
+  const activeConversation = activeConversationId
+    ? conversations.find((conversation) => conversation.id === activeConversationId)
+    : undefined;
 
   const activeMessages = useMemo(() => {
     if (!activeConversationId) return undefined;
@@ -258,7 +263,11 @@ export function ChatShell() {
       <section className="col-span-6 flex flex-col gap-3 rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-2">
           <h1 className="text-sm font-semibold">对话区</h1>
-          <div className="text-xs text-muted-foreground">{activeConversationId ? '已选择对话' : '未选择对话'}</div>
+          <ResumeContextBar
+            conversationId={activeConversationId}
+            contextResumeId={activeConversation?.contextResumeId ?? null}
+            onUpdated={loadConversations}
+          />
         </div>
 
         <div className="flex-1 space-y-3 overflow-auto rounded-lg border border-border bg-background p-3">
