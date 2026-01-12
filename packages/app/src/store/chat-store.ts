@@ -4,13 +4,21 @@ import { create } from 'zustand';
 
 import type { ChatMessage, Conversation, ConversationId } from '@muicv/shared';
 import {
-  addMessage,
   createConversation as createConversationApi,
   deleteConversation as deleteConversationApi,
   listConversations,
   listMessages,
   renameConversation as renameConversationApi,
+  streamRetryAssistant,
+  streamUserMessage,
 } from '@/src/api-client/chat-api';
+
+function isAbortError(error: unknown) {
+  if (!error) return false;
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException && error.name === 'AbortError') return true;
+  if (error instanceof Error && error.name === 'AbortError') return true;
+  return error instanceof Error && error.message === 'AbortError';
+}
 
 type ChatStoreState = {
   conversations: Conversation[];
@@ -19,16 +27,20 @@ type ChatStoreState = {
   isLoadingConversations: boolean;
   isLoadingMessagesByConversationId: Record<ConversationId, boolean | undefined>;
   isSendingMessage: boolean;
+  activeStreamAbortController: AbortController | undefined;
   errorMessage: string | undefined;
 };
 
 type ChatStoreActions = {
   loadConversations(): Promise<void>;
   setActiveConversationId(conversationId: ConversationId): Promise<void>;
+  reloadMessages(conversationId: ConversationId): Promise<void>;
   createConversation(title?: string): Promise<Conversation>;
   renameConversation(conversationId: ConversationId, title: string): Promise<Conversation>;
   deleteConversation(conversationId: ConversationId): Promise<void>;
   sendUserMessage(content: string): Promise<void>;
+  stopGenerating(): Promise<void>;
+  retryAssistant(): Promise<void>;
   clearError(): void;
 };
 
@@ -41,6 +53,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   isLoadingConversations: false,
   isLoadingMessagesByConversationId: {},
   isSendingMessage: false,
+  activeStreamAbortController: undefined,
   errorMessage: undefined,
 
   clearError() {
@@ -73,6 +86,10 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const hasMessages = get().messagesByConversationId[conversationId] !== undefined;
     if (isLoading || hasMessages) return;
 
+    await get().reloadMessages(conversationId);
+  },
+
+  async reloadMessages(conversationId: ConversationId) {
     set((state) => ({
       isLoadingMessagesByConversationId: { ...state.isLoadingMessagesByConversationId, [conversationId]: true },
     }));
@@ -163,7 +180,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    set({ isSendingMessage: true, errorMessage: undefined });
+    set({ activeStreamAbortController: undefined, isSendingMessage: true, errorMessage: undefined });
 
     try {
       let conversationId = get().activeConversationId;
@@ -172,24 +189,208 @@ export const useChatStore = create<ChatStore>((set, get) => ({
         conversationId = conversation.id;
       }
 
-      const { messages, assistantError } = await addMessage(conversationId, { role: 'user', content: trimmed });
+      const now = new Date();
+      const localUserMessageId = `local-user-${now.getTime()}`;
+      const localAssistantMessageId = `local-assistant-${now.getTime()}`;
 
       set((state) => {
         const existing = state.messagesByConversationId[conversationId] ?? [];
+        const userMessage: ChatMessage = {
+          content: trimmed,
+          conversationId,
+          createdAt: now.toISOString(),
+          id: localUserMessageId,
+          role: 'user',
+        };
+        const assistantMessage: ChatMessage = {
+          content: '',
+          conversationId,
+          createdAt: now.toISOString(),
+          id: localAssistantMessageId,
+          role: 'assistant',
+        };
+
         return {
-          ...(assistantError ? { errorMessage: assistantError } : {}),
           messagesByConversationId: {
             ...state.messagesByConversationId,
-            [conversationId]: [...existing, ...messages],
+            [conversationId]: [...existing, userMessage, assistantMessage],
           },
         };
       });
 
-      await get().loadConversations();
+      const abortController = new AbortController();
+      set({ activeStreamAbortController: abortController });
+
+      for await (const event of streamUserMessage(conversationId, {
+        content: trimmed,
+        signal: abortController.signal,
+      })) {
+        if (event.type === 'user') {
+          set((state) => {
+            const existing = state.messagesByConversationId[conversationId] ?? [];
+            return {
+              messagesByConversationId: {
+                ...state.messagesByConversationId,
+                [conversationId]: existing.map((message) =>
+                  message.id === localUserMessageId ? event.message : message,
+                ),
+              },
+            };
+          });
+          continue;
+        }
+
+        if (event.type === 'delta') {
+          set((state) => {
+            const existing = state.messagesByConversationId[conversationId] ?? [];
+            return {
+              messagesByConversationId: {
+                ...state.messagesByConversationId,
+                [conversationId]: existing.map((message) =>
+                  message.id === localAssistantMessageId
+                    ? { ...message, content: `${message.content}${event.textDelta}` }
+                    : message,
+                ),
+              },
+            };
+          });
+          continue;
+        }
+
+        if (event.type === 'done') {
+          set((state) => {
+            const existing = state.messagesByConversationId[conversationId] ?? [];
+            const nextMessages = existing
+              .map((message) => (message.id === localAssistantMessageId ? event.assistantMessage : message))
+              .filter((message): message is ChatMessage => Boolean(message));
+
+            return {
+              activeStreamAbortController: undefined,
+              isSendingMessage: false,
+              messagesByConversationId: {
+                ...state.messagesByConversationId,
+                [conversationId]: nextMessages,
+              },
+            };
+          });
+          await get().loadConversations();
+          return;
+        }
+
+        if (event.type === 'error') {
+          set({ activeStreamAbortController: undefined, errorMessage: event.message, isSendingMessage: false });
+          return;
+        }
+      }
+
+      set({ activeStreamAbortController: undefined, isSendingMessage: false });
     } catch (error) {
-      set({ errorMessage: error instanceof Error ? error.message : '发送失败' });
+      const message = error instanceof Error ? error.message : '发送失败';
+      if (!isAbortError(error)) set({ errorMessage: message });
+      set({ activeStreamAbortController: undefined, isSendingMessage: false });
     } finally {
-      set({ isSendingMessage: false });
+      set({ activeStreamAbortController: undefined, isSendingMessage: false });
+    }
+  },
+
+  async stopGenerating() {
+    const controller = get().activeStreamAbortController;
+    const conversationId = get().activeConversationId;
+
+    controller?.abort();
+    set({ activeStreamAbortController: undefined, isSendingMessage: false });
+
+    if (conversationId) {
+      await get().reloadMessages(conversationId);
+      await get().loadConversations();
+    }
+  },
+
+  async retryAssistant() {
+    if (get().isSendingMessage) return;
+
+    const conversationId = get().activeConversationId;
+    if (!conversationId) {
+      set({ errorMessage: '请先选择一个对话' });
+      return;
+    }
+
+    set({ activeStreamAbortController: undefined, isSendingMessage: true, errorMessage: undefined });
+
+    const now = new Date();
+    const localAssistantMessageId = `local-assistant-retry-${now.getTime()}`;
+
+    set((state) => {
+      const existing = state.messagesByConversationId[conversationId] ?? [];
+      const assistantMessage: ChatMessage = {
+        content: '',
+        conversationId,
+        createdAt: now.toISOString(),
+        id: localAssistantMessageId,
+        role: 'assistant',
+      };
+
+      return {
+        messagesByConversationId: {
+          ...state.messagesByConversationId,
+          [conversationId]: [...existing, assistantMessage],
+        },
+      };
+    });
+
+    const abortController = new AbortController();
+    set({ activeStreamAbortController: abortController });
+
+    try {
+      for await (const event of streamRetryAssistant(conversationId, { signal: abortController.signal })) {
+        if (event.type === 'delta') {
+          set((state) => {
+            const existing = state.messagesByConversationId[conversationId] ?? [];
+            return {
+              messagesByConversationId: {
+                ...state.messagesByConversationId,
+                [conversationId]: existing.map((message) =>
+                  message.id === localAssistantMessageId
+                    ? { ...message, content: `${message.content}${event.textDelta}` }
+                    : message,
+                ),
+              },
+            };
+          });
+          continue;
+        }
+
+        if (event.type === 'done') {
+          set((state) => {
+            const existing = state.messagesByConversationId[conversationId] ?? [];
+            const nextMessages = existing
+              .map((message) => (message.id === localAssistantMessageId ? event.assistantMessage : message))
+              .filter((message): message is ChatMessage => Boolean(message));
+
+            return {
+              activeStreamAbortController: undefined,
+              isSendingMessage: false,
+              messagesByConversationId: {
+                ...state.messagesByConversationId,
+                [conversationId]: nextMessages,
+              },
+            };
+          });
+          await get().loadConversations();
+          return;
+        }
+
+        if (event.type === 'error') {
+          set({ activeStreamAbortController: undefined, errorMessage: event.message, isSendingMessage: false });
+          return;
+        }
+      }
+
+      set({ activeStreamAbortController: undefined, isSendingMessage: false });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '重试失败';
+      if (!isAbortError(error)) set({ errorMessage: message });
+      set({ activeStreamAbortController: undefined, isSendingMessage: false });
     }
   },
 }));

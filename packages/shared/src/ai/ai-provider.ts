@@ -16,6 +16,7 @@ export type AiGenerateTextParams = {
   messages: AiMessage[];
   temperature?: number;
   maxOutputTokens?: number;
+  signal?: AbortSignal;
 };
 
 export type AiGenerateTextResult = {

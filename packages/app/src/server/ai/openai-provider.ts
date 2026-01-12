@@ -12,6 +12,10 @@ type OpenAiChatCompletionRequest = {
   messages: OpenAiChatCompletionMessage[];
   temperature?: number;
   max_tokens?: number;
+  stream?: boolean;
+  stream_options?: {
+    include_usage?: boolean;
+  };
 };
 
 type OpenAiChatCompletionChoice = {
@@ -35,6 +39,16 @@ type OpenAiErrorPayload = {
 
 type OpenAiChatCompletionResponse = OpenAiErrorPayload & {
   choices?: OpenAiChatCompletionChoice[];
+  usage?: OpenAiChatCompletionUsage;
+};
+
+type OpenAiChatCompletionStreamChunk = OpenAiErrorPayload & {
+  choices?: Array<{
+    delta?: {
+      role?: string;
+      content?: string | null;
+    };
+  }>;
   usage?: OpenAiChatCompletionUsage;
 };
 
@@ -70,14 +84,78 @@ function buildUsage(usage: OpenAiChatCompletionUsage | undefined) {
   };
 }
 
+function createAbortController(timeoutMs: number, signal: AbortSignal | undefined) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const abortHandler = () => controller.abort();
+  let didSubscribe = false;
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', abortHandler);
+      didSubscribe = true;
+    }
+  }
+
+  function cleanup() {
+    clearTimeout(timeoutId);
+    if (signal && didSubscribe) {
+      signal.removeEventListener('abort', abortHandler);
+    }
+  }
+
+  return { cleanup, controller };
+}
+
+async function* iterateSseDataLines(
+  body: ReadableStream<Uint8Array>,
+  signal: AbortSignal | undefined,
+): AsyncIterable<string> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      if (signal?.aborted) {
+        throw new Error('AbortError');
+      }
+
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      buffer += decoder.decode(value, { stream: true });
+      buffer = buffer.replaceAll('\r\n', '\n');
+
+      let boundaryIndex = buffer.indexOf('\n\n');
+      while (boundaryIndex >= 0) {
+        const rawEvent = buffer.slice(0, boundaryIndex);
+        buffer = buffer.slice(boundaryIndex + 2);
+
+        for (const line of rawEvent.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          const data = line.slice(5).trimStart();
+          if (!data) continue;
+          yield data;
+        }
+
+        boundaryIndex = buffer.indexOf('\n\n');
+      }
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+}
+
 export function createOpenAiProvider(params: CreateOpenAiProviderParams): AiProvider {
   const baseUrl = params.baseUrl?.trim() ? params.baseUrl.trim() : 'https://api.openai.com/v1';
   const timeoutMs = params.timeoutMs ?? 60_000;
 
   async function generateText(generateTextParams: AiGenerateTextParams): Promise<AiGenerateTextResult> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
+    const { controller, cleanup } = createAbortController(timeoutMs, generateTextParams.signal);
     try {
       const requestBody: OpenAiChatCompletionRequest = {
         model: generateTextParams.model,
@@ -115,14 +193,76 @@ export function createOpenAiProvider(params: CreateOpenAiProviderParams): AiProv
         ...(usage ? { usage } : {}),
       };
     } finally {
-      clearTimeout(timeoutId);
+      cleanup();
     }
   }
 
   async function* streamText(generateTextParams: AiGenerateTextParams): AsyncIterable<AiStreamTextEvent> {
-    const result = await generateText(generateTextParams);
-    yield { type: 'delta', textDelta: result.text };
-    yield result.usage ? { type: 'done', usage: result.usage } : { type: 'done' };
+    const { controller, cleanup } = createAbortController(timeoutMs, generateTextParams.signal);
+
+    try {
+      const requestBody: OpenAiChatCompletionRequest = {
+        model: generateTextParams.model,
+        messages: generateTextParams.messages.map((message) => ({
+          role: toOpenAiRole(message.role),
+          content: message.content,
+        })),
+        stream: true,
+        ...(generateTextParams.temperature === undefined ? {} : { temperature: generateTextParams.temperature }),
+        ...(generateTextParams.maxOutputTokens === undefined ? {} : { max_tokens: generateTextParams.maxOutputTokens }),
+      };
+
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${params.apiKey}`,
+          accept: 'text/event-stream',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const json = (await response.json().catch(() => undefined)) as OpenAiChatCompletionResponse | undefined;
+        throw new Error(formatOpenAiErrorMessage(response.status, json));
+      }
+
+      if (!response.body) {
+        throw new Error('OpenAI 未返回流式响应');
+      }
+
+      let usage: ReturnType<typeof buildUsage> | undefined;
+      let sawDoneMarker = false;
+
+      for await (const data of iterateSseDataLines(response.body, controller.signal)) {
+        if (data === '[DONE]') {
+          sawDoneMarker = true;
+          break;
+        }
+
+        const chunk = JSON.parse(data) as OpenAiChatCompletionStreamChunk;
+        if (chunk.error?.message?.trim()) {
+          throw new Error(`OpenAI 请求失败：${chunk.error.message.trim()}`);
+        }
+
+        const textDelta = chunk.choices?.[0]?.delta?.content ?? '';
+        if (typeof textDelta === 'string' && textDelta) {
+          yield { type: 'delta', textDelta };
+        }
+
+        const nextUsage = buildUsage(chunk.usage);
+        if (nextUsage) usage = nextUsage;
+      }
+
+      if (!sawDoneMarker && controller.signal.aborted) {
+        throw new Error('AbortError');
+      }
+
+      yield usage ? { type: 'done', usage } : { type: 'done' };
+    } finally {
+      cleanup();
+    }
   }
 
   return {
