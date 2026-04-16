@@ -1,61 +1,105 @@
 Mui简历
 ===
 
-Mui简历是一个新形态的简历工具。用户不再需要像往常一样填写复杂冗长的个人信息，而是通过跟AI就业辅导对话，创造出一份非常优秀的简历。
-Mui简历的目标是让用户在不是很有写简历的经验的前提下，也能够写出足够优秀的简历。
-同时我们还希望对所有的求职者给予就业辅导，让大家都能够在面试阶段减少不必要的非战斗减员。
+> 在你熟悉的 AI agent（Claude Code / Codex / Cursor ...）里管理简历。
 
+简历素材以 **Markdown + YAML frontmatter** 存在你自己的项目目录里，由你用 git 管理；针对不同岗位生成的简历版本也同样存本地。服务端只承担本地不方便做的事：PDF 渲染、JD 抓取、模板库，以及后续的账号 / 订阅 / 计费。
 
-界面
+当前状态：**重构中**，从 "chatbot web 应用" 转向 "Claude Code Skills + API"。详情见 [WIP.md](./WIP.md)。
+
 ---
 
-- 以 Chatbot 对话框的形式为主
-- 自动记录关键信息，形成用户知识库（记忆）
-- 简历由「用户记忆 + 必要上下文」按需生成；简历本身会自动入库；版本仅在用户显式保存时生成（类似 undo/redo）
-- 对话用于“沟通与收集信息”，简历用于“投递与表达”，两者解耦：简历是独立存储的实体，不依赖某个对话才能存在
-
-
-核心流程（产品设想）
+安装
 ---
 
-1. 首次进入：聊天机器人会引导用户通过对话补全基础信息（如姓名/联系方式/链接/所在地/求职意向等）。
-2. 接下来：引导用户补全受教育信息。
-3. 再接下来：按优先级逐步引导用户补全项目经验、工作经验、获奖/竞赛、培训/证书等（可持续迭代优先级与提问策略）。
-4. 任何时候：用户都可以新建一个对话，请 AI 生成一份“有特殊目的”的简历（例如针对某公司、某岗位、脱敏版本等）。生成后会自动入库，并默认把“生成它的对话”记录为关联信息，方便用户日后继续在同一上下文里修改。
-5. 用户也可以在其它对话中把某份简历“添加进来”作为上下文（一次只能添加 1 份；可随时替换/移除），例如基于同一份简历继续优化。
-6. 用户日常对话可能包含职业话题、个人经历等；机器人需要判断何时应当把内容写入「用户记忆」，何时只是普通问答（不写入）。
-7. 随着用户记忆不断积累，系统就能生成更多不同目的、质量更高的简历（按需生成，而不是实时生成）。
-8. 用户在系统里解决的问题越多，可沉淀的有效信息越多（前提是遵循用户意图与隐私预期）。
-9. 记忆沉淀 ↔ 简历质量提升 ↔ 使用频率提升：形成正反馈，最终让用户把这里当成长期的职业助手。
+### 从源码（当前阶段推荐）
 
+```bash
+git clone https://github.com/meathill/muicv.git
+cd muicv
+./install.sh
+```
+
+`install.sh` 把 `skills/*` 下每个 skill 目录软链到 `~/.claude/skills/`，让 Claude Code 启动时自动发现。自定义目录：`CLAUDE_SKILLS_DIR=/path ./install.sh`。
+
+### Plugin Marketplace（规划中）
+
+```bash
+/plugin marketplace add meathill/muicv
+/plugin install muicv@muicv
+```
+
+---
+
+使用
+---
+
+任意目录下启动 Claude Code，然后跟 Claude 说任何和简历 / 求职相关的话，比如：
+
+- 「帮我准备简历」
+- 「我想管理一下我的工作经历」
+- 「加一段在 X 公司做 Y 的经历」
+
+首次在某项目内触发时，`muicv-core` 会自动在当前工作目录创建 `.claude/muicv/`：
+
+```
+.claude/muicv/
+├── profile.md          # 姓名、联系方式、自我介绍
+├── experience/         # 工作经历（每段一个 md 文件）
+├── projects/           # 项目（每个一个 md 文件）
+├── targets/            # 目标岗位 / JD
+├── versions/           # 针对某个 target 生成的简历版本
+├── education.md
+├── skills.md
+└── achievements.md
+```
+
+这些文件就是你的"数据"——Skill 不会在别处缓存，也不会替你 commit。要不要入 git 由你决定。
+
+---
+
+Skills
+---
+
+| Skill | 状态 | 做什么 |
+|---|---|---|
+| [`muicv-core`](./skills/muicv-core/SKILL.md) | ✅ 已实现 | 初始化、添加 / 更新 / 整理素材 |
+| `muicv-generate` | 🚧 规划中 | 针对 JD 生成特定版本简历 |
+| `muicv-critique` | 🚧 规划中 | STAR / 关键词 / 长度评审 |
+| `muicv-render` | 🚧 规划中 | 调 API 渲染 PDF |
+| `muicv-jobs` | 🚧 规划中 | 抓 JD、匹配、投递辅助 |
+
+---
+
+仓库结构
+---
+
+```
+muicv/
+├── skills/                # Claude Code Skill 源（安装时软链到 ~/.claude/skills/）
+├── packages/
+│   ├── app/               # Web app 本体（落地页 + API + 将来的账号/订阅 Dashboard）
+│   ├── website/           # 营销站
+│   ├── shared/            # 领域类型（ResumeJson、frontmatter schema 等）
+│   ├── ui/                # UI 组件
+│   └── cron/              # 定时任务骨架
+├── install.sh             # 把 skills/* 软链到 ~/.claude/skills/
+└── WIP.md                 # 当前开发计划
+```
+
+---
 
 技术栈
 ---
 
-- Cloudflare Worker + D1 + KV + R2 + 其它需要的 Cloudflare 基础设施
-- Next + OpenNext
-- TypeScript
-- Lucide
-- Zustand
-- TailwindCSS
-- AI provider：兼容 OpenAI API 的服务，和 Google Gemini
+- **Skills**：Markdown + frontmatter，符合 [Claude Skill 规范](https://code.claude.com/docs/en/skills)
+- **服务端**：Next.js on Cloudflare Workers（OpenNext）+ D1 + R2
+- **类型**：TypeScript（pnpm workspace）
+- **样式**：Tailwind CSS
 
-
-项目架构
 ---
 
-packages/
-  - app 应用主体
-  - shared 公共组件
-  - ui UI 组件
-  - cron 所需的定时任务
-  - website 网站
-
-
-收费方式
+License
 ---
 
-- 考虑到求职不是一个长期行为，所以我觉得我们应该按额度收费。
-- 这就可以用到我的另外一个小作品 https://github.com/meathill/mui-api
-- 为了让用户能够付费，我们应该要求用户必须登录注册才能使用。
-- 用户也可以携带自己的 API Key，我们只保存在本地，不保存在服务器上。
+UNLICENSED（当前）。
