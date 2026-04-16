@@ -4,7 +4,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Mui简历',
-  description: '通过 AI 就业辅导对话，生成高质量简历。',
+  description: '在你熟悉的 AI agent 里管理简历。Skills + 本地 Markdown。',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,14 +16,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="text-sm font-semibold">
               Mui简历
             </Link>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Link href="/" className="rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground">
-                对话
-              </Link>
-              <Link href="/resume" className="rounded-md px-2 py-1 hover:bg-accent hover:text-accent-foreground">
-                简历
-              </Link>
-            </div>
           </nav>
         </header>
 

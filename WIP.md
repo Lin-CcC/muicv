@@ -1,128 +1,35 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-01-07
+最后更新：2026-04-16
 
-## 目标与原则
+## 重大方向调整（2026-04-16）
 
-目标：用「AI 就业辅导对话」替代传统表单，让用户在缺乏写简历经验的情况下也能产出高质量简历，并在过程中得到就业辅导。
+**原方向（2026-01-12）**：构建一个完整的 chatbot web 应用，用「AI 就业辅导对话 + 记忆库 + 按需生成简历」的模式替代传统简历表单。
 
-原则：
-- 默认以「对话驱动 + 结构化记录（知识库/记忆） + 按需生成简历」为核心体验
-- 重要数据结构先定型（D1 schema / Resume JSON），避免 UI 先行导致反复返工
-- 可插拔 AI provider（OpenAI 兼容 + Gemini），保证降级与可测试性
-- 付费与登录尽早打通（至少做到「必须登录才能用」），避免后期大改流程
+**现方向**：把核心业务能力封装成 **Claude Code Skills + 轻量 API**，用户在自己熟悉的 AI agent（Claude Code / Codex / Cursor 等）里直接调用；简历素材作为 **Markdown + YAML frontmatter** 存在用户自己的项目目录里（`.claude/muicv/`），由用户用 git 自己管理。
 
-## 范围拆分（里程碑）
+调整原因：
+- Chatbot 要做的核心能力（对话、记忆、版本）Claude Code / Codex 这类 agent 框架已天然具备，自己再做一套是重复建设
+- Skill + 本地 markdown 的方式让用户数据主权更清晰、心智负担更低、渠道更广
+- 开发量预估能砍一半
 
-### M0：项目骨架（Monorepo）
+完整方案见 `.claude/plans/joyful-waddling-floyd.md`（Phase 0～6 分阶段落地）。
 
-交付物：
-- `packages/` 目录落地：`app`、`shared`、`ui`、`cron`、`website`
-- Next + OpenNext 的 Cloudflare 部署基础结构（Worker/D1/R2/KV 连接方式明确）
-- 基础工程能力：lint、测试、CI（至少本地可运行）
+## 当前进度（Phase 0 完成）
 
-### M1：对话系统（核心闭环）
+**已完成**：
+- 旧 chat UI / resume UI / API routes / server stores / memory 抽取与整理代码、D1 migrations 全部删除
+- 关键 prompt 已抽取暂存到 `.plan-staging/{resume-generate,organize}-prompt.md`
+- `packages/app` 缩成一个占位 Next.js 站点（保留为 web app 本体，后续承载落地页 + API + 账号/订阅 Dashboard）
+- `packages/shared` 只保留 `ResumeJson` 类型
+- `packages/website`、`packages/cron`、`packages/ui` 暂不动
 
-交付物：
-- Chat UI（流式输出、错误重试、消息状态）
-- 多对话管理（创建/切换/重命名/删除）
-- 会话与消息持久化（D1），必要的缓存（Next：R2；应用：KV 可选）
-- AI provider 统一适配层（接口、鉴权、重试、超时、速率限制）
+**下一步（Phase 1 骨架）**：
+- 新建 `skills/muicv-core/SKILL.md`（含自动检测 `.claude/muicv/` 是否已初始化的逻辑）
+- 新建 `install.sh`，软链 `skills/*` → `~/.claude/skills/`
+- 定义 `packages/shared/src/schemas/resume-md.ts`（zod frontmatter schema）
+- 端到端验证：空目录 + 与 Claude 说"帮我准备简历" → skill 自动引导并生成文件
 
-### M2：信息抽取与简历生成（产品差异化）
+## 历史计划（已废弃，保留做追溯）
 
-交付物：
-- 用户信息记录（知识库/记忆）：把碎片化信息保存为可追溯记录（与对话解耦）
-- 整理/归纳：把零散记录整理成更具体、更有关联性的内容（方便后续筛选与生成）
-- 按需生成简历：从“记录 + 必要对话上下文”抽取并生成 `ResumeJson`
-- 简历编辑与版本：仅当用户主动编辑简历时生成版本（类似 undo/redo）
-- 导出能力（优先 HTML/Markdown；PDF 视优先级决定）
-
-### M3：账户、额度与计费
-
-交付物：
-- 登录/注册（最小可用：邮箱 + 验证码/魔法链接，或第三方 OAuth）
-- 额度扣减与用量记录（token/请求/模型维度），与 D1/KV 的一致性策略
-- 对接 `mui-api`：购买额度、校验额度、扣减接口（只定义边界，不提前深耦合）
-- 允许用户使用自带 API Key：仅保存在本地（浏览器存储），服务端不落库
-
-### M4：运营与稳定性（上线准备）
-
-交付物：
-- 基础监控与告警（请求失败率、延迟、额度扣减异常）
-- 后台/运营工具（最小：查看用户用量与对话数量、封禁/解封）
-- 数据保留与删除策略（用户可导出/删除，符合隐私预期）
-
-### M5：Website（官网与转化）
-
-交付物：
-- 产品介绍、定价、FAQ、隐私/服务条款
-- 引导进入 App / 登录
-
-## Todo（按优先级）
-
-### 1) 仓库与工程化
-
-- [x] 初始化 `packages/app`（Next）并跑通本地开发
-- [x] 初始化 `packages/website`（可先与 app 共用技术栈，后续再拆）
-- [x] 初始化 `packages/shared`：领域类型、AI provider 接口、通用工具
-- [x] 初始化 `packages/ui`：封装 coss UI + Tailwind 的基础组件
-- [x] 初始化 `packages/cron`：Cloudflare Cron/队列（若需要）骨架
-- [x] 接入 OpenNext for Cloudflare（`wrangler.jsonc` / `open-next.config.ts`），支持本地 preview
-- [x] 新增 `TESTING.md`：本地测试命令、覆盖率要求（先从最低标准开始）
-- [x] 新增 `DEPLOYMENT.md`：Cloudflare/OpenNext 的部署步骤与环境变量清单（不包含 `.env` 内容）
-
-### 2) 数据模型（先定契约）
-
-- [x] 设计 D1 schema：`users`、`conversations`、`messages`、`resume_snapshots`、`usage_logs`
-- [x] 新增 `memory_entries`：用户信息碎片化记录（知识库/记忆）
-- [x] 定义 `ResumeJson`（结构化简历数据）：基本信息、经历、项目、技能、亮点、求职意向等
-- [ ] 定义「抽取事件」与「来源引用」结构：每条简历字段可追溯到消息片段
-- [ ] 定义 KV/R2 使用范围（Next 增量缓存：R2；应用：KV），避免 KV 当主存储
-
-### 3) AI 适配层（可测、可替换）
-
-- [x] 设计 `AiProvider` 接口：流式输出、非流式、工具调用/结构化输出
-- [x] 实现 OpenAI 兼容 provider（基于 `OPENAI_API_KEY`）
-- [x] 实现 Gemini provider（基于 `GOOGLE_API_KEY`）
-- [x] 修复运行时环境变量读取优先级：Cloudflare env 优先于 `process.env`（避免本地 Wrangler 预览被系统环境变量覆盖）
-- [ ] 统一错误类型与重试策略（超时、429、5xx）
-- [ ] Prompt 策略：系统提示、用户上下文裁剪、PII/安全提示
-
-### 4) App 核心体验
-
-- [x] Chat 页面：消息列表、输入框、发送（MVP）
-- [x] Chat 页面：流式渲染、停止生成、重试
-- [x] Chat 回复上下文：注入「用户记忆」与「对话关联简历」到系统提示（提升追问与改写质量）
-- [x] Chat UI：展示当前对话关联的简历，并支持快速移除/跳转管理
-- [x] 多对话列表：创建/切换（MVP）
-- [x] 多对话列表：重命名/删除
-- [x] 记忆抽取（MVP）：在用户消息前判断意图，必要时调用抽取器写入 `memory_entries`
-- [x] 记忆面板（MVP）：右侧展示最近的 `memory_entries`，可按对话过滤
-- [x] 整理 API（MVP）：把碎片化记录整理成更具体/关联的记录（先做手动触发）
-- [x] 简历生成（MVP）：从“记录（memory_entries）+ 必要上下文（对话摘录）”生成 `ResumeJson`（手动触发）
-- [x] 简历生成：生成后自动入库为「简历实体」，并默认关联到对话 `contextResumeId`（一次只能关联 1 份，可替换/移除）
-- [x] 简历编辑（MVP）：允许用户手动修改 `ResumeJson`，点击保存时才生成版本（undo/redo）
-- [x] 简历版本（前端）：展示版本列表、回滚、版本保留数量提示
-- [x] 简历版本（后端）：`resume_versions` 保留最近 N 份 + 回滚（默认 10，可通过 `MUICV_RESUME_SNAPSHOT_LIMIT` 配置）
-- [ ] 导出：先支持 Markdown/HTML；PDF 延后评估（Cloudflare 环境限制需确认）
-
-### 5) 登录与计费（尽早打通）
-
-- [ ] 登录接入方案选型并落地（邮箱 or OAuth）
-- [ ] 用量统计（token/请求数）与扣减逻辑（服务端可信）
-- [ ] 接入 `mui-api`：购买/校验/扣减（先做 Mock，后替换真实接口）
-- [ ] 自带 API Key：仅前端存储，调用时优先用户 key（需清晰 UI 提示）
-
-### 6) Cron 与运营
-
-- [ ] 定时任务：用量汇总、对账/修复、过期清理（按实际需要落地）
-- [ ] 运营工具：最小化的 admin 页面或脚本（权限隔离）
-
-## 待确认（需要你拍板）
-
-1) 已决定：先拆 `packages/app` 与 `packages/website` 两个 Next 项目（已落地骨架）；如后续维护成本过高再评估合并。
-2) 登录方式：邮箱验证码/魔法链接 vs OAuth（GitHub/Google）优先哪个？
-3) 简历导出目标：必须 PDF 吗？还是先 HTML/Markdown + 浏览器打印即可接受？
-4) 额度计费单位：按 token、按请求、按「生成一次简历」还是混合？是否需要区分模型档位？
-5) 简历与对话的关联策略：当前实现为「同一对话重复生成时，优先更新该对话已关联的简历；若无关联则创建新简历并写回关联」。你希望改成每次都新建一份并替换吗？
+原本的 M0～M5 里程碑、Todo 清单等全部作废。核心的 prompt 资产（简历生成、记忆整理）已经从 `packages/app/src/server/ai/system-prompts.ts` 抽取到 `.plan-staging/`，后续迁移到各 skill 的 `references/` 目录。
