@@ -12,17 +12,26 @@ Mui简历
 安装
 ---
 
-### 从源码（当前阶段推荐）
+推荐用 [`skills`](https://www.npmjs.com/package/skills)（Vercel Labs 出的 agent skill CLI，兼容 Claude Code / Codex / Cursor / OpenCode 等 40+ agent）：
 
 ```bash
-git clone https://github.com/meathill/muicv.git
-cd muicv
-./install.sh
+# 全局安装到 ~/.claude/skills/（交互选择要装哪些 skill 到哪些 agent）
+npx skills add meathill/muicv -g
+
+# 只装一部分
+npx skills add meathill/muicv -g -s muicv-core -s muicv-generate -a claude-code
+
+# 列出已装 / 更新 / 卸载
+npx skills list
+npx skills update
+npx skills remove muicv-core
 ```
 
-`install.sh` 把 `skills/*` 下每个 skill 目录软链到 `~/.claude/skills/`，让 Claude Code 启动时自动发现。自定义目录：`CLAUDE_SKILLS_DIR=/path ./install.sh`。
+你也可以装到项目级（默认位置 `./.claude/skills/`，会入 git、团队共享）——去掉 `-g` 即可。
 
 ### Plugin Marketplace（规划中）
+
+后续会同步发到 Claude Code 官方 Plugin Marketplace：
 
 ```bash
 /plugin marketplace add meathill/muicv
@@ -76,14 +85,13 @@ Skills
 
 ```
 muicv/
-├── skills/                # Claude Code Skill 源（安装时软链到 ~/.claude/skills/）
+├── skills/                # Agent skill 源（通过 `npx skills add` 分发）
 ├── packages/
 │   ├── app/               # Web app 本体（落地页 + API + 将来的账号/订阅 Dashboard）
 │   ├── website/           # 营销站
 │   ├── shared/            # 领域类型（ResumeJson、frontmatter schema 等）
 │   ├── ui/                # UI 组件
 │   └── cron/              # 定时任务骨架
-├── install.sh             # 把 skills/* 软链到 ~/.claude/skills/
 └── WIP.md                 # 当前开发计划
 ```
 

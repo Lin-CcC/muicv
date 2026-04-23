@@ -26,7 +26,7 @@
 
 **下一步（Phase 1 骨架）**：
 - 新建 `skills/muicv-core/SKILL.md`（含自动检测 `.claude/muicv/` 是否已初始化的逻辑）
-- 新建 `install.sh`，软链 `skills/*` → `~/.claude/skills/`
+- 分发靠 [`npx skills add meathill/muicv`](https://www.npmjs.com/package/skills)（Vercel Labs 的通用 agent skill CLI，兼容 Claude Code / Codex / Cursor 等）
 - 定义 `packages/shared/src/schemas/resume-md.ts`（zod frontmatter schema）
 - 端到端验证：空目录 + 与 Claude 说"帮我准备简历" → skill 自动引导并生成文件
 
