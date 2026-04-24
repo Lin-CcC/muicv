@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Mui简历 - 通过对话生成简历',
-  description: '通过 AI 就业辅导对话，快速生成高质量简历。',
+  title: 'Mui简历 — 在你熟悉的 AI agent 里管理简历',
+  description:
+    'Claude Code / Codex / Cursor 通用的简历 skill 套件：素材存本地 Markdown，配 Cloudflare API 做 PDF 渲染和 JD 抓取。',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

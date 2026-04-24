@@ -12,31 +12,38 @@ Mui简历
 安装
 ---
 
-推荐用 [`skills`](https://www.npmjs.com/package/skills)（Vercel Labs 出的 agent skill CLI，兼容 Claude Code / Codex / Cursor / OpenCode 等 40+ agent）：
+两种方式任选：
+
+### 1. Claude Code Plugin Marketplace
+
+官方机制，用户通过 `/plugin` 命令管理：
 
 ```bash
-# 全局安装到 ~/.claude/skills/（交互选择要装哪些 skill 到哪些 agent）
+# 在 Claude Code 里：
+/plugin marketplace add meathill/muicv
+/plugin install muicv@meathill
+```
+
+装完立刻可用。`/plugin list` 查看已装，`/plugin update` 更新。
+
+### 2. npx skills（多 agent 通用）
+
+用 [`skills`](https://www.npmjs.com/package/skills) CLI（Vercel Labs 出品，兼容 Claude Code / Codex / Cursor / OpenCode 等 40+ agent）：
+
+```bash
+# 全局装到 ~/.claude/skills/（交互选择具体装哪些 skill 到哪些 agent）
 npx skills add meathill/muicv -g
 
 # 只装一部分
 npx skills add meathill/muicv -g -s muicv-core -s muicv-generate -a claude-code
 
-# 列出已装 / 更新 / 卸载
+# 管理
 npx skills list
 npx skills update
 npx skills remove muicv-core
 ```
 
-你也可以装到项目级（默认位置 `./.claude/skills/`，会入 git、团队共享）——去掉 `-g` 即可。
-
-### Plugin Marketplace（规划中）
-
-后续会同步发到 Claude Code 官方 Plugin Marketplace：
-
-```bash
-/plugin marketplace add meathill/muicv
-/plugin install muicv@muicv
-```
+装到项目级（默认位置 `./.claude/skills/`，会入 git、团队共享）——去掉 `-g` 即可。
 
 ---
 
@@ -48,6 +55,8 @@ npx skills remove muicv-core
 - 「帮我准备简历」
 - 「我想管理一下我的工作经历」
 - 「加一段在 X 公司做 Y 的经历」
+
+完整的走一遍：见 [docs/walkthrough.md](./docs/walkthrough.md) —— 从零到投递一份针对性简历的 7 步演示。
 
 首次在某项目内触发时，`muicv-core` 会自动在当前工作目录创建 `.claude/muicv/`：
 
@@ -85,7 +94,9 @@ Skills
 
 ```
 muicv/
-├── skills/                # Agent skill 源（通过 `npx skills add` 分发）
+├── .claude-plugin/        # plugin.json + marketplace.json（Claude Code 官方分发）
+├── skills/                # Agent skill 源（也可通过 `npx skills add` 分发）
+├── docs/                  # walkthrough 等开发者文档
 ├── packages/
 │   ├── app/               # Web app 本体（落地页 + Dashboard，Next.js on OpenNext）
 │   ├── api/               # Skill 背后的 Cloudflare Worker（/render 等），含 Container + DO

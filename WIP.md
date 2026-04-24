@@ -35,10 +35,17 @@
 - muicv-core 初始化骨架补上 `applications/` 目录
 - shared schema 加 `ApplicationFrontmatter`
 
-**下一步（Phase 5 分发 / 营销页）**：
-- `.claude-plugin/plugin.json` + `marketplace.json`（Claude Code 官方 Plugin Marketplace）
-- `packages/website` 文案重写（从"对话驱动"改为"Skills + 本地 Markdown"定位）
-- 端到端 dogfood：自己用 skills 做一份简历走完全流程
+**Phase 5 分发 / 营销页 / 文档** ✅：
+- `.claude-plugin/plugin.json` + `marketplace.json`：用户通过 `/plugin marketplace add meathill/muicv` + `/plugin install muicv@meathill` 安装
+- 同时保留 `npx skills add meathill/muicv` 作为多 agent 通用分发方式
+- `packages/website` 文案重写：Hero + 为什么不做 chatbot + 端到端工作流 + 技术栈
+- `docs/walkthrough.md`：7 步演示，从空目录到投递简历的完整对话流
+- README 同步：安装说明双通道 + 仓库结构加 `.claude-plugin/` 和 `docs/`
+
+**下一步**：
+- 推 master 到 GitHub，让 `npx skills add meathill/muicv` 和 `/plugin marketplace add meathill/muicv` 都能真实工作
+- Dogfood：用自己的素材走一遍完整流程，记录遇到的问题
+- Phase 6（延后）：账号系统 / 订阅计费 / Dashboard
 
 ## 历史计划（已废弃，保留做追溯）
 
