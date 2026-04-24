@@ -68,9 +68,19 @@ export type VersionFrontmatter = {
   generated_at: string; // ISO-8601
 };
 
+/** applications/*.md —— cover letter 与投递 checklist，由 muicv-jobs:apply 产出。 */
+export type ApplicationFrontmatter = {
+  type: 'application';
+  target: string; // 指向 targets/*.md 的相对路径
+  company: string;
+  title: string;
+  prepared_at: string; // ISO-8601
+};
+
 export type MuiCvFrontmatter =
   | ProfileFrontmatter
   | ExperienceFrontmatter
   | ProjectFrontmatter
   | TargetFrontmatter
-  | VersionFrontmatter;
+  | VersionFrontmatter
+  | ApplicationFrontmatter;

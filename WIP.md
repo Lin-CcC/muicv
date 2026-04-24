@@ -24,15 +24,21 @@
 **Phase 2 生成/评审** ✅ — `muicv-generate`（针对 JD 从素材库生成 version md）+ `muicv-critique`（7 维度评审）+ `muicv-core` 的 organize reference
 
 **Phase 3 服务端渲染** ✅ — 新建 `packages/api`（独立 Cloudflare Worker）：
-- `PdfRenderer` Durable Object 暴露 Cloudflare Container
+- `BrowserContainer` Durable Object（透明代理）暴露 Cloudflare Container
 - Container 内 Node 22 + Chromium + Puppeteer + Hono server
 - POST /render 接收 markdown → 返回 PDF
 - `muicv-render` skill 调 API 存 PDF 到 `versions/<name>.pdf`
-- 验证：wrangler dry-run 成功（含 Docker build）；运行时端到端验证待用户本地 `pnpm --filter @muicv/api dev` 跑
 
-**下一步（Phase 4 网络任务）**：
-- `packages/api` 加 `/jobs/fetch`：后端抓 JD → 返回清洗后的 markdown
-- `skills/muicv-jobs`：fetch（写到 `targets/`）/ match / apply 辅助
+**Phase 4 网络任务** ✅ — JD 抓取 + 匹配分析 + 投递辅助：
+- `packages/api` 加 POST /jobs/fetch：container 里 Puppeteer + Readability + Turndown，把 JD 页面清洗成 markdown + meta
+- `skills/muicv-jobs`：fetch（写 targets/）、match（本地素材 vs JD 关键词差距分析）、apply（本地生成 cover letter 到 applications/）
+- muicv-core 初始化骨架补上 `applications/` 目录
+- shared schema 加 `ApplicationFrontmatter`
+
+**下一步（Phase 5 分发 / 营销页）**：
+- `.claude-plugin/plugin.json` + `marketplace.json`（Claude Code 官方 Plugin Marketplace）
+- `packages/website` 文案重写（从"对话驱动"改为"Skills + 本地 Markdown"定位）
+- 端到端 dogfood：自己用 skills 做一份简历走完全流程
 
 ## 历史计划（已废弃，保留做追溯）
 

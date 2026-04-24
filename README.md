@@ -76,7 +76,7 @@ Skills
 | [`muicv-generate`](./skills/muicv-generate/SKILL.md) | ✅ 已实现 | 针对 JD 从素材库生成特定版本简历到 `versions/` |
 | [`muicv-critique`](./skills/muicv-critique/SKILL.md) | ✅ 已实现 | STAR / 量化 / 关键词对齐 / 长度 等维度评审 |
 | [`muicv-render`](./skills/muicv-render/SKILL.md) | ✅ 已实现 | 调 API 渲染 PDF（Cloudflare Container + Puppeteer） |
-| `muicv-jobs` | 🚧 规划中 | 抓 JD、匹配、投递辅助 |
+| [`muicv-jobs`](./skills/muicv-jobs/SKILL.md) | ✅ 已实现 | `fetch` 抓 JD、`match` 匹配度分析、`apply` 生成 cover letter |
 
 ---
 

@@ -52,9 +52,11 @@ description: 管理本地 Markdown 简历素材库。帮用户在当前项目的
 │   └── .gitkeep
 ├── projects/
 │   └── .gitkeep
-├── targets/
+├── targets/              # muicv-jobs:fetch 或手工粘贴的 JD
 │   └── .gitkeep
-├── versions/
+├── versions/             # muicv-generate 产出的简历版本
+│   └── .gitkeep
+├── applications/         # muicv-jobs:apply 产出的 cover letter
 │   └── .gitkeep
 ├── education.md          # 带占位说明的骨架
 ├── skills.md             # 带占位说明的骨架
@@ -122,6 +124,7 @@ type: achievements
 - 「加一段在 X 公司做 Y 的经历」— 我会创建 `experience/x-xxxx.md`
 - 「我做过一个项目叫 Z」— 我会创建 `projects/z.md`
 - 「整理一下我的素材」— 我会去重、合并、让描述更具体（但不会编造）
+- 素材差不多了之后，可以说「抓这个岗位」（`muicv-jobs`）、「针对这个 JD 生成简历」（`muicv-generate`）
 
 或者你也可以直接打开 `.claude/muicv/profile.md` 自己编辑，我会读最新内容。"
 
@@ -236,6 +239,7 @@ url: https://example.com
 | `achievements.md` | `achievements` | — | — |
 | `targets/*.md` | `target` | `company`, `title` | `source_url`, `fetched_at` |
 | `versions/*.md` | `version` | `generated_at` | `target` |
+| `applications/*.md` | `application` | `target`, `company`, `title`, `prepared_at` | — |
 
 日期格式：`start` / `end` 用 `YYYY-MM`，`end` 也可以是 `'present'`。其他时间戳用 ISO-8601。
 

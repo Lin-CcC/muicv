@@ -9,11 +9,11 @@
     "enabled": true
   },
 
-  // Cloudflare Container：Chromium + Puppeteer，用于 PDF 渲染
+  // Cloudflare Container：Node + Chromium + Puppeteer，承载 /render、/jobs/fetch。
   // 参见 https://developers.cloudflare.com/containers/
   "containers": [
     {
-      "class_name": "PdfRenderer",
+      "class_name": "BrowserContainer",
       "image": "./container/Dockerfile",
       // MVP 先设小一点，观察实际并发
       "max_instances": 3
@@ -24,8 +24,8 @@
   "durable_objects": {
     "bindings": [
       {
-        "name": "PDF_RENDERER",
-        "class_name": "PdfRenderer"
+        "name": "BROWSER",
+        "class_name": "BrowserContainer"
       }
     ]
   },
@@ -34,7 +34,7 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["PdfRenderer"]
+      "new_sqlite_classes": ["BrowserContainer"]
     }
   ]
 }
