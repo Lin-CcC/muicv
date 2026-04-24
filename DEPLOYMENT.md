@@ -1,82 +1,176 @@
 # DEPLOYMENT
 
-本项目计划部署到 Cloudflare，包含：
+最后更新：2026-04-24
 
-- 应用：Next.js（通过 OpenNext 适配到 Cloudflare Worker）
-- 数据：D1（KV 作为可选的临时态/幂等/缓存）
-- 缓存：R2（用于 Next/OpenNext 的增量缓存）
-- 定时任务：Cloudflare Cron Trigger（`packages/cron`）
+Mui简历的**运行时代码**（service deploy 的部分）只有这几个独立部署单元：
 
-## 当前状态（2026-01-06）
+| 单元 | 技术栈 | 用途 | 状态 |
+|---|---|---|---|
+| [`packages/api`](./packages/api) | Cloudflare Worker + Container (Hono + Puppeteer) | Skill 调用的后端：`/render` PDF 渲染、后续 `/jobs/fetch` 等 | ✅ MVP 可部署 |
+| [`packages/app`](./packages/app) | Next.js 16 + OpenNext + Cloudflare Worker | Web app 本体：落地页、将来的账号 / 订阅 / Dashboard | ⚠️ 占位，Phase 6 扩展 |
+| [`packages/website`](./packages/website) | Next.js 15 | 营销站 | ⚠️ 文案陈旧，Phase 5 重写 |
 
-已完成 OpenNext for Cloudflare + Wrangler 的基础接入（以 `packages/app` 为主）。
+Skill 本身（`skills/*/`）**不是**运行时产物——不需要部署，用户通过 `npx skills add meathill/muicv` 直接从公共仓库拉。
 
-已落地（App）：
+---
 
-- OpenNext 配置：`packages/app/open-next.config.ts`
-- Wrangler 配置：`packages/app/wrangler.jsonc`
-- D1（SQLite）初始化迁移：`packages/app/migrations/0001_init.sql`
+## 前置准备
 
-绑定约定（App）：
+- **Cloudflare 账号**（Workers Paid Plan，`$5/月起`；Container 只有 Paid 可用）
+- **Docker** 本地装好（OrbStack / Docker Desktop / Colima 均可）—— `packages/api` 的 Container 本地开发 + 首次部署构建镜像要用
+- **wrangler CLI**：已在 `devDependencies` 里（`wrangler@4.54+`），走 `pnpm` 调即可
+- Cloudflare 账号 ID：已硬编码在各 `wrangler.jsonc` 里（`account_id: fdc63eeea83ae8f5234357308b9a638b`）。换账号时记得同步改
 
-- D1：`MUICV_DB`
+---
+
+## packages/api（PDF 渲染 API）
+
+### 架构
+
+```
+skill → POST https://<api-host>/render
+         ↓
+       Hono Worker
+         ↓
+       Durable Object (PdfRenderer)
+         ↓
+       Cloudflare Container（Node 22 + Chromium + Puppeteer，监听 :3000）
+         ↓
+       HTML → PDF → bytes 原路返回
+```
+
+MVP **纯冷启动**：首次调用 5-10s（Container + Chromium 启动），热调用 <1s。后续观察用量再决定是否给 DO 加保活策略。
+
+### 本地开发
+
+```bash
+pnpm install
+pnpm --filter @muicv/api dev
+```
+
+`wrangler dev` 会自动：
+
+1. 用 `container/Dockerfile` 构建本地镜像（首次 2-5 分钟，之后走 Docker 层缓存秒级）
+2. 起 Container + Worker
+3. 代码变更时热重载；按 `r` 键手动重建镜像
+
+测试：
+
+```bash
+curl -X POST http://localhost:8787/render \
+  -H "Content-Type: application/json" \
+  -d '{"markdown":"# 张三\n\n资深前端工程师 · 北京\n\n## Summary\n\n一段测试简历。"}' \
+  --output /tmp/test.pdf
+open /tmp/test.pdf
+```
+
+### 部署到 Cloudflare
+
+```bash
+pnpm --filter @muicv/api deploy
+```
+
+`wrangler deploy` 会自动：
+
+1. 用 `container/Dockerfile` 构建生产镜像
+2. 推到 Cloudflare 托管的 Container Registry
+3. 部署 Worker、声明 `PdfRenderer` Durable Object、绑定 Container
+
+**首次部署**还要做一次：
+
+- 在 Cloudflare Dashboard 给这个 Worker 加自定义域名（例如 `api.muicv.com`），或使用 `*.workers.dev` 默认域名
+- 如果打算做 IP 速率限制，在 Dashboard 的 WAF / Rate Limiting 里配规则（代码层 MVP 没做）
+
+### 环境变量
+
+MVP 阶段**没有**环境变量需要设置。后续规划：
+
+- `MUICV_ALLOWED_ORIGINS` — CORS 白名单（如果前端要直接调 API）
+- 账号/订阅相关 secret（Stripe 等）用 `wrangler secret put <NAME>`
+
+### 添加新模板
+
+1. `packages/api/container/templates/<name>.html` 新增 HTML 模板（含 `{{title}}`、`{{content}}` 占位符）
+2. 重新 `pnpm --filter @muicv/api deploy`
+3. Skill 调 API 时传 `template: "<name>"`
+
+---
+
+## packages/app（Web app）
+
+目前只是**一个占位落地页**。Phase 6 会加账号系统 + 订阅 Dashboard，届时会接入 D1 / KV / R2。
+
+### 现状绑定
+
+`packages/app/wrangler.jsonc` 里声明了但**暂未使用**：
+
+- D1：`MUICV_DB`（database id 已存在于 Cloudflare，但 Phase 0 已清空 migrations）
 - KV：`MUICV_KV`
-- OpenNext 增量缓存（R2）：`NEXT_INC_CACHE_R2_BUCKET`（bucket：`site-cache`）
-- （可选）缓存目录前缀：`NEXT_INC_CACHE_R2_PREFIX`（默认 `incremental-cache`）
+- R2：`NEXT_INC_CACHE_R2_BUCKET`（bucket: `site-cache`）—— OpenNext ISR 缓存
 
-环境变量（App / Worker）：
-
-- AI（敏感）：
-  - `OPENAI_API_KEY`：OpenAI 兼容接口鉴权
-  - `GOOGLE_API_KEY`：Gemini 鉴权
-- AI（可选）：
-  - `MUICV_AI_PROVIDER`：`openai` / `gemini`（不填则按 key 自动选择）
-  - `MUICV_OPENAI_MODEL`：默认 `gpt-4o-mini`
-  - `MUICV_GEMINI_MODEL`：默认 `gemini-1.5-flash`
-- 简历版本（非敏感）：
-  - `MUICV_RESUME_SNAPSHOT_LIMIT`：保留最近快照数量（默认 10，最大 100）
-
-本地预览时（Wrangler）建议把敏感变量放在 `packages/app/.dev.vars`（不要提交到仓库）；线上环境请用 Cloudflare 的环境变量/Secrets 管理能力设置。
-
-接下来优先补齐：
-
-1) 创建 Cloudflare 资源（D1/R2/KV）并把 id 写入 `wrangler.jsonc`
-2) 跑通 `opennextjs-cloudflare deploy`（含 CI 方案）
-3) 明确 dev/staging/prod 是否分离，以及迁移策略
-
-## 你需要参与确认的事项
-
-在真正接入 Cloudflare 之前，需要你确认/提供：
-
-- Worker 名称：使用 `muicv-app`（见 `packages/app/wrangler.jsonc`）
-- Cloudflare 账号与目标环境（dev/staging/prod 是否需要分离）
-- D1 数据库命名与迁移策略（是否要区分环境）
-- R2 bucket：`site-cache`（用于 Next/OpenNext 增量缓存，是否需要区分环境）
-- KV namespace 命名与用途边界（缓存 vs 幂等 vs 临时态）
-
-## 本地预览（Worker 环境）
-
-在 `packages/app` 目录：
-
-说明：本项目使用 `wrangler.jsonc`（而不是 `wrangler.toml`）。如果你直接运行 wrangler 命令，请记得带上 `-c wrangler.jsonc`。
-
-1) 初始化/更新本地 D1（只影响本地 wrangler 状态目录）：
+### 本地预览（Worker 环境）
 
 ```bash
-pnpm db:migrate:local
+pnpm --filter @muicv/app dev:cf
 ```
 
-2) 构建并用 Wrangler 预览生产构建：
-
-```bash
-pnpm dev:cf
-```
-
-## 部署（生产）
-
-在你创建好 D1/KV 并把 id 填入 `packages/app/wrangler.jsonc` 后：
+### 部署
 
 ```bash
 pnpm --filter @muicv/app cf:build
 pnpm --filter @muicv/app cf:deploy
 ```
+
+### Phase 6 待做
+
+- 重新设计 users / subscriptions / usage_logs 表 + 对应 migrations
+- 接入 Clerk / NextAuth 等登录方案
+- Stripe 或 mui-api 做订阅计费
+- Dashboard UI（用量、API Key、订阅状态）
+
+---
+
+## packages/website（营销站）
+
+现有文案（"对话驱动 / 自动抽取 / 实时预览"）是**旧方向**的，需要 Phase 5 重写成"Skills + 本地 Markdown"的定位。
+
+### 部署
+
+```bash
+pnpm --filter @muicv/website build
+# 用 Cloudflare Pages 或别的静态托管（暂未接入 wrangler）
+```
+
+TODO：加 `wrangler.jsonc` 或 Cloudflare Pages 配置。
+
+---
+
+## Skill 分发（不需要部署）
+
+`skills/muicv-*/` 跟着仓库推 master 就是"发布"——用户通过：
+
+```bash
+npx skills add meathill/muicv -g
+```
+
+一条命令就装到 `~/.claude/skills/`（或团队项目 `./.claude/skills/`）。
+
+见 [README.md > 安装](./README.md#安装) 章节。
+
+---
+
+## CI / CD（暂缺，Phase 5 再补）
+
+目前所有部署都是**手动**跑 `pnpm --filter <pkg> deploy`。未来规划：
+
+- GitHub Actions：main 分支 merge 时自动部署 `packages/api` 到 prod
+- PR 自动部署 preview 环境（`wrangler deploy --env preview`）
+
+---
+
+## 可能的坑
+
+- **Container 镜像首次 build 很慢**（拉 `node:22-slim` + `apt install chromium`，3-5 分钟）。之后走 Docker 层缓存，改代码秒级。
+- **Worker CPU 时限 30s**：如果 Puppeteer 某次渲染超过 30s，会被 kill。MVP 默认 page load timeout 设为 20s 留出余量。
+- **Cloudflare Container 只在付费 plan 可用**。免费账号会部署失败。
+- **wrangler 版本**：Container GA 要求 `wrangler >= 4.20`（我们锁的 4.54+ 足够）。升级时注意看 release notes。

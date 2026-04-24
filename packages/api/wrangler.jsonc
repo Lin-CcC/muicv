@@ -1,0 +1,40 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "muicv-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "fdc63eeea83ae8f5234357308b9a638b",
+  "observability": {
+    "enabled": true
+  },
+
+  // Cloudflare Container：Chromium + Puppeteer，用于 PDF 渲染
+  // 参见 https://developers.cloudflare.com/containers/
+  "containers": [
+    {
+      "class_name": "PdfRenderer",
+      "image": "./container/Dockerfile",
+      // MVP 先设小一点，观察实际并发
+      "max_instances": 3
+    }
+  ],
+
+  // Container 必须通过 Durable Object 暴露
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PDF_RENDERER",
+        "class_name": "PdfRenderer"
+      }
+    ]
+  },
+
+  // Container 对应的 DO 必须用 new_sqlite_classes 迁移
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PdfRenderer"]
+    }
+  ]
+}

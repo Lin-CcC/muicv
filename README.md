@@ -75,7 +75,7 @@ Skills
 | [`muicv-core`](./skills/muicv-core/SKILL.md) | ✅ 已实现 | 初始化、添加 / 更新 / 整理素材 |
 | [`muicv-generate`](./skills/muicv-generate/SKILL.md) | ✅ 已实现 | 针对 JD 从素材库生成特定版本简历到 `versions/` |
 | [`muicv-critique`](./skills/muicv-critique/SKILL.md) | ✅ 已实现 | STAR / 量化 / 关键词对齐 / 长度 等维度评审 |
-| `muicv-render` | 🚧 规划中 | 调 API 渲染 PDF |
+| [`muicv-render`](./skills/muicv-render/SKILL.md) | ✅ 已实现 | 调 API 渲染 PDF（Cloudflare Container + Puppeteer） |
 | `muicv-jobs` | 🚧 规划中 | 抓 JD、匹配、投递辅助 |
 
 ---
@@ -87,7 +87,10 @@ Skills
 muicv/
 ├── skills/                # Agent skill 源（通过 `npx skills add` 分发）
 ├── packages/
-│   ├── app/               # Web app 本体（落地页 + API + 将来的账号/订阅 Dashboard）
+│   ├── app/               # Web app 本体（落地页 + Dashboard，Next.js on OpenNext）
+│   ├── api/               # Skill 背后的 Cloudflare Worker（/render 等），含 Container + DO
+│   │   ├── src/           # Worker 代码
+│   │   └── container/     # Puppeteer + Chromium，跑在 Cloudflare Container 里
 │   ├── website/           # 营销站
 │   ├── shared/            # 领域类型（ResumeJson、frontmatter schema 等）
 │   ├── ui/                # UI 组件
@@ -101,9 +104,10 @@ muicv/
 ---
 
 - **Skills**：Markdown + frontmatter，符合 [Claude Skill 规范](https://code.claude.com/docs/en/skills)
-- **服务端**：Next.js on Cloudflare Workers（OpenNext）+ D1 + R2
+- **Web (`packages/app`, `packages/website`)**：Next.js 16 on OpenNext / Cloudflare Workers
+- **API (`packages/api`)**：Cloudflare Worker + Hono；PDF 渲染用 Cloudflare Container（Chromium + Puppeteer）
+- **数据**：D1 + R2（按需接入）
 - **类型**：TypeScript（pnpm workspace）
-- **样式**：Tailwind CSS
 
 ---
 

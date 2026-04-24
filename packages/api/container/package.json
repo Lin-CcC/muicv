@@ -1,0 +1,22 @@
+{
+  "name": "@muicv/api-container",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Puppeteer HTTP server，跑在 Cloudflare Container 里给 Worker 做 PDF 渲染。",
+  "scripts": {
+    "start": "node --experimental-strip-types server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.8",
+    "gray-matter": "^4.0.3",
+    "hono": "^4.7.10",
+    "marked": "^15.0.6",
+    "puppeteer-core": "^24.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.5",
+    "typescript": "^5.9.3"
+  }
+}

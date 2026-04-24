@@ -1,6 +1,6 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-04-16
+最后更新：2026-04-24
 
 ## 重大方向调整（2026-04-16）
 
@@ -15,20 +15,24 @@
 
 完整方案见 `.claude/plans/joyful-waddling-floyd.md`（Phase 0～6 分阶段落地）。
 
-## 当前进度（Phase 0 完成）
+## 当前进度
 
-**已完成**：
-- 旧 chat UI / resume UI / API routes / server stores / memory 抽取与整理代码、D1 migrations 全部删除
-- 关键 prompt 已抽取暂存到 `.plan-staging/{resume-generate,organize}-prompt.md`
-- `packages/app` 缩成一个占位 Next.js 站点（保留为 web app 本体，后续承载落地页 + API + 账号/订阅 Dashboard）
-- `packages/shared` 只保留 `ResumeJson` 类型
-- `packages/website`、`packages/cron`、`packages/ui` 暂不动
+**Phase 0 清理** ✅ — chatbot 遗留代码全部删除；旧 prompt 迁移到 skill references 后 .plan-staging 清理
 
-**下一步（Phase 1 骨架）**：
-- 新建 `skills/muicv-core/SKILL.md`（含自动检测 `.claude/muicv/` 是否已初始化的逻辑）
-- 分发靠 [`npx skills add meathill/muicv`](https://www.npmjs.com/package/skills)（Vercel Labs 的通用 agent skill CLI，兼容 Claude Code / Codex / Cursor 等）
-- 定义 `packages/shared/src/schemas/resume-md.ts`（zod frontmatter schema）
-- 端到端验证：空目录 + 与 Claude 说"帮我准备简历" → skill 自动引导并生成文件
+**Phase 1 骨架** ✅ — `skills/muicv-core/SKILL.md` 自动检测初始化 + add-experience / add-project / update / organize；`packages/shared/src/schemas/resume-md.ts` 定义 frontmatter 类型；分发走 [`npx skills add meathill/muicv`](https://www.npmjs.com/package/skills)
+
+**Phase 2 生成/评审** ✅ — `muicv-generate`（针对 JD 从素材库生成 version md）+ `muicv-critique`（7 维度评审）+ `muicv-core` 的 organize reference
+
+**Phase 3 服务端渲染** ✅ — 新建 `packages/api`（独立 Cloudflare Worker）：
+- `PdfRenderer` Durable Object 暴露 Cloudflare Container
+- Container 内 Node 22 + Chromium + Puppeteer + Hono server
+- POST /render 接收 markdown → 返回 PDF
+- `muicv-render` skill 调 API 存 PDF 到 `versions/<name>.pdf`
+- 验证：wrangler dry-run 成功（含 Docker build）；运行时端到端验证待用户本地 `pnpm --filter @muicv/api dev` 跑
+
+**下一步（Phase 4 网络任务）**：
+- `packages/api` 加 `/jobs/fetch`：后端抓 JD → 返回清洗后的 markdown
+- `skills/muicv-jobs`：fetch（写到 `targets/`）/ match / apply 辅助
 
 ## 历史计划（已废弃，保留做追溯）
 
