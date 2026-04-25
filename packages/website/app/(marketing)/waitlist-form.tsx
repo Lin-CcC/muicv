@@ -43,8 +43,20 @@ export function WaitlistForm({ source }: { source: string }) {
 
   if (status === 'success' || status === 'already') {
     return (
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        {status === 'success' ? <>✓ 收到了。产品就绪会第一时间通知你。</> : <>你已经在 waitlist 里了 — 等通知就好。</>}
+      <div
+        role="status"
+        className="flex items-start gap-3 rounded-sm border border-forest/30 bg-forest-soft px-4 py-3 text-[14px] text-forest-deep"
+      >
+        <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-forest" aria-hidden />
+        <span className="leading-snug">
+          {status === 'success' ? (
+            <>
+              <strong className="font-semibold">收到了。</strong> 产品就绪会第一时间通知你。
+            </>
+          ) : (
+            <>你已经在 waitlist 里了 — 等通知就好。</>
+          )}
+        </span>
       </div>
     );
   }
@@ -52,25 +64,41 @@ export function WaitlistForm({ source }: { source: string }) {
   const isLoading = status === 'loading';
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full max-w-md flex-col gap-2 sm:flex-row">
-      <input
-        type="email"
-        required
-        disabled={isLoading}
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="your@email.com"
-        className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none disabled:opacity-60"
-      />
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-60"
-      >
-        {isLoading ? '提交中…' : '加入 Waitlist'}
-      </button>
+    <form onSubmit={onSubmit} className="flex w-full flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <label className="sr-only" htmlFor="waitlist-email">
+          邮箱
+        </label>
+        <input
+          id="waitlist-email"
+          type="email"
+          required
+          disabled={isLoading}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="your@email.com"
+          autoComplete="email"
+          className="min-w-0 flex-1 rounded-sm border border-rule-strong bg-cream px-3.5 py-2.5 text-[14px] text-ink shadow-edge placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="inline-flex items-center justify-center gap-1.5 rounded-sm bg-ink px-4 py-2.5 text-[14px] font-medium text-cream transition hover:bg-forest-deep disabled:opacity-60"
+        >
+          {isLoading ? (
+            <>
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border border-cream/30 border-t-cream" />
+              提交中
+            </>
+          ) : (
+            <>加入 Waitlist</>
+          )}
+        </button>
+      </div>
       {status === 'error' && (
-        <p className="text-sm text-rose-600 sm:col-span-2">提交失败：{errorMsg ?? '请稍后重试'}</p>
+        <p role="alert" className="text-[13px] text-[oklch(0.5_0.16_25)]">
+          提交失败：{errorMsg ?? '请稍后重试'}
+        </p>
       )}
     </form>
   );
