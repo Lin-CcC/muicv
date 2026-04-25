@@ -31,7 +31,7 @@
     }
   ],
   "observability": {
-    "enabled": false
+    "enabled": true
   },
   "placement": {
     "mode": "smart"
@@ -48,5 +48,9 @@
       "binding": "WORKER_SELF_REFERENCE",
       "service": "muicv-web"
     }
-  ]
+  ],
+  "vars": {
+    "BETTER_AUTH_URL": "https://muicv.com",
+    "GITHUB_CLIENT_ID": "3dbc98e657fc50a08577"
+  }
 }

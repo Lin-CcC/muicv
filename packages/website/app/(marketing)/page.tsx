@@ -1,4 +1,13 @@
+import { headers } from 'next/headers';
+
+import { CorgiMascot } from '@/components/corgi-mascot';
+import { getAuth } from '@/lib/auth';
+
 import { WaitlistForm } from './waitlist-form';
+
+// 顶部 nav 要根据登录态切显"登录"或"Dashboard"，所以页面跑 SSR（不要 SSG），
+// 否则 build 时 prerender 会失败：Cloudflare D1 在 build context 拿不到。
+export const dynamic = 'force-dynamic';
 
 const WORKFLOW_STEPS = [
   {
@@ -43,9 +52,9 @@ const FAQ_ITEMS = [
     q: '我的简历数据存在哪？谁能看到？',
     a: (
       <>
-        全部存在你当前项目目录下的 <Code>.claude/muicv/</Code>{' '}
-        文件夹里，纯 Markdown 文件。要不要入 git、要不要备份到云盘、要不要分享给别人——完全由你决定。
-        我们的服务器只在你主动调 API（PDF 渲染、JD 抓取）时短暂经手数据，不留存。
+        全部存在你当前项目目录下的 <Code>.claude/muicv/</Code> 文件夹里，纯 Markdown 文件。要不要入
+        git、要不要备份到云盘、要不要分享给别人——完全由你决定。 我们的服务器只在你主动调 API（PDF 渲染、JD
+        抓取）时短暂经手数据，不留存。
       </>
     ),
   },
@@ -53,8 +62,8 @@ const FAQ_ITEMS = [
     q: '现在要付费吗？',
     a: (
       <>
-        不要。当前 MVP 阶段，PDF 渲染和 JD 抓取的 API 免费，按 IP 限速。
-        将来会上 BYOK（用你自己的 OpenAI / Anthropic API key）和订阅档位，但 skill 本身永远免费。
+        不要。当前 MVP 阶段，PDF 渲染和 JD 抓取的 API 免费，按 IP 限速。 将来会上 BYOK（用你自己的 OpenAI / Anthropic
+        API key）和订阅档位，但 skill 本身永远免费。
       </>
     ),
   },
@@ -69,8 +78,8 @@ const FAQ_ITEMS = [
         >
           muirouter
         </a>{' '}
-        是一个统一接入多家 LLM 的代理（类似 OpenRouter），不想自己注册那么多家的话，
-        通过 muirouter 充值就能在 muicv 桌面 app 里用。
+        是一个统一接入多家 LLM 的代理（类似 OpenRouter），不想自己注册那么多家的话， 通过 muirouter 充值就能在 muicv
+        桌面 app 里用。
       </>
     ),
   },
@@ -78,9 +87,9 @@ const FAQ_ITEMS = [
     q: '桌面 app 什么时候发布？',
     a: (
       <>
-        基于 OpenAI Agent SDK 的 electron 桌面端正在规划，给不用 AI agent 的求职者用。
-        没有具体时间表，<strong>留邮箱进 waitlist</strong>，发布会第一时间通知你。
-        在那之前，开发者可以直接用 skill 套件（上面有安装命令）。
+        基于 OpenAI Agent SDK 的 electron 桌面端正在规划，给不用 AI agent 的求职者用。 没有具体时间表，
+        <strong>留邮箱进 waitlist</strong>，发布会第一时间通知你。 在那之前，开发者可以直接用 skill
+        套件（上面有安装命令）。
       </>
     ),
   },
@@ -112,42 +121,6 @@ function Code({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Mui 柯基 mascot —— meathill 的狗，本品牌精神图腾。 */
-function CorgiMascot({ className = 'h-9 w-9' }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 80 80" className={className} aria-hidden role="img">
-      {/* 左耳 */}
-      <path d="M18 22 L24 6 L32 22 Z" fill="var(--color-yellow)" />
-      <path d="M22.5 19 L25 12 L29 19 Z" fill="var(--color-tongue)" opacity="0.55" />
-      {/* 右耳 */}
-      <path d="M62 22 L56 6 L48 22 Z" fill="var(--color-yellow)" />
-      <path d="M57.5 19 L55 12 L51 19 Z" fill="var(--color-tongue)" opacity="0.55" />
-      {/* 头部 */}
-      <ellipse cx="40" cy="44" rx="22" ry="20" fill="var(--color-yellow)" />
-      {/* 脸颊奶油白 */}
-      <ellipse cx="40" cy="52" rx="14" ry="11" fill="var(--color-fluff)" />
-      {/* 眉毛上一抹更浅 */}
-      <ellipse cx="40" cy="34" rx="14" ry="3" fill="var(--color-corgi)" opacity="0.6" />
-      {/* 眼 */}
-      <ellipse cx="30" cy="40" rx="2" ry="2.6" fill="var(--color-ink)" />
-      <ellipse cx="50" cy="40" rx="2" ry="2.6" fill="var(--color-ink)" />
-      {/* 眼神光 */}
-      <circle cx="30.7" cy="39.2" r="0.7" fill="var(--color-cream)" />
-      <circle cx="50.7" cy="39.2" r="0.7" fill="var(--color-cream)" />
-      {/* 鼻 */}
-      <ellipse cx="40" cy="46.5" rx="3.2" ry="2.4" fill="var(--color-ink)" />
-      {/* 嘴笑 */}
-      <path
-        d="M40 49 Q40 56 35.5 55.5 M40 49 Q40 56 44.5 55.5"
-        stroke="var(--color-ink)"
-        strokeWidth="1.6"
-        fill="none"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 /** 狗爪小印 —— 装饰用 */
 function PawIcon({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -167,10 +140,7 @@ function PawIcon({ className = 'h-4 w-4' }: { className?: string }) {
 function Sparkle() {
   return (
     <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 wiggle" aria-hidden>
-      <path
-        d="M12 2 L13.6 9.4 L21 12 L13.6 14.6 L12 22 L10.4 14.6 L3 12 L10.4 9.4 Z"
-        fill="currentColor"
-      />
+      <path d="M12 2 L13.6 9.4 L21 12 L13.6 14.6 L12 22 L10.4 14.6 L3 12 L10.4 9.4 Z" fill="currentColor" />
     </svg>
   );
 }
@@ -216,7 +186,11 @@ function Highlight({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function WebsiteHomePage() {
+export default async function WebsiteHomePage() {
+  const auth = await getAuth();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const isLoggedIn = !!session?.user;
+
   return (
     <div className="relative">
       {/* ============ 顶部细栏 ============ */}
@@ -242,13 +216,31 @@ export default function WebsiteHomePage() {
             >
               GitHub
             </a>
-            <a
-              href="#install"
-              className="press ml-1 inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 font-semibold text-ink"
-            >
-              立即安装
-              <ArrowUpRight />
-            </a>
+            {isLoggedIn ? (
+              <a
+                href="/dashboard"
+                className="press ml-1 inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 font-semibold text-ink"
+              >
+                进入 Dashboard
+                <ArrowUpRight />
+              </a>
+            ) : (
+              <>
+                <a
+                  href="/sign-in"
+                  className="hidden rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink sm:inline-block"
+                >
+                  登录
+                </a>
+                <a
+                  href="/sign-up"
+                  className="press ml-1 inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 font-semibold text-ink"
+                >
+                  注册
+                  <ArrowUpRight />
+                </a>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -275,16 +267,14 @@ export default function WebsiteHomePage() {
             </div>
 
             <h1 className="mt-7 text-[clamp(2.5rem,7vw,5.25rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
-              在你熟悉的{' '}
-              <Highlight>AI&nbsp;agent</Highlight>{' '}
-              里
+              在你熟悉的 <Highlight>AI&nbsp;agent</Highlight> 里
               <br />
               管理简历。
             </h1>
 
             <p className="mt-7 max-w-xl text-[17px] leading-[1.7] text-ink-soft">
-              素材以 Markdown 存在你自己的项目目录，由你用 git 管。配套 Cloudflare API
-              负责 PDF 渲染、JD 抓取这类本地不便做的事。
+              素材以 Markdown 存在你自己的项目目录，由你用 git 管。配套 Cloudflare API 负责 PDF 渲染、JD
+              抓取这类本地不便做的事。
               <span className="text-mute">不用学新 UI、不用注册账号。</span>
             </p>
 
@@ -327,10 +317,7 @@ export default function WebsiteHomePage() {
                 <CorgiMascot className="h-16 w-16 drop-shadow-[0_3px_0_oklch(0.62_0.14_70)]" />
               </div>
               {/* 暖底投影 */}
-              <div
-                className="absolute -inset-x-1 -inset-y-1 rounded-2xl bg-yellow/15 blur-md"
-                aria-hidden
-              />
+              <div className="absolute -inset-x-1 -inset-y-1 rounded-2xl bg-yellow/15 blur-md" aria-hidden />
               <div className="relative overflow-hidden rounded-2xl border-2 border-ink/85 bg-[#1a1815] font-mono text-[12.5px] leading-relaxed text-cream/90 shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
                 <div className="flex items-center justify-between border-b border-cream/8 px-4 py-2.5">
                   <div className="flex items-center gap-1.5">
@@ -342,8 +329,7 @@ export default function WebsiteHomePage() {
                 </div>
                 <pre className="overflow-x-auto px-4 py-4">
                   <code>
-                    <span className="text-[oklch(0.86_0.13_85)]">$</span>{' '}
-                    <span className="text-cream">claude</span>
+                    <span className="text-[oklch(0.86_0.13_85)]">$</span> <span className="text-cream">claude</span>
                     {'\n\n'}
                     <span className="text-cream/55"># 跟它聊：</span>
                     {'\n'}
@@ -389,11 +375,10 @@ export default function WebsiteHomePage() {
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
-                — 设计原则
-              </p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 设计原则</p>
               <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
-                为什么<br />
+                为什么
+                <br />
                 <span className="relative inline-block">
                   <span
                     className="absolute inset-x-[-4px] bottom-[8%] -z-10 h-[36%] -skew-y-2 rounded-sm bg-corgi/80"
@@ -406,8 +391,8 @@ export default function WebsiteHomePage() {
             </div>
             <div className="lg:col-span-8">
               <p className="text-[clamp(1.2rem,1.8vw,1.45rem)] font-semibold leading-[1.5] text-ink">
-                AI agent 本身就会对话、有记忆、能操作文件——再做一遍 chat UI 和记忆库是重复建设。
-                Mui简历只做 AI agent 做不好的事：结构化的简历工作流，和服务端能力。
+                AI agent 本身就会对话、有记忆、能操作文件——再做一遍 chat UI 和记忆库是重复建设。 Mui简历只做 AI agent
+                做不好的事：结构化的简历工作流，和服务端能力。
               </p>
 
               <div className="mt-12 grid gap-5 sm:grid-cols-3">
@@ -450,11 +435,10 @@ export default function WebsiteHomePage() {
         <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
           <div className="flex items-end justify-between gap-8">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
-                — 端到端
-              </p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 端到端</p>
               <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
-                从空目录到 PDF，<br className="hidden md:block" />
+                从空目录到 PDF，
+                <br className="hidden md:block" />
                 <Highlight>七个 skill</Highlight> 走完。
               </h2>
             </div>
@@ -507,12 +491,13 @@ export default function WebsiteHomePage() {
                 已经可用 · 5 秒装完
               </span>
               <h2 className="mt-5 text-[clamp(1.9rem,3.5vw,2.75rem)] font-extrabold leading-[1.1] tracking-tight">
-                已经在用 AI agent？<br />
+                已经在用 AI agent？
+                <br />
                 <Highlight>现在就能开始</Highlight>。
               </h2>
               <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-ink-soft">
-                不需要等桌面 app。装了 Claude Code、Codex、Cursor、OpenCode 等任何一种支持
-                skill 协议的 agent，下面任选一种安装方式，5 秒装完。
+                不需要等桌面 app。装了 Claude Code、Codex、Cursor、OpenCode 等任何一种支持 skill 协议的
+                agent，下面任选一种安装方式，5 秒装完。
               </p>
 
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px]">
@@ -555,9 +540,7 @@ export default function WebsiteHomePage() {
       <section className="border-b border-rule">
         <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-24 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-7">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
-              — 常见问题
-            </p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 常见问题</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
               想问的<Highlight>大概率</Highlight>在这里。
             </h2>
@@ -573,9 +556,7 @@ export default function WebsiteHomePage() {
                     <span className="mt-0.5 inline-flex h-7 shrink-0 items-center rounded-md bg-fluff px-2 font-mono text-[11px] font-bold tabular-nums text-yellow-deep">
                       Q{String(idx + 1).padStart(2, '0')}
                     </span>
-                    <span className="flex-1 text-[16px] font-bold leading-snug text-ink">
-                      {item.q}
-                    </span>
+                    <span className="flex-1 text-[16px] font-bold leading-snug text-ink">{item.q}</span>
                     <span
                       className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-fluff text-yellow-deep transition-transform duration-200 group-open:rotate-45"
                       aria-hidden
@@ -595,18 +576,13 @@ export default function WebsiteHomePage() {
           <aside className="space-y-10 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
             {/* Waitlist */}
             <div className="relative overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)]">
-              <div
-                className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl"
-                aria-hidden
-              />
+              <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl" aria-hidden />
               {/* 角落小柯基 */}
               <div className="absolute right-3 top-3">
                 <CorgiMascot className="h-10 w-10" />
               </div>
               <div className="relative">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
-                  — Waitlist
-                </p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— Waitlist</p>
                 <h3 className="mt-3 max-w-[220px] text-2xl font-extrabold leading-tight text-ink">
                   桌面 app <span className="text-yellow-deep">开发中</span>。
                 </h3>
@@ -622,9 +598,7 @@ export default function WebsiteHomePage() {
 
             {/* 技术栈 */}
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
-                — 技术栈
-              </p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 技术栈</p>
               <ul className="mt-4 space-y-3 text-[14px] leading-[1.6]">
                 {[
                   ['Skills', 'Markdown + YAML frontmatter（Claude skill 规范）'],
@@ -740,9 +714,7 @@ function InstallCard({
 function FooterCol({ label, links }: { label: string; links: [string, string][] }) {
   return (
     <div>
-      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">
-        {label}
-      </p>
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">{label}</p>
       <ul className="mt-4 space-y-2">
         {links.map(([name, href]) => (
           <li key={name}>

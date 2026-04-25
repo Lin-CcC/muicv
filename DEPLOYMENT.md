@@ -154,7 +154,9 @@ MVP 阶段**没有**环境变量需要设置。后续规划：
 Worker name `muicv-web`。承载：
 
 - `app/(marketing)/page.tsx` — landing + waitlist UI
-- 未来 `app/(dashboard)/...` — Better Auth 登录后的产品后台（Phase 6 起）
+- `app/(auth)/sign-in` `/sign-up` — Better Auth 邮箱密码登录注册
+- `app/(dashboard)/dashboard` — 登录后看到的占位页（M3+ 接入余额 / API key）
+- `app/api/auth/[...all]/route.ts` — Better Auth catch-all
 
 ### 现有绑定（声明在 `wrangler.jsonc`）
 
@@ -162,6 +164,59 @@ Worker name `muicv-web`。承载：
 - KV：`MUICV_KV`
 - R2：`NEXT_INC_CACHE_R2_BUCKET`（bucket `site-cache`）—— OpenNext ISR 缓存
 - Self service binding：`WORKER_SELF_REFERENCE`
+- Vars：`BETTER_AUTH_URL`（生产 `https://muicv.com`，本地 `.dev.vars` 改）
+
+### Secrets（必须 put）
+
+```bash
+# 生成 32+ 字节 secret，存到 Cloudflare 的 secret 管理
+openssl rand -base64 32 | pnpm --filter @muicv/website exec wrangler secret put BETTER_AUTH_SECRET
+```
+
+本地 dev 需要在 `packages/website/.dev.vars`（gitignored）加：
+
+```
+BETTER_AUTH_SECRET=<同上的随机串>
+BETTER_AUTH_URL=http://localhost:3070
+
+# GitHub OAuth（可选，下文）
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+```
+
+### GitHub OAuth（可选）
+
+注册页和登录页会**自动检测** secret 是否配齐——配齐了显示"用 GitHub 登录"按钮，没配就只显示邮箱密码。
+
+**步骤**：
+
+1. 在 https://github.com/settings/developers → New OAuth App 创建：
+   - Application name: `Mui简历`
+   - Homepage URL: `https://muicv.com`
+   - Authorization callback URL: `https://muicv.com/api/auth/callback/github`
+2. 拿到 **Client ID** 和 **Client secret**
+3. 把 Client ID 填到 `packages/website/wrangler.jsonc` 的 `vars.GITHUB_CLIENT_ID`（公开，可入 git）
+4. Client secret 用 secret 命令存：
+   ```bash
+   pnpm --filter @muicv/website exec wrangler secret put GITHUB_CLIENT_SECRET
+   ```
+5. `pnpm --filter @muicv/website deploy`
+
+**本地 dev** 需要单独建一个 GitHub OAuth App（callback URL `http://localhost:3070/api/auth/callback/github`），把 client id / secret 填到 `.dev.vars`。
+
+### 数据库 migration
+
+`packages/website` 的 migrations 是 Better Auth schema（`0002_better_auth.sql`）。
+和 `packages/api/migrations/0001_waitlist.sql` 共用同一个 D1（database name `muicv`），
+编号已分开：api = 0001，website = 0002 起。
+
+```bash
+# 部署前推 schema 到生产 D1
+pnpm --filter @muicv/website exec wrangler d1 migrations apply muicv --remote
+
+# 本地 dev D1
+pnpm --filter @muicv/website exec wrangler d1 migrations apply muicv --local
+```
 
 ### 本地开发
 
