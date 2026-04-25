@@ -14,7 +14,7 @@ const app = new Hono<AppBindings>();
 
 /**
  * CORS 白名单：
- * - muicv.meathill.com / *.muicv.meathill.com（生产）
+ * - muicv.com / *.muicv.com（生产）
  * - localhost:任意端口（dev）
  *
  * Skill（CLI / curl）不发 Origin header，CORS 中间件对它们透传不拦截。
@@ -24,8 +24,8 @@ app.use(
   cors({
     origin: (origin) => {
       if (!origin) return origin;
-      if (origin === 'https://muicv.meathill.com') return origin;
-      if (origin.endsWith('.muicv.meathill.com') && origin.startsWith('https://')) return origin;
+      if (origin === 'https://muicv.com') return origin;
+      if (origin.endsWith('.muicv.com') && origin.startsWith('https://')) return origin;
       if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return origin;
       return null;
     },

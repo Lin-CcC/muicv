@@ -5,7 +5,7 @@ import { useState } from 'react';
 type Status = 'idle' | 'loading' | 'success' | 'already' | 'error';
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_MUICV_API_BASE ?? 'https://api.muicv.meathill.com';
+  process.env.NEXT_PUBLIC_MUICV_API_BASE ?? 'https://api.muicv.com';
 
 export function WaitlistForm({ source }: { source: string }) {
   const [email, setEmail] = useState('');
