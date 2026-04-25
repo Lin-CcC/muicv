@@ -20,7 +20,10 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "sharp",
-      "workerd"
+      "workerd",
+      "electron",
+      "electron-builder",
+      "@parcel/watcher"
     ]
   }
 }

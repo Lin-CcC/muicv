@@ -1,0 +1,41 @@
+{
+  "name": "@muicv/app",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Mui简历桌面端：electron + React，让不用 AI agent 的求职者也能跑完整简历工作流。",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit",
+    "package:mac": "electron-vite build && electron-builder --mac --publish never",
+    "package:mac:arm": "electron-vite build && electron-builder --mac --arm64 --publish never",
+    "preview": "electron-vite preview"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.53",
+    "@muicv/shared": "workspace:*",
+    "ai": "^6.0.0",
+    "electron-store": "^10.1.0",
+    "electron-updater": "^6.6.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.5",
+    "autoprefixer": "^10.5.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^5.0.0",
+    "postcss": "^8.5.10",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwindcss": "^4.2.4",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.1",
+    "zustand": "^5.0.10"
+  }
+}
