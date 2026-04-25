@@ -4,6 +4,7 @@ import { Agent, run, setDefaultOpenAIClient, setDefaultOpenAIKey, setOpenAIAPI }
 import OpenAI from 'openai';
 
 import type { AgentChunk, AppConfig, ChatMessage } from '../../shared/types.ts';
+import { buildApiTools } from './api-tools.ts';
 import { buildSystemPrompt } from './skills.ts';
 import { buildFileTools } from './tools.ts';
 
@@ -55,7 +56,7 @@ export async function runAgent(
     return;
   }
 
-  const tools = buildFileTools(config.workspaceDir);
+  const tools = [...buildFileTools(config.workspaceDir), ...buildApiTools(config)];
   const agent = new Agent({
     name: 'Mui简历',
     instructions: buildSystemPrompt(),
