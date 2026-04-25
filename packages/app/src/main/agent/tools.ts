@@ -1,8 +1,8 @@
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { glob } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 
 import { tool } from '@openai/agents';
+import fg from 'fast-glob';
 import { z } from 'zod';
 
 /**
@@ -109,11 +109,13 @@ export function buildFileTools(workspaceDir: string) {
     }),
     execute: async ({ pattern }) => {
       try {
-        const out: string[] = [];
-        for await (const entry of glob(pattern, { cwd: workspaceDir })) {
-          out.push(entry);
-          if (out.length >= 200) break;
-        }
+        const entries = await fg(pattern, {
+          cwd: workspaceDir,
+          dot: true,
+          onlyFiles: false,
+          followSymbolicLinks: false,
+        });
+        const out = entries.slice(0, 200);
         if (out.length === 0) return '没有匹配的文件';
         return out.join('\n');
       } catch (err) {

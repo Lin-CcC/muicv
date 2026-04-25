@@ -18,27 +18,28 @@
   "dependencies": {
     "@muicv/shared": "workspace:*",
     "@openai/agents": "^0.8.5",
-    "electron-store": "^10.1.0",
-    "electron-updater": "^6.6.4",
-    "openai": "^6.0.0",
-    "zod": "^4.0.0"
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.3",
+    "fast-glob": "^3.3.3",
+    "openai": "^6.34.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
     "@types/node": "^22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^5.0.5",
+    "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.5.0",
-    "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
     "postcss": "^8.5.10",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^5.9.3",
-    "vite": "^6.4.1",
+    "vite": "^7.3.2",
     "zustand": "^5.0.10"
   }
 }
