@@ -294,15 +294,18 @@ pnpm --filter @muicv/app dev
 - HMR：改 renderer (React) 立即生效；改 main / preload 会重启窗口
 - 默认右侧打开 DevTools（Console / Network / React tree 都能看）
 
-打开后流程：
+打开后流程（三段式）：
 
-1. 自动进入 **Settings**（首次没有 workspaceDir / muicvApiKey）
-2. **选目录** → 弹原生 finder 选你刚才那个测试目录
-3. **粘 muicv API key** → 不需要 muirouter key（那个绑在 dashboard 上）
-4. 默认模型如果 muirouter 不认，改成它实际支持的 model id（比如 `openai/gpt-4o-mini` 或别的，看 muirouter list_models）
-5. 保存 → 切回"对话"
+1. **Login**（第一屏）— 大按钮"打开 muicv.com 登录" → 浏览器打开 dashboard → 你登录 / 注册 → 复制 mui_ key → 回 app 粘进框 → "登录"
+2. **Onboarding**（登录后）— ① 选工作目录；② 提示去 dashboard 绑 muirouter（v1 必须，否则 LLM 调不通）。绑好回 app 点"我绑好了，刷新"
+3. **Chat** — 跟 Mui 说话；在顶部右上角 "设置" 随时切档位 / BYOK / 工作目录 / 退出登录
 
-**前提**：你已经登录 muicv 账号 + 在 dashboard "muirouter 余额" section 绑定过 muirouter key（BYOK）。否则 LLM 调用会拿到 402 / no-muirouter-link 错。
+随时切换：
+- **升级订阅档位**：Settings → "订阅档位" 卡 → 点链接去 dashboard（M4 起开放 Pro/Max）
+- **绑定 / 解绑 muirouter (BYOK)**：Settings → "muirouter (BYOK)" 卡 → dashboard 操作 → 回 app 点 "我刚改了，刷新"
+- **退出登录**：Settings 顶部 → 清 mui_ key 回登录页（工作目录保留）
+
+**前提**：muicv 账号 + dashboard 绑过 muirouter（v1 BYOK 必须；M4 起 Pro/Max 可免）。否则 LLM 调用拿到 402 / no-muirouter-link。
 
 #### 3. 跑一遍端到端流程（最简版）
 

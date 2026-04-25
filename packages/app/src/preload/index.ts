@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { AgentChunk, AppConfig, ChatMessage, RendererApi } from '../shared/types.ts';
+import type { AgentChunk, AppConfig, ChatMessage, RendererApi, SessionCheckResult } from '../shared/types.ts';
 
 /**
  * 注册全局 agent:chunk 转发：每条 chunk 来了就 dispatch 一个
@@ -27,6 +27,14 @@ const api: RendererApi = {
     set: (patch: Partial<AppConfig>) =>
       ipcRenderer.invoke('config:set', patch) as Promise<AppConfig>,
     selectWorkspace: () => ipcRenderer.invoke('config:selectWorkspace') as Promise<string | null>,
+  },
+  session: {
+    check: () => ipcRenderer.invoke('session:check') as Promise<SessionCheckResult>,
+    verify: (candidateKey: string) =>
+      ipcRenderer.invoke('session:verify', candidateKey) as Promise<SessionCheckResult>,
+    login: (candidateKey: string) =>
+      ipcRenderer.invoke('session:login', candidateKey) as Promise<SessionCheckResult>,
+    logout: () => ipcRenderer.invoke('session:logout') as Promise<void>,
   },
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url) as Promise<void>,

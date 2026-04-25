@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { BrowserContainer } from './durable-objects/browser-container.ts';
 import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
 import { handleLlmProxy } from './routes/llm.ts';
+import { handleMe } from './routes/me.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
 
 export { BrowserContainer };
@@ -49,12 +50,18 @@ app.get('/', (c) =>
       'POST /render',
       'POST /jobs/fetch',
       'POST /waitlist',
+      'GET /me（拿当前登录用户信息）',
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
     ],
   }),
 );
 
 app.get('/health', (c) => c.text('ok'));
+
+/**
+ * GET /me —— 桌面 app / skill 用 mui_ key 拉取登录用户信息。
+ */
+app.get('/me', requireApiKey, handleMe);
 
 /**
  * /llm/v1/* —— OpenAI 兼容反向代理到用户绑定的 muirouter（BYOK）。

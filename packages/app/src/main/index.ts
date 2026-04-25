@@ -5,6 +5,12 @@ import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron';
 
 import type { AppConfig, ChatMessage } from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
+import {
+  checkSession as runCheckSession,
+  loginWithKey,
+  logout as runLogout,
+  verifyCandidateKey,
+} from './session.ts';
 import { getConfig, setConfig } from './store.ts';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -58,6 +64,17 @@ ipcMain.handle('config:selectWorkspace', async (): Promise<string | null> => {
   if (dir) setConfig({ workspaceDir: dir });
   return dir;
 });
+
+// -------------------- session --------------------
+
+ipcMain.handle('session:check', () => runCheckSession());
+ipcMain.handle('session:verify', (_e, candidate: string) => verifyCandidateKey(candidate));
+ipcMain.handle('session:login', (_e, candidate: string) => loginWithKey(candidate));
+ipcMain.handle('session:logout', () => {
+  runLogout();
+});
+
+// -------------------- shell --------------------
 
 ipcMain.handle('shell:openExternal', async (_event, url: string) => {
   if (typeof url === 'string' && /^https?:\/\//i.test(url)) {

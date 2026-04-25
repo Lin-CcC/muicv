@@ -1,19 +1,28 @@
 import { create } from 'zustand';
 
-import type { AppConfig, ChatMessage, ToolCallRecord } from '../../shared/types.ts';
+import type { AppConfig, ChatMessage, SessionInfo, ToolCallRecord } from '../../shared/types.ts';
 import { DEFAULT_CONFIG } from '../../shared/types.ts';
 
-type View = 'chat' | 'settings';
+type View = 'login' | 'onboarding' | 'chat' | 'settings';
 
 type AppStore = {
   view: View;
   setView: (v: View) => void;
 
+  /** 启动期，等 loadConfig + checkSession 跑完前 true */
+  bootstrapping: boolean;
+
   config: AppConfig;
-  configLoaded: boolean;
   loadConfig: () => Promise<void>;
   patchConfig: (patch: Partial<AppConfig>) => Promise<void>;
   selectWorkspace: () => Promise<void>;
+
+  /** 已登录的 session，未登录 / 未验证 = null */
+  session: SessionInfo | null;
+  setSession: (s: SessionInfo | null) => void;
+  /** 启动 / 配置变化时调一次 /me 校验 + 决定路由 */
+  refreshSession: () => Promise<void>;
+  logout: () => Promise<void>;
 
   messages: ChatMessage[];
   pushMessage: (m: ChatMessage) => void;
@@ -27,27 +36,62 @@ type AppStore = {
   setActiveChannel: (c: string | null) => void;
 };
 
-export const useAppStore = create<AppStore>((set) => ({
-  view: 'chat',
+/**
+ * 路由决策（每次 session / config 变化后调）：
+ *   未登录 → login
+ *   登录 + 没工作目录 → onboarding
+ *   登录 + 有工作目录 → chat（除非用户主动开了 settings）
+ */
+function routeFor(session: SessionInfo | null, cfg: AppConfig, current: View): View {
+  if (!session) return 'login';
+  if (!cfg.workspaceDir) return 'onboarding';
+  if (current === 'login' || current === 'onboarding') return 'chat';
+  return current; // 已经在 chat / settings 不强制切
+}
+
+export const useAppStore = create<AppStore>((set, get) => ({
+  view: 'login',
   setView: (v) => set({ view: v }),
 
+  bootstrapping: true,
+
   config: DEFAULT_CONFIG,
-  configLoaded: false,
   loadConfig: async () => {
     const cfg = await window.muicv.config.get();
-    set({ config: cfg, configLoaded: true });
-    if (!cfg.workspaceDir || !cfg.muicvApiKey) set({ view: 'settings' });
+    set({ config: cfg });
   },
   patchConfig: async (patch) => {
     const next = await window.muicv.config.set(patch);
     set({ config: next });
+    set((s) => ({ view: routeFor(s.session, next, s.view) }));
   },
   selectWorkspace: async () => {
     const dir = await window.muicv.config.selectWorkspace();
     if (dir) {
       const next = await window.muicv.config.get();
       set({ config: next });
+      set((s) => ({ view: routeFor(s.session, next, s.view) }));
     }
+  },
+
+  session: null,
+  setSession: (s) => {
+    set({ session: s });
+    set((st) => ({ view: routeFor(s, st.config, st.view) }));
+  },
+  refreshSession: async () => {
+    await get().loadConfig();
+    const result = await window.muicv.session.check();
+    if (result.status === 'ok') {
+      get().setSession(result.session);
+    } else {
+      get().setSession(null);
+    }
+  },
+  logout: async () => {
+    await window.muicv.session.logout();
+    await get().loadConfig();
+    get().setSession(null);
   },
 
   messages: [],
@@ -80,3 +124,10 @@ export const useAppStore = create<AppStore>((set) => ({
   activeChannel: null,
   setActiveChannel: (c) => set({ activeChannel: c }),
 }));
+
+// bootstrap：app 启动后调一次
+export async function bootstrap(): Promise<void> {
+  const s = useAppStore.getState();
+  await s.refreshSession();
+  useAppStore.setState({ bootstrapping: false });
+}

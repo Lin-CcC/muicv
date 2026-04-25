@@ -24,6 +24,20 @@ export const DEFAULT_CONFIG: AppConfig = {
   defaultModel: 'gpt-4o-mini',
 };
 
+/**
+ * 登录后从 muicv API GET /me 拿到的信息。null 表示未登录 / key 失效。
+ */
+export type SessionInfo = {
+  id: string;
+  email: string;
+  name: string;
+  image: string | null;
+  /** 订阅档位（M4 起激活，目前所有人都是 free） */
+  plan: 'free' | 'pro' | 'max';
+  /** 是否在 dashboard 绑过 muirouter；没绑 LLM 调不通 */
+  hasBYOK: boolean;
+};
+
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
 export type ToolCallRecord = {
@@ -62,12 +76,28 @@ export type AgentChunk =
   /** 出错（network / api / parse）。 */
   | { type: 'error'; message: string };
 
+export type SessionCheckResult =
+  | { status: 'ok'; session: SessionInfo }
+  | { status: 'no-key' }
+  | { status: 'invalid-key'; message: string }
+  | { status: 'network-error'; message: string };
+
 /** preload 注入到 window.muicv 的 API 形状。 */
 export type RendererApi = {
   config: {
     get(): Promise<AppConfig>;
     set(patch: Partial<AppConfig>): Promise<AppConfig>;
     selectWorkspace(): Promise<string | null>;
+  };
+  session: {
+    /** 用当前 muicvApiKey 调 GET /me 验证，结果区分网络错 vs key 无效 */
+    check(): Promise<SessionCheckResult>;
+    /** 用一个候选 mui_ key 试登录（不写 store；成功后调 login 才存） */
+    verify(candidateKey: string): Promise<SessionCheckResult>;
+    /** 验证通过后存 mui_ key + 返回 session */
+    login(candidateKey: string): Promise<SessionCheckResult>;
+    /** 清 mui_ key + 任何缓存的 session */
+    logout(): Promise<void>;
   };
   shell: {
     openExternal(url: string): Promise<void>;

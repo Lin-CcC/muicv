@@ -14,7 +14,9 @@ import { CorgiMascot } from './corgi-mascot';
  *   4. 'finish' / 'error' 解绑 + 解锁输入
  */
 export function ChatView() {
-  const ready = useAppStore((s) => !!s.config.workspaceDir && !!s.config.muicvApiKey);
+  // view 路由已经保证：未登录 → login，未选工作目录 → onboarding。
+  // 这里仅作防御性 fallback。
+  const ready = useAppStore((s) => !!s.config.workspaceDir && !!s.config.muicvApiKey && !!s.session);
   const setView = useAppStore((s) => s.setView);
   const messages = useAppStore((s) => s.messages);
   const pushMessage = useAppStore((s) => s.pushMessage);
