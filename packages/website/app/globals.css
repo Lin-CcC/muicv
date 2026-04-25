@@ -5,9 +5,10 @@
 @import "@muicv/ui/styles.css";
 
 /* -------------------------------------------------------------
- * Mui简历 brand layer —— 在 @muicv/ui 的中性 token 之上叠加品牌色。
- * 设计方向：editorial / technical-warm。cream 底 + 深墨字 + 森林绿 +
- * 一抹琥珀 accent。OKLCH 全部 tint 到 95° 暖色相，避免纯灰。
+ * Mui简历 brand layer —— playful / corgi-cute 方向。
+ * 主色 yellow-500（柯基背毛黄）+ 奶油白底（柯基胸口）+ 暖深棕字。
+ * 风格友善但不幼稚：圆角偏大、yellow 用克制、留白舒展。
+ * Mui 是 meathill 的柯基狗，黄白色。
  * ----------------------------------------------------------- */
 
 @theme {
@@ -16,32 +17,32 @@
     var(--font-display, 'Iowan Old Style'), 'Apple Garamond', 'Hoefler Text', 'Source Serif Pro', Cambria,
     'Times New Roman', serif;
   --font-sans:
-    var(--font-sans, 'Manrope'), -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', system-ui, sans-serif;
+    var(--font-sans, 'Nunito'), -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', system-ui, sans-serif;
   --font-mono: var(--font-mono, 'JetBrains Mono'), 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
-  /* brand palette */
-  --color-cream: oklch(0.985 0.007 95);
-  --color-paper: oklch(0.965 0.012 92);
-  --color-ink: oklch(0.18 0.018 95);
-  --color-ink-soft: oklch(0.32 0.014 95);
-  --color-mute: oklch(0.5 0.012 95);
-  --color-rule: oklch(0.88 0.012 92);
-  --color-rule-strong: oklch(0.78 0.014 92);
+  /* base —— 暖奶油底 + 暖深棕字（不用纯黑） */
+  --color-cream: oklch(0.985 0.018 92);
+  --color-paper: oklch(0.965 0.025 88);
+  --color-ink: oklch(0.24 0.04 65);
+  --color-ink-soft: oklch(0.4 0.035 70);
+  --color-mute: oklch(0.55 0.025 75);
+  --color-rule: oklch(0.88 0.035 85);
+  --color-rule-strong: oklch(0.78 0.05 85);
 
-  --color-forest: oklch(0.4 0.085 150);
-  --color-forest-deep: oklch(0.28 0.07 150);
-  --color-forest-soft: oklch(0.94 0.025 150);
-
-  --color-amber: oklch(0.78 0.135 70);
-  --color-amber-soft: oklch(0.96 0.04 75);
+  /* yellow stack —— 柯基毛色 → 主色 → 深 accent */
+  --color-fluff: oklch(0.96 0.05 88); /* 柯基胸口的奶油白 */
+  --color-corgi: oklch(0.86 0.13 85); /* 柯基背毛 */
+  --color-yellow: oklch(0.79 0.16 85); /* yellow-500 主色 */
+  --color-yellow-deep: oklch(0.62 0.14 70); /* yellow-700 深色 accent */
+  --color-tongue: oklch(0.7 0.16 25); /* 柯基舌头粉橘，节制使用 */
 
   /* glyph treatments */
-  --shadow-edge: 0 1px 0 0 oklch(0.18 0.018 95 / 0.04), 0 0 0 1px oklch(0.18 0.018 95 / 0.04);
+  --shadow-edge: 0 1px 0 0 oklch(0.24 0.04 65 / 0.05), 0 0 0 1px oklch(0.24 0.04 65 / 0.05);
+  --shadow-corgi: 0 4px 0 0 var(--color-yellow-deep);
 }
 
 /* -------------------------------------------------------------
- * Base body —— 跨平台一致的 cream + 深墨。OpenType 启用 ss01/cv11
- * 让 Manrope 的 a/g 切单层，更接近本季流行的 humanist sans 表达。
+ * Base body
  * ----------------------------------------------------------- */
 
 html,
@@ -58,37 +59,78 @@ html {
 
 body {
   font-family: var(--font-sans);
-  font-feature-settings: 'ss01', 'cv11', 'kern';
+  font-feature-settings: 'kern';
   font-variant-numeric: tabular-nums;
 }
 
-/* selection 用品牌绿，强化"求职/产出"语义 */
+/* selection 用主色黄 */
 ::selection {
-  background: var(--color-forest);
-  color: var(--color-cream);
+  background: var(--color-yellow);
+  color: var(--color-ink);
 }
 
-/* utility: 极轻的点阵纹理，仅在 Hero 等强调区域用 */
+/* utility: 暖奶油点阵纹理（极淡，仅在 Hero 等区域用） */
 .bg-grid {
-  background-image: radial-gradient(circle, oklch(0.18 0.018 95 / 0.05) 1px, transparent 1px);
-  background-size: 22px 22px;
-  background-position: 0 0;
+  background-image: radial-gradient(circle, oklch(0.24 0.04 65 / 0.05) 1.2px, transparent 1.2px);
+  background-size: 24px 24px;
 }
 
-.bg-grid-dense {
-  background-image: radial-gradient(circle, oklch(0.18 0.018 95 / 0.07) 1px, transparent 1px);
-  background-size: 14px 14px;
+/* utility: 阳光光晕（替代 hero 顶部装饰） */
+.bg-sun {
+  background: radial-gradient(
+      ellipse 60% 50% at 80% 0%,
+      oklch(0.86 0.13 85 / 0.45) 0%,
+      transparent 60%
+    ),
+    radial-gradient(ellipse 50% 50% at 10% 100%, oklch(0.96 0.05 88 / 0.6) 0%, transparent 50%);
 }
 
-/* utility: 单条 hairline，带着色 */
+/* utility: hairline */
 .hr-fade {
   background: linear-gradient(to right, transparent, var(--color-rule-strong) 12%, var(--color-rule-strong) 88%, transparent);
   height: 1px;
 }
 
-/* terminal mock prompt */
-.term-prompt::before {
-  content: '$ ';
-  color: var(--color-forest);
-  font-weight: 600;
+/* press 风格按钮：底部一道深 yellow 边，模拟厚重立体感（卡通风格） */
+.press {
+  box-shadow: 0 3px 0 0 var(--color-yellow-deep);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+.press:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 0 var(--color-yellow-deep);
+}
+.press:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 var(--color-yellow-deep);
+}
+
+.press-ink {
+  box-shadow: 0 3px 0 0 oklch(0.24 0.04 65);
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out;
+}
+.press-ink:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 0 oklch(0.24 0.04 65);
+}
+.press-ink:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 oklch(0.24 0.04 65);
+}
+
+/* corgi tail wag —— 在 mascot 旁的 ✦ 装饰小幅旋转 */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+.wiggle {
+  animation: wiggle 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wiggle { animation: none; }
 }

@@ -63,7 +63,10 @@ const FAQ_ITEMS = [
     a: (
       <>
         BYOK = Bring Your Own Key，用你自己的 LLM API key（OpenAI / Anthropic / Gemini 等）。{' '}
-        <a href="https://muirouter.com" className="underline decoration-forest decoration-1 underline-offset-4 hover:text-forest">
+        <a
+          href="https://muirouter.com"
+          className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
+        >
           muirouter
         </a>{' '}
         是一个统一接入多家 LLM 的代理（类似 OpenRouter），不想自己注册那么多家的话，
@@ -103,20 +106,72 @@ const FAQ_ITEMS = [
 
 function Code({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded-sm bg-paper px-1.5 py-0.5 font-mono text-[0.86em] text-ink ring-1 ring-rule">
+    <code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[0.86em] text-yellow-deep ring-1 ring-corgi/40">
       {children}
     </code>
   );
 }
 
-function Monogram() {
+/** Mui 柯基 mascot —— meathill 的狗，本品牌精神图腾。 */
+function CorgiMascot({ className = 'h-9 w-9' }: { className?: string }) {
   return (
-    <span
-      aria-hidden
-      className="inline-flex h-7 w-7 items-center justify-center rounded-sm bg-ink font-display text-[15px] font-semibold leading-none tracking-tight text-cream"
-    >
-      M
-    </span>
+    <svg viewBox="0 0 80 80" className={className} aria-hidden role="img">
+      {/* 左耳 */}
+      <path d="M18 22 L24 6 L32 22 Z" fill="var(--color-yellow)" />
+      <path d="M22.5 19 L25 12 L29 19 Z" fill="var(--color-tongue)" opacity="0.55" />
+      {/* 右耳 */}
+      <path d="M62 22 L56 6 L48 22 Z" fill="var(--color-yellow)" />
+      <path d="M57.5 19 L55 12 L51 19 Z" fill="var(--color-tongue)" opacity="0.55" />
+      {/* 头部 */}
+      <ellipse cx="40" cy="44" rx="22" ry="20" fill="var(--color-yellow)" />
+      {/* 脸颊奶油白 */}
+      <ellipse cx="40" cy="52" rx="14" ry="11" fill="var(--color-fluff)" />
+      {/* 眉毛上一抹更浅 */}
+      <ellipse cx="40" cy="34" rx="14" ry="3" fill="var(--color-corgi)" opacity="0.6" />
+      {/* 眼 */}
+      <ellipse cx="30" cy="40" rx="2" ry="2.6" fill="var(--color-ink)" />
+      <ellipse cx="50" cy="40" rx="2" ry="2.6" fill="var(--color-ink)" />
+      {/* 眼神光 */}
+      <circle cx="30.7" cy="39.2" r="0.7" fill="var(--color-cream)" />
+      <circle cx="50.7" cy="39.2" r="0.7" fill="var(--color-cream)" />
+      {/* 鼻 */}
+      <ellipse cx="40" cy="46.5" rx="3.2" ry="2.4" fill="var(--color-ink)" />
+      {/* 嘴笑 */}
+      <path
+        d="M40 49 Q40 56 35.5 55.5 M40 49 Q40 56 44.5 55.5"
+        stroke="var(--color-ink)"
+        strokeWidth="1.6"
+        fill="none"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** 狗爪小印 —— 装饰用 */
+function PawIcon({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <ellipse cx="6" cy="9" rx="1.8" ry="2.4" fill="currentColor" />
+      <ellipse cx="10.5" cy="6" rx="1.8" ry="2.4" fill="currentColor" />
+      <ellipse cx="13.5" cy="6" rx="1.8" ry="2.4" fill="currentColor" />
+      <ellipse cx="18" cy="9" rx="1.8" ry="2.4" fill="currentColor" />
+      <path
+        d="M12 11c-3 0-5 2.5-5 5 0 1.8 1.5 3 3.2 3 0.8 0 1.2-.4 1.8-.4s1 .4 1.8.4c1.7 0 3.2-1.2 3.2-3 0-2.5-2-5-5-5z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
+function Sparkle() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 wiggle" aria-hidden>
+      <path
+        d="M12 2 L13.6 9.4 L21 12 L13.6 14.6 L12 22 L10.4 14.6 L3 12 L10.4 9.4 Z"
+        fill="currentColor"
+      />
+    </svg>
   );
 }
 
@@ -126,7 +181,7 @@ function ArrowDown() {
       <path
         d="M12 4v16m0 0l-6-6m6 6l6-6"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -140,7 +195,7 @@ function ArrowUpRight() {
       <path
         d="M7 17L17 7M17 7H8M17 7v9"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -148,32 +203,48 @@ function ArrowUpRight() {
   );
 }
 
+/** 荧光笔式块状高亮 —— 卡通氛围下用来强调。 */
+function Highlight({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="relative inline-block whitespace-nowrap">
+      <span
+        className="absolute inset-x-[-2px] bottom-[6%] -z-10 h-[42%] -skew-y-1 rounded-sm bg-corgi/80"
+        aria-hidden
+      />
+      <span className="relative">{children}</span>
+    </span>
+  );
+}
+
 export default function WebsiteHomePage() {
   return (
     <div className="relative">
-      {/* 顶部细栏 */}
+      {/* ============ 顶部细栏 ============ */}
       <header className="sticky top-0 z-30 border-b border-rule bg-cream/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 md:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-8">
           <a href="/" className="flex items-center gap-2.5 text-ink no-underline">
-            <Monogram />
-            <span className="font-display text-[17px] font-medium tracking-tight">Mui简历</span>
+            <CorgiMascot className="h-8 w-8" />
+            <span className="text-[17px] font-bold tracking-tight">Mui简历</span>
+            <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-wider text-mute sm:inline">
+              by Mui 🐾
+            </span>
           </a>
           <nav className="flex items-center gap-1 text-sm text-ink-soft">
             <a
               href="https://github.com/meathill/muicv/blob/master/docs/walkthrough.md"
-              className="rounded-sm px-2.5 py-1.5 transition hover:bg-paper hover:text-ink"
+              className="hidden rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink sm:inline-block"
             >
               文档
             </a>
             <a
               href="https://github.com/meathill/muicv"
-              className="rounded-sm px-2.5 py-1.5 transition hover:bg-paper hover:text-ink"
+              className="rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink"
             >
               GitHub
             </a>
             <a
               href="#install"
-              className="ml-1 inline-flex items-center gap-1 rounded-sm bg-ink px-3 py-1.5 text-cream transition hover:bg-forest-deep"
+              className="press ml-1 inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 font-semibold text-ink"
             >
               立即安装
               <ArrowUpRight />
@@ -184,22 +255,28 @@ export default function WebsiteHomePage() {
 
       {/* ============ HERO ============ */}
       <section className="relative overflow-hidden border-b border-rule">
-        <div className="absolute inset-0 bg-grid opacity-70" aria-hidden />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-rule-strong to-transparent" aria-hidden />
+        <div className="absolute inset-0 bg-sun" aria-hidden />
+        <div className="absolute inset-0 bg-grid opacity-50" aria-hidden />
 
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-16 md:px-8 md:py-24 lg:grid-cols-12 lg:gap-12 lg:py-32">
+        {/* 飘浮装饰 */}
+        <div className="pointer-events-none absolute left-[8%] top-[18%] hidden text-corgi/40 lg:block">
+          <PawIcon className="h-7 w-7" />
+        </div>
+        <div className="pointer-events-none absolute right-[6%] top-[60%] hidden text-corgi/30 lg:block">
+          <PawIcon className="h-9 w-9 -rotate-12" />
+        </div>
+
+        <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-16 md:px-8 md:py-24 lg:grid-cols-12 lg:gap-12 lg:py-28">
           {/* 左 - 文字 */}
           <div className="lg:col-span-7">
-            <div className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.18em] text-mute">
-              <span className="inline-block h-px w-8 bg-rule-strong" />
-              <span>v0.1 · skills + cloudflare api</span>
+            <div className="inline-flex items-center gap-2 rounded-full border-2 border-corgi/60 bg-fluff px-3 py-1 text-[11px] font-semibold text-yellow-deep">
+              <Sparkle />
+              <span>v0.1 · 由柯基 Mui 监修</span>
             </div>
 
-            <h1 className="mt-7 font-display text-[clamp(2.6rem,7.5vw,5.5rem)] font-medium leading-[1.02] tracking-tight text-ink">
+            <h1 className="mt-7 text-[clamp(2.5rem,7vw,5.25rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
               在你熟悉的{' '}
-              <span className="italic text-forest" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 100' }}>
-                AI&nbsp;agent
-              </span>{' '}
+              <Highlight>AI&nbsp;agent</Highlight>{' '}
               里
               <br />
               管理简历。
@@ -214,28 +291,28 @@ export default function WebsiteHomePage() {
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a
                 href="#install"
-                className="inline-flex items-center gap-2 rounded-sm bg-ink px-5 py-3 text-[15px] font-medium text-cream shadow-edge transition hover:bg-forest-deep"
+                className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
               >
                 开始使用
                 <ArrowDown />
               </a>
               <a
                 href="https://github.com/meathill/muicv"
-                className="inline-flex items-center gap-2 rounded-sm border border-rule-strong bg-cream px-5 py-3 text-[15px] font-medium text-ink transition hover:border-ink hover:bg-paper"
+                className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
               >
                 看 GitHub
                 <ArrowUpRight />
               </a>
             </div>
 
-            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-rule pt-6">
+            <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t-2 border-dotted border-rule-strong pt-6">
               {[
                 { n: '5', l: 'skills' },
                 { n: '2', l: 'API endpoints' },
                 { n: '40+', l: 'compatible agents' },
               ].map((s) => (
                 <div key={s.l}>
-                  <dt className="font-display text-3xl font-medium text-ink tabular-nums">{s.n}</dt>
+                  <dt className="text-3xl font-extrabold text-yellow-deep tabular-nums">{s.n}</dt>
                   <dd className="mt-0.5 font-mono text-[11px] uppercase tracking-wider text-mute">{s.l}</dd>
                 </div>
               ))}
@@ -245,54 +322,61 @@ export default function WebsiteHomePage() {
           {/* 右 - 终端 mock */}
           <div className="lg:col-span-5">
             <div className="relative">
-              {/* 阴影投影但极轻 */}
-              <div className="absolute -inset-x-2 -inset-y-2 rounded-md bg-ink/5 blur-md" aria-hidden />
-              <div className="relative overflow-hidden rounded-md border border-ink/15 bg-[#1a1815] font-mono text-[12.5px] leading-relaxed text-cream/90 shadow-edge">
-                <div className="flex items-center justify-between border-b border-cream/8 px-4 py-2">
+              {/* 装饰：右上角立耳柯基头 */}
+              <div className="absolute -right-3 -top-7 z-10 hidden md:block">
+                <CorgiMascot className="h-16 w-16 drop-shadow-[0_3px_0_oklch(0.62_0.14_70)]" />
+              </div>
+              {/* 暖底投影 */}
+              <div
+                className="absolute -inset-x-1 -inset-y-1 rounded-2xl bg-yellow/15 blur-md"
+                aria-hidden
+              />
+              <div className="relative overflow-hidden rounded-2xl border-2 border-ink/85 bg-[#1a1815] font-mono text-[12.5px] leading-relaxed text-cream/90 shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
+                <div className="flex items-center justify-between border-b border-cream/8 px-4 py-2.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="h-2.5 w-2.5 rounded-full bg-cream/15" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-cream/15" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-cream/15" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
                   </div>
                   <span className="text-[10px] uppercase tracking-wider text-cream/40">~/career — claude</span>
                 </div>
                 <pre className="overflow-x-auto px-4 py-4">
                   <code>
-                    <span className="text-[oklch(0.78_0.13_70)]">$</span>{' '}
+                    <span className="text-[oklch(0.86_0.13_85)]">$</span>{' '}
                     <span className="text-cream">claude</span>
                     {'\n\n'}
                     <span className="text-cream/55"># 跟它聊：</span>
                     {'\n'}
-                    <span className="text-cream">{'>'}</span>{' '}
-                    <span className="text-cream/90">帮我针对 Google L5 写一份简历</span>
+                    <span className="text-[oklch(0.86_0.13_85)]">{'>'}</span>{' '}
+                    <span className="text-cream/95">帮我针对 Google L5 写一份简历</span>
                     {'\n\n'}
-                    <span className="text-[oklch(0.7_0.15_150)]">✓</span>{' '}
+                    <span className="text-[oklch(0.86_0.13_85)]">✓</span>{' '}
                     <span className="text-cream/85">muicv-jobs:fetch</span>
                     {'   '}
                     <span className="text-cream/40">targets/google-l5.md</span>
                     {'\n'}
-                    <span className="text-[oklch(0.7_0.15_150)]">✓</span>{' '}
+                    <span className="text-[oklch(0.86_0.13_85)]">✓</span>{' '}
                     <span className="text-cream/85">muicv-jobs:match</span>
                     {'    '}
                     <span className="text-cream/40">9/12 关键词覆盖</span>
                     {'\n'}
-                    <span className="text-[oklch(0.7_0.15_150)]">✓</span>{' '}
+                    <span className="text-[oklch(0.86_0.13_85)]">✓</span>{' '}
                     <span className="text-cream/85">muicv-generate</span>
                     {'      '}
                     <span className="text-cream/40">versions/google-l5-2026-04-25.md</span>
                     {'\n'}
-                    <span className="text-[oklch(0.7_0.15_150)]">✓</span>{' '}
+                    <span className="text-[oklch(0.86_0.13_85)]">✓</span>{' '}
                     <span className="text-cream/85">muicv-render</span>
                     {'        '}
                     <span className="text-cream/40">→ google-l5.pdf</span>{' '}
-                    <span className="text-[oklch(0.78_0.13_70)]">2 页 · 148 KB</span>
+                    <span className="text-[oklch(0.7_0.16_25)]">2 页 · 148 KB</span>
                     {'\n\n'}
-                    <span className="text-cream/55">done in 8.2s</span>
+                    <span className="text-cream/55">done in 8.2s 🐾</span>
                   </code>
                 </pre>
               </div>
               <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-mute">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-forest" />
+                <span className="inline-block h-2 w-2 rounded-full bg-yellow" />
                 端到端，全程在 terminal 内
               </div>
             </div>
@@ -302,22 +386,31 @@ export default function WebsiteHomePage() {
 
       {/* ============ 为什么 ============ */}
       <section className="border-b border-rule">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
           <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-4">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">— 设计原则</p>
-              <h2 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.05] tracking-tight">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
+                — 设计原则
+              </p>
+              <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
                 为什么<br />
-                <span className="italic">不</span>做 Chatbot？
+                <span className="relative inline-block">
+                  <span
+                    className="absolute inset-x-[-4px] bottom-[8%] -z-10 h-[36%] -skew-y-2 rounded-sm bg-corgi/80"
+                    aria-hidden
+                  />
+                  <span className="relative">不</span>
+                </span>{' '}
+                做 Chatbot？
               </h2>
             </div>
             <div className="lg:col-span-8">
-              <p className="font-display text-[clamp(1.3rem,2vw,1.55rem)] italic leading-[1.45] text-ink">
+              <p className="text-[clamp(1.2rem,1.8vw,1.45rem)] font-semibold leading-[1.5] text-ink">
                 AI agent 本身就会对话、有记忆、能操作文件——再做一遍 chat UI 和记忆库是重复建设。
                 Mui简历只做 AI agent 做不好的事：结构化的简历工作流，和服务端能力。
               </p>
 
-              <div className="mt-12 grid gap-8 sm:grid-cols-3">
+              <div className="mt-12 grid gap-5 sm:grid-cols-3">
                 {[
                   {
                     n: '01',
@@ -335,10 +428,15 @@ export default function WebsiteHomePage() {
                     d: '所有生成严格限定在你明确写下的事实里。缺素材就追问或留空，绝不替你"发挥"。',
                   },
                 ].map((item) => (
-                  <div key={item.n} className="space-y-2">
-                    <div className="font-display text-2xl font-medium tabular-nums text-forest">{item.n}</div>
-                    <div className="text-[15px] font-semibold text-ink">{item.t}</div>
-                    <p className="text-[14px] leading-[1.65] text-ink-soft">{item.d}</p>
+                  <div
+                    key={item.n}
+                    className="rounded-2xl border-2 border-ink bg-cream p-5 transition-transform hover:-translate-y-1"
+                  >
+                    <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-yellow text-sm font-extrabold text-ink tabular-nums">
+                      {item.n}
+                    </div>
+                    <div className="mt-3 text-[15px] font-bold text-ink">{item.t}</div>
+                    <p className="mt-1.5 text-[14px] leading-[1.65] text-ink-soft">{item.d}</p>
                   </div>
                 ))}
               </div>
@@ -347,15 +445,17 @@ export default function WebsiteHomePage() {
         </div>
       </section>
 
-      {/* ============ 工作流（editorial 目录式） ============ */}
+      {/* ============ 工作流 ============ */}
       <section className="border-b border-rule">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+        <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
           <div className="flex items-end justify-between gap-8">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">— 端到端</p>
-              <h2 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.05] tracking-tight">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
+                — 端到端
+              </p>
+              <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
                 从空目录到 PDF，<br className="hidden md:block" />
-                七个 skill 走完。
+                <Highlight>七个 skill</Highlight> 走完。
               </h2>
             </div>
             <p className="hidden max-w-xs text-[14px] leading-[1.65] text-ink-soft md:block">
@@ -363,20 +463,20 @@ export default function WebsiteHomePage() {
             </p>
           </div>
 
-          <ol className="mt-14 divide-y divide-rule border-y border-rule">
+          <ol className="mt-12 space-y-3">
             {WORKFLOW_STEPS.map((step, idx) => (
               <li
                 key={step.skill}
-                className="group grid grid-cols-[auto_1fr] items-baseline gap-x-6 gap-y-1 px-1 py-5 transition-colors hover:bg-forest-soft/60 sm:grid-cols-[auto_minmax(0,11rem)_1fr] sm:gap-x-8 md:px-3"
+                className="group grid grid-cols-[auto_1fr] items-baseline gap-x-5 gap-y-1 rounded-xl border-2 border-rule bg-cream px-4 py-4 transition-all hover:border-corgi hover:bg-fluff hover:translate-x-1 sm:grid-cols-[auto_minmax(0,11rem)_1fr] sm:gap-x-6 sm:px-5"
               >
-                <span className="font-display text-3xl font-medium tabular-nums text-mute transition-colors group-hover:text-forest sm:text-4xl">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow text-sm font-extrabold text-ink tabular-nums shadow-[0_2px_0_0_var(--color-yellow-deep)] sm:h-11 sm:w-11 sm:text-base">
                   {String(idx + 1).padStart(2, '0')}
                 </span>
-                <span className="col-span-1 font-mono text-[14px] font-medium text-ink sm:col-span-1">
+                <span className="font-mono text-[13.5px] font-semibold text-yellow-deep sm:text-[14px]">
                   {step.skill}
                 </span>
                 <span className="col-span-2 max-w-2xl text-[15px] leading-[1.65] text-ink-soft sm:col-span-1">
-                  <span className="font-semibold text-ink">{step.title}</span>
+                  <span className="font-bold text-ink">{step.title}</span>
                   <span className="mx-2 text-rule-strong">·</span>
                   {step.desc}
                 </span>
@@ -386,31 +486,31 @@ export default function WebsiteHomePage() {
         </div>
       </section>
 
-      {/* ============ Claude Code 用户专区（深色翻面） ============ */}
-      <section id="install" className="relative overflow-hidden border-b border-forest-deep bg-[oklch(0.16_0.022_150)] text-cream">
-        <div className="absolute inset-0 opacity-30" aria-hidden>
-          <div
-            className="h-full w-full"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle, oklch(0.95 0.03 150 / 0.06) 1px, transparent 1px)',
-              backgroundSize: '24px 24px',
-            }}
-          />
-        </div>
+      {/* ============ Claude Code 用户专区（阳光黄 spotlight） ============ */}
+      <section id="install" className="relative overflow-hidden border-b border-rule">
+        {/* 阳光底纹 */}
+        <div
+          className="absolute inset-0"
+          aria-hidden
+          style={{
+            background:
+              'radial-gradient(ellipse 90% 60% at 50% 0%, oklch(0.86 0.13 85 / 0.65) 0%, oklch(0.96 0.05 88 / 0.5) 35%, transparent 75%)',
+          }}
+        />
+        <div className="absolute inset-0 bg-grid opacity-40" aria-hidden />
 
-        <div className="relative mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-28">
+        <div className="relative mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
           <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-5">
-              <span className="inline-flex items-center gap-2 rounded-full border border-cream/15 bg-cream/5 px-3 py-1 font-mono text-[11px] uppercase tracking-wider text-cream/80">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-[oklch(0.72_0.16_150)]" />
-                已经可用
+              <span className="inline-flex items-center gap-2 rounded-full border-2 border-ink bg-cream px-3.5 py-1 text-[12px] font-bold text-ink">
+                <span className="inline-block h-2 w-2 rounded-full bg-yellow-deep" />
+                已经可用 · 5 秒装完
               </span>
-              <h2 className="mt-5 font-display text-[clamp(1.9rem,3.5vw,2.75rem)] font-medium leading-[1.1] tracking-tight">
+              <h2 className="mt-5 text-[clamp(1.9rem,3.5vw,2.75rem)] font-extrabold leading-[1.1] tracking-tight">
                 已经在用 AI agent？<br />
-                <span className="italic text-cream/85">现在就能开始。</span>
+                <Highlight>现在就能开始</Highlight>。
               </h2>
-              <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-cream/75">
+              <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-ink-soft">
                 不需要等桌面 app。装了 Claude Code、Codex、Cursor、OpenCode 等任何一种支持
                 skill 协议的 agent，下面任选一种安装方式，5 秒装完。
               </p>
@@ -418,14 +518,14 @@ export default function WebsiteHomePage() {
               <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px]">
                 <a
                   href="https://github.com/meathill/muicv/blob/master/docs/walkthrough.md"
-                  className="inline-flex items-center gap-1.5 text-cream/85 underline decoration-cream/30 decoration-1 underline-offset-4 hover:decoration-cream"
+                  className="inline-flex items-center gap-1.5 font-semibold text-ink underline decoration-yellow decoration-2 underline-offset-4 hover:decoration-yellow-deep"
                 >
                   7 步演示
                   <ArrowUpRight />
                 </a>
                 <a
                   href="https://github.com/meathill/muicv#使用"
-                  className="inline-flex items-center gap-1.5 text-cream/85 underline decoration-cream/30 decoration-1 underline-offset-4 hover:decoration-cream"
+                  className="inline-flex items-center gap-1.5 font-semibold text-ink underline decoration-yellow decoration-2 underline-offset-4 hover:decoration-yellow-deep"
                 >
                   完整文档
                   <ArrowUpRight />
@@ -451,50 +551,64 @@ export default function WebsiteHomePage() {
         </div>
       </section>
 
-      {/* ============ FAQ + Waitlist 平行栏 ============ */}
+      {/* ============ FAQ + Waitlist ============ */}
       <section className="border-b border-rule">
-        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-28 lg:grid-cols-12 lg:gap-16">
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-24 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-7">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">— 常见问题</p>
-            <h2 className="mt-3 font-display text-[clamp(2rem,4vw,3rem)] font-medium leading-[1.05] tracking-tight">
-              想问的<span className="italic">大概率</span>在这里。
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
+              — 常见问题
+            </p>
+            <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
+              想问的<Highlight>大概率</Highlight>在这里。
             </h2>
 
-            <div className="mt-10 divide-y divide-rule border-y border-rule">
+            <div className="mt-10 space-y-3">
               {FAQ_ITEMS.map((item, idx) => (
-                <details key={item.q} className="group" open={idx === 0}>
-                  <summary className="flex cursor-pointer list-none items-start gap-4 py-5 transition-colors hover:bg-paper">
-                    <span className="mt-1 font-display text-base font-medium tabular-nums text-mute">
+                <details
+                  key={item.q}
+                  className="group rounded-xl border-2 border-rule bg-cream transition-colors hover:border-corgi"
+                  open={idx === 0}
+                >
+                  <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-4">
+                    <span className="mt-0.5 inline-flex h-7 shrink-0 items-center rounded-md bg-fluff px-2 font-mono text-[11px] font-bold tabular-nums text-yellow-deep">
                       Q{String(idx + 1).padStart(2, '0')}
                     </span>
-                    <span className="flex-1 font-display text-[18px] font-medium leading-snug text-ink">
+                    <span className="flex-1 text-[16px] font-bold leading-snug text-ink">
                       {item.q}
                     </span>
                     <span
-                      className="mt-1 inline-block transition-transform duration-200 group-open:rotate-45 text-mute"
+                      className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-fluff text-yellow-deep transition-transform duration-200 group-open:rotate-45"
                       aria-hidden
                     >
                       +
                     </span>
                   </summary>
-                  <div className="pb-5 pl-[3.25rem] pr-8 text-[15px] leading-[1.7] text-ink-soft">{item.a}</div>
+                  <div className="border-t border-rule px-5 pb-5 pt-4 pl-[4.5rem] text-[15px] leading-[1.7] text-ink-soft">
+                    {item.a}
+                  </div>
                 </details>
               ))}
             </div>
           </div>
 
-          {/* 右侧 waitlist + 技术栈 */}
+          {/* 右栏 waitlist + 技术栈 */}
           <aside className="space-y-10 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
             {/* Waitlist */}
-            <div className="relative overflow-hidden rounded-md border border-rule bg-paper p-7">
+            <div className="relative overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)]">
               <div
-                className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-amber-soft blur-2xl"
+                className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl"
                 aria-hidden
               />
+              {/* 角落小柯基 */}
+              <div className="absolute right-3 top-3">
+                <CorgiMascot className="h-10 w-10" />
+              </div>
               <div className="relative">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">— Waitlist</p>
-                <h3 className="mt-3 font-display text-2xl font-medium leading-tight text-ink">
-                  桌面 app <span className="italic text-amber">开发中</span>。
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
+                  — Waitlist
+                </p>
+                <h3 className="mt-3 max-w-[220px] text-2xl font-extrabold leading-tight text-ink">
+                  桌面 app <span className="text-yellow-deep">开发中</span>。
                 </h3>
                 <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">
                   独立 desktop app，让不用 AI agent 的求职者也能用。支持 BYOK 或通过 muirouter 购买额度。
@@ -508,8 +622,10 @@ export default function WebsiteHomePage() {
 
             {/* 技术栈 */}
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">— 技术栈</p>
-              <ul className="mt-4 space-y-3 text-[14px] leading-[1.6] text-ink-soft">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
+                — 技术栈
+              </p>
+              <ul className="mt-4 space-y-3 text-[14px] leading-[1.6]">
                 {[
                   ['Skills', 'Markdown + YAML frontmatter（Claude skill 规范）'],
                   ['API', 'Cloudflare Worker + Hono'],
@@ -517,7 +633,7 @@ export default function WebsiteHomePage() {
                   ['分发', 'Plugin Marketplace + npx skills + GitHub'],
                 ].map(([k, v]) => (
                   <li key={k} className="flex items-baseline gap-3">
-                    <span className="w-20 shrink-0 font-mono text-[11px] uppercase tracking-wider text-mute">
+                    <span className="w-20 shrink-0 font-mono text-[11px] font-semibold uppercase tracking-wider text-yellow-deep">
                       {k}
                     </span>
                     <span className="flex-1 text-ink-soft">{v}</span>
@@ -534,11 +650,15 @@ export default function WebsiteHomePage() {
         <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <a href="/" className="flex items-center gap-2.5 text-ink no-underline">
-              <Monogram />
-              <span className="font-display text-[17px] font-medium tracking-tight">Mui简历</span>
+              <CorgiMascot className="h-9 w-9" />
+              <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
             </a>
             <p className="mt-4 max-w-xs text-[13px] leading-[1.65] text-ink-soft">
               在你熟悉的 AI agent 里管理简历。Skills + 本地 Markdown + Cloudflare API。
+            </p>
+            <p className="mt-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-yellow-deep">
+              <PawIcon className="h-3.5 w-3.5" />
+              由柯基 Mui 监修
             </p>
           </div>
 
@@ -582,7 +702,7 @@ export default function WebsiteHomePage() {
   );
 }
 
-/** 安装方式卡片：深色 section 内嵌的玻璃感卡（克制版，不滥用 blur）。 */
+/** 安装方式卡片：奶油白底 + 双层 yellow 框 + 终端嵌入 */
 function InstallCard({
   title,
   meta,
@@ -595,21 +715,22 @@ function InstallCard({
   preferred?: boolean;
 }) {
   return (
-    <div className="group relative overflow-hidden rounded-md border border-cream/12 bg-cream/[0.04] p-5 transition-colors hover:border-cream/22 hover:bg-cream/[0.06]">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-display text-[17px] font-medium text-cream">{title}</h3>
+    <div className="group relative rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)] transition-transform hover:-translate-y-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-[17px] font-extrabold text-ink">{title}</h3>
             {preferred && (
-              <span className="rounded-full border border-[oklch(0.72_0.16_150)] bg-[oklch(0.72_0.16_150)]/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-[oklch(0.78_0.16_150)]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-yellow px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">
+                <Sparkle />
                 推荐
               </span>
             )}
           </div>
-          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-cream/55">{meta}</p>
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">{meta}</p>
         </div>
       </div>
-      <pre className="mt-4 overflow-x-auto rounded-sm border border-cream/8 bg-[oklch(0.1_0.015_150)] p-4 font-mono text-[12.5px] leading-relaxed text-cream/85">
+      <pre className="mt-4 overflow-x-auto rounded-lg border-2 border-ink/85 bg-[#1a1815] p-4 font-mono text-[12.5px] leading-relaxed text-cream/90">
         <code>{code}</code>
       </pre>
     </div>
@@ -619,13 +740,15 @@ function InstallCard({
 function FooterCol({ label, links }: { label: string; links: [string, string][] }) {
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-mute">{label}</p>
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">
+        {label}
+      </p>
       <ul className="mt-4 space-y-2">
         {links.map(([name, href]) => (
           <li key={name}>
             <a
               href={href}
-              className="text-ink-soft underline decoration-rule decoration-1 underline-offset-4 transition hover:text-ink hover:decoration-ink"
+              className="text-ink-soft underline decoration-rule decoration-2 underline-offset-4 transition hover:text-ink hover:decoration-yellow"
             >
               {name}
             </a>

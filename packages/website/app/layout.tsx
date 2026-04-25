@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Fraunces, JetBrains_Mono, Manrope } from 'next/font/google';
+import { Fraunces, JetBrains_Mono, Nunito } from 'next/font/google';
 
 import './globals.css';
 
@@ -17,10 +17,9 @@ const fontDisplay = Fraunces({
   display: 'swap',
 });
 
-// Body sans: Manrope，readable，比 Inter 个性强
-const fontSans = Manrope({
+// Body sans: Nunito，圆润 friendly，配柯基卡通气质
+const fontSans = Nunito({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
 });

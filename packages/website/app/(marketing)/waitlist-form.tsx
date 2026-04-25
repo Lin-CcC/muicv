@@ -45,16 +45,20 @@ export function WaitlistForm({ source }: { source: string }) {
     return (
       <div
         role="status"
-        className="flex items-start gap-3 rounded-sm border border-forest/30 bg-forest-soft px-4 py-3 text-[14px] text-forest-deep"
+        className="flex items-start gap-3 rounded-xl border-2 border-ink bg-cream px-4 py-3 text-[14px] text-ink"
       >
-        <span className="mt-0.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-forest" aria-hidden />
+        <span aria-hidden className="mt-0.5 text-base">
+          🐾
+        </span>
         <span className="leading-snug">
           {status === 'success' ? (
             <>
-              <strong className="font-semibold">收到了。</strong> 产品就绪会第一时间通知你。
+              <strong className="font-bold">收到啦！</strong> 桌面 app 上线第一时间通知你。
             </>
           ) : (
-            <>你已经在 waitlist 里了 — 等通知就好。</>
+            <>
+              <strong className="font-bold">你已经在 waitlist 里了</strong> — Mui 一直记得你呢。
+            </>
           )}
         </span>
       </div>
@@ -78,16 +82,16 @@ export function WaitlistForm({ source }: { source: string }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="your@email.com"
           autoComplete="email"
-          className="min-w-0 flex-1 rounded-sm border border-rule-strong bg-cream px-3.5 py-2.5 text-[14px] text-ink shadow-edge placeholder:text-mute focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/10 disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-lg border-2 border-ink bg-cream px-3.5 py-2.5 text-[14px] text-ink placeholder:text-mute focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
         />
         <button
           type="submit"
           disabled={isLoading}
-          className="inline-flex items-center justify-center gap-1.5 rounded-sm bg-ink px-4 py-2.5 text-[14px] font-medium text-cream transition hover:bg-forest-deep disabled:opacity-60"
+          className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? (
             <>
-              <span className="inline-block h-3 w-3 animate-spin rounded-full border border-cream/30 border-t-cream" />
+              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-ink/30 border-t-ink" />
               提交中
             </>
           ) : (
@@ -96,7 +100,7 @@ export function WaitlistForm({ source }: { source: string }) {
         </button>
       </div>
       {status === 'error' && (
-        <p role="alert" className="text-[13px] text-[oklch(0.5_0.16_25)]">
+        <p role="alert" className="text-[13px] font-medium text-tongue">
           提交失败：{errorMsg ?? '请稍后重试'}
         </p>
       )}
