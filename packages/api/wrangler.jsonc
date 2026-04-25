@@ -43,12 +43,12 @@
       ]
     }
   ],
-  // D1：目前只存 waitlist；M2 起会加 users、subscriptions 等表
-  // 部署前先 `wrangler d1 create muicv-api`，把返回的 database_id 填进去
+  // D1：和 packages/website 共用同一个名为 `muicv` 的数据库。本 worker 主要写
+  // waitlist；M2 起 website 那边会写 users / subscriptions 等表。
   "d1_databases": [
     {
       "binding": "MUICV_API_DB",
-      "database_name": "muicv-api",
+      "database_name": "muicv",
       "database_id": "db60cfbd-48e1-4220-9239-18c117f26ed0",
       "migrations_dir": "migrations"
     }

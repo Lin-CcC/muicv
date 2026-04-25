@@ -98,14 +98,16 @@ muicv/
 ├── skills/                # Agent skill 源（也可通过 `npx skills add` 分发）
 ├── docs/                  # walkthrough 等开发者文档
 ├── packages/
-│   ├── app/               # Web app 本体（落地页 + Dashboard，Next.js on OpenNext）
-│   ├── api/               # Skill 背后的 Cloudflare Worker（/render 等），含 Container + DO
+│   ├── website/           # Web app 本体（landing + 未来 dashboard），Next.js on OpenNext
+│   │   └── app/(marketing)/  # 营销页 route group
+│   ├── api/               # Skill 背后的 Cloudflare Worker（/render、/jobs/fetch、/waitlist）
 │   │   ├── src/           # Worker 代码
+│   │   ├── migrations/    # D1 schema
 │   │   └── container/     # Puppeteer + Chromium，跑在 Cloudflare Container 里
-│   ├── website/           # 营销站
 │   ├── shared/            # 领域类型（ResumeJson、frontmatter schema 等）
 │   ├── ui/                # UI 组件
-│   └── cron/              # 定时任务骨架
+│   ├── cron/              # 定时任务骨架
+│   └── app/               # （规划中）基于 OpenAI Agent SDK 的 electron 桌面端
 └── WIP.md                 # 当前开发计划
 ```
 
@@ -115,8 +117,9 @@ muicv/
 ---
 
 - **Skills**：Markdown + frontmatter，符合 [Claude Skill 规范](https://code.claude.com/docs/en/skills)
-- **Web (`packages/app`, `packages/website`)**：Next.js 16 on OpenNext / Cloudflare Workers
+- **Web (`packages/website`)**：Next.js 16 on OpenNext / Cloudflare Workers — landing + dashboard
 - **API (`packages/api`)**：Cloudflare Worker + Hono；PDF 渲染用 Cloudflare Container（Chromium + Puppeteer）
+- **Electron app (`packages/app`)**：规划中，基于 OpenAI Agent SDK 的桌面端
 - **数据**：D1 + R2（按需接入）
 - **类型**：TypeScript（pnpm workspace）
 

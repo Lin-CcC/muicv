@@ -6,10 +6,10 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --filter @muicv/app dev",
-    "dev:app": "pnpm --filter @muicv/app dev",
-    "dev:cf": "pnpm --filter @muicv/app dev:cf",
-    "dev:website": "pnpm --filter @muicv/website dev",
+    "dev": "pnpm --filter @muicv/website dev",
+    "dev:web": "pnpm --filter @muicv/website dev",
+    "dev:cf": "pnpm --filter @muicv/website dev:cf",
+    "dev:api": "pnpm --filter @muicv/api dev",
     "dev:cron": "pnpm --filter @muicv/cron dev",
     "build": "pnpm -r --if-present build",
     "test": "pnpm -r --if-present test",

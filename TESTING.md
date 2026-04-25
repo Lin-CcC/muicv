@@ -4,6 +4,7 @@
 
 - Node.js >= 24
 - pnpm（见根目录 `package.json` 的 `packageManager`）
+- Docker（可选，跑 `packages/api` 的 Container 时需要）
 
 ## 安装依赖
 
@@ -18,7 +19,6 @@ pnpm install
 目前测试主要来自：
 
 - `packages/shared`：领域类型/工具的 smoke test
-- `packages/app`：对话数据存储（内存 + SQLite）相关单测
 
 测试使用 Node 内置 test runner。
 
@@ -26,7 +26,7 @@ pnpm install
 pnpm test
 ```
 
-如果只跑某个包：
+只跑某个包：
 
 ```bash
 pnpm --filter @muicv/shared test
@@ -34,40 +34,38 @@ pnpm --filter @muicv/shared test
 
 ## 启动开发服务器
 
-应用（对话 + 简历）：
+Web 主体（landing + 未来 dashboard）：
 
 ```bash
-pnpm dev:app
+# 纯 Next.js dev（最快）
+pnpm dev
+
+# OpenNext / Wrangler 本地预览（贴近生产 Worker 环境）
+pnpm dev:cf
 ```
 
-官网：
+API（PDF 渲染 + JD 抓取 + waitlist，需要 Docker）：
 
 ```bash
-pnpm dev:website
+pnpm dev:api
+```
+
+## 验证 Cloudflare 部署
+
+`packages/website` 和 `packages/api` 都已接入 wrangler，本地可 dry-run：
+
+```bash
+# website：先在本地 D1 跑 migrations（M2 起会有 users 等表）
+pnpm --filter @muicv/website cf-typegen
+
+# website：构建 Worker bundle（不部署）
+pnpm --filter @muicv/website cf:build
+
+# api：dry-run 含 Docker 镜像构建
+pnpm --filter @muicv/api build
 ```
 
 ## 说明
 
-- 目前处于 M0 骨架阶段，尚未引入端到端测试；后续在对话/抽取闭环落地后补齐。
-- `packages/app` 的单测使用 Node 内置 `node:sqlite`（会看到 `ExperimentalWarning`，这是 Node 当前的特性状态，不影响功能）。
-
-## Cloudflare 预览（App）
-
-`packages/app` 已接入 OpenNext for Cloudflare，本地可用 Wrangler 预览生产构建：
-
-```bash
-pnpm --filter @muicv/app db:migrate:local
-pnpm --filter @muicv/app dev:cf
-```
-
-说明：
-
-- `db:migrate:local` 会在本地 wrangler 状态目录创建/更新 D1（不会改动你的线上资源）。
-- 本项目使用 `wrangler.jsonc`，相关脚本已显式传入 `--config/-c`；如果你直接运行 wrangler 命令，也建议带上 `-c wrangler.jsonc`。
-- 如果你只跑 `pnpm dev:app`（next dev），也会尝试通过 OpenNext 的 dev 集成读取 `wrangler.jsonc` 并提供 D1/KV/R2 绑定；但本地 D1 依然建议先跑一次迁移。
-
-环境变量（本地）：
-
-- `pnpm --filter @muicv/app dev:cf`（Wrangler/Worker 预览）：推荐在 `packages/app/.dev.vars` 中设置 `OPENAI_API_KEY` / `GOOGLE_API_KEY` 等变量（不要提交到仓库）。
-- `pnpm dev:app`（next dev）：读取 `process.env`；你可以用自己的方式注入（例如在 shell 中 `export OPENAI_API_KEY=...`），并确保敏感信息不进入版本控制。
-- 代码读取优先级：Cloudflare env（Wrangler 注入）优先于 `process.env`，避免系统级环境变量覆盖本地预览配置。
+- 端到端测试待补齐
+- `packages/api` 的 Container 在本地 dev 需要 Docker（OrbStack / Docker Desktop / Colima 任选）

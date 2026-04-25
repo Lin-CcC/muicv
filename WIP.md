@@ -42,10 +42,18 @@
 - `docs/walkthrough.md`：7 步演示，从空目录到投递简历的完整对话流
 - README 同步：安装说明双通道 + 仓库结构加 `.claude-plugin/` 和 `docs/`
 
-**下一步**：
-- 推 master 到 GitHub，让 `npx skills add meathill/muicv` 和 `/plugin marketplace add meathill/muicv` 都能真实工作
-- Dogfood：用自己的素材走一遍完整流程，记录遇到的问题
-- Phase 6（延后）：账号系统 / 订阅计费 / Dashboard
+**Phase 6 M1（进行中）—— Web 产品起步**：
+- ✅ POST /waitlist 端点 + D1（`muicv` 库）+ CORS 白名单
+- ✅ `packages/website` Waitlist 表单组件
+- ✅ skill 默认 API URL 收敛到 `api.muicv.com`
+- ✅ **包合并**：`packages/website` 升级为 web app 主体（OpenNext on Cloudflare Worker），原 `packages/app` 删除，名字留给将来的 electron 端
+- 未做：实际部署 D1 migration / Worker / DNS（用户手动）
+
+**Phase 6 M2+（未做）**：
+- 接 Better Auth（已定方案）
+- 对接 muirouter.com 余额 / 充值
+- Dashboard UI（用量、API Key、订阅）
+- Electron 桌面端会进 `packages/app`（基于 OpenAI Agent SDK）
 
 ## 历史计划（已废弃，保留做追溯）
 

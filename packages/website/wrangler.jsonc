@@ -1,19 +1,32 @@
 {
-  "name": "muicv-app",
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "muicv-web",
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-12-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
+
+  // 生产域名：muicv.com（landing + 未来的 dashboard）。首次部署前在 Cloudflare DNS
+  // 把 muicv.com 代理给本 Worker，然后取消注释下面 routes 即可生效。
+  // "routes": [
+  //   { "pattern": "muicv.com", "zone_name": "muicv.com", "custom_domain": true },
+  //   { "pattern": "www.muicv.com", "zone_name": "muicv.com", "custom_domain": true }
+  // ],
+
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "muicv-app"
+      "service": "muicv-web"
     }
   ],
+
+  // 和 packages/api 共用同一个名为 `muicv` 的 D1。本 worker 主要写
+  // users / subscriptions / sessions（M2 起，Better Auth 会用）。
   "d1_databases": [
     {
       "binding": "MUICV_DB",
@@ -22,6 +35,8 @@
       "migrations_dir": "migrations"
     }
   ],
+
+  // OpenNext 增量缓存（ISR）走 R2
   "r2_buckets": [
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
@@ -29,6 +44,7 @@
       "preview_bucket_name": "site-cache"
     }
   ],
+
   "kv_namespaces": [
     {
       "binding": "MUICV_KV"

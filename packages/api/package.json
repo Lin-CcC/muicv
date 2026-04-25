@@ -9,19 +9,18 @@
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "build": "wrangler deploy --dry-run --outdir=dist",
-    "db:migrate:local": "wrangler d1 migrations apply muicv-api --local",
-    "db:migrate": "wrangler d1 migrations apply muicv-api --remote",
-    "db:migrate:list": "wrangler d1 migrations list muicv-api --remote",
-    "db:console:local": "wrangler d1 execute muicv-api --local --command",
-    "db:console": "wrangler d1 execute muicv-api --remote --command"
+    "db:migrate:local": "wrangler d1 migrations apply muicv --local",
+    "db:migrate": "wrangler d1 migrations apply muicv --remote",
+    "db:migrate:list": "wrangler d1 migrations list muicv --remote",
+    "db:console:local": "wrangler d1 execute muicv --local --command",
+    "db:console": "wrangler d1 execute muicv --remote --command"
   },
   "dependencies": {
     "@muicv/shared": "workspace:*",
-    "hono": "^4.7.10"
+    "hono": "^4.12.15"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260103.0",
     "typescript": "^5.9.3",
-    "wrangler": "^4.54.0"
+    "wrangler": "^4.85.0"
   }
 }

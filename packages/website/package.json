@@ -3,25 +3,34 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "description": "Mui简历 web app：landing page (muicv.com) 和将来的 dashboard。Next.js + OpenNext on Cloudflare Worker。",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3070",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "cf:build": "opennextjs-cloudflare build --config wrangler.jsonc",
+    "cf:preview": "opennextjs-cloudflare preview --config wrangler.jsonc",
+    "dev:cf": "opennextjs-cloudflare preview --config wrangler.jsonc",
+    "cf:deploy": "opennextjs-cloudflare deploy --config wrangler.jsonc",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@muicv/shared": "workspace:*",
     "@muicv/ui": "workspace:*",
-    "next": "^15.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "next": "~16.0.10",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.0",
-    "@types/node": "^22.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "autoprefixer": "^10.4.0",
-    "postcss": "^8.4.0",
-    "tailwindcss": "^4.0.0",
-    "typescript": "^5.7.0"
+    "@opennextjs/cloudflare": "^1.14.7",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^22.19.5",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.85.0"
   }
 }
