@@ -81,3 +81,25 @@ export const apiKey = sqliteTable('apiKey', {
   createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
   revokedAt: integer('revokedAt', { mode: 'timestamp_ms' }),
 });
+
+/**
+ * muirouter BYOK 关联（每用户最多一条）。
+ * 用户在 muirouter 自己生成 API key，在 muicv dashboard 粘贴进来。
+ * key 走 AES-GCM 加密存储（lib/crypto.ts），原文 muicv 永远不再持有。
+ * balance 等字段是上次成功 fetch 的快照，避免每次 dashboard 刷新都打 muirouter。
+ */
+export const muirouterLink = sqliteTable('muirouterLink', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  keyCipher: text('keyCipher').notNull(),
+  keyIv: text('keyIv').notNull(),
+  keyPreview: text('keyPreview').notNull(),
+  currency: text('currency'),
+  balanceCents: integer('balanceCents'),
+  lifetimeToppedUpCents: integer('lifetimeToppedUpCents'),
+  lifetimeSpentCents: integer('lifetimeSpentCents'),
+  balanceUpdatedAt: integer('balanceUpdatedAt', { mode: 'timestamp_ms' }),
+  lastError: text('lastError'),
+  linkedAt: integer('linkedAt', { mode: 'timestamp_ms' }).notNull(),
+});
