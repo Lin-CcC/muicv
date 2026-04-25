@@ -1,5 +1,7 @@
 import { Button } from '@muicv/ui';
 
+import { WaitlistForm } from './waitlist-form';
+
 export default function WebsiteHomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-16 p-8 md:p-12">
@@ -38,6 +40,18 @@ npx skills add meathill/muicv -g
 /plugin marketplace add meathill/muicv
 /plugin install muicv@meathill`}</code>
         </pre>
+
+        {/* Waitlist */}
+        <div className="mt-4 space-y-3 rounded-xl border border-zinc-200 bg-white p-5">
+          <div>
+            <h3 className="text-base font-semibold">桌面 app 开发中</h3>
+            <p className="mt-1 text-sm text-zinc-600">
+              准备一个独立的 desktop app，让不用 AI agent 的求职者也能用，支持 BYOK
+              或通过 muirouter 购买额度。留个邮箱，发布时第一时间通知你。
+            </p>
+          </div>
+          <WaitlistForm source="landing-hero" />
+        </div>
       </section>
 
       {/* 为什么 */}

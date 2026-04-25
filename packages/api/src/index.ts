@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
 import { BrowserContainer } from './durable-objects/browser-container.ts';
+import { handleWaitlist } from './routes/waitlist.ts';
 
 export { BrowserContainer };
 
@@ -10,14 +12,46 @@ type AppBindings = {
 
 const app = new Hono<AppBindings>();
 
+/**
+ * CORS 白名单：
+ * - muicv.meathill.com / *.muicv.meathill.com（生产）
+ * - localhost:任意端口（dev）
+ *
+ * Skill（CLI / curl）不发 Origin header，CORS 中间件对它们透传不拦截。
+ */
+app.use(
+  '*',
+  cors({
+    origin: (origin) => {
+      if (!origin) return origin;
+      if (origin === 'https://muicv.meathill.com') return origin;
+      if (origin.endsWith('.muicv.meathill.com') && origin.startsWith('https://')) return origin;
+      if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) return origin;
+      return null;
+    },
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['content-type'],
+    maxAge: 600,
+  }),
+);
+
 app.get('/', (c) =>
   c.json({
     name: 'muicv-api',
-    routes: ['GET /health', 'POST /render', 'POST /jobs/fetch'],
+    routes: ['GET /health', 'POST /render', 'POST /jobs/fetch', 'POST /waitlist'],
   }),
 );
 
 app.get('/health', (c) => c.text('ok'));
+
+/**
+ * POST /waitlist
+ *
+ * Body: { email: string, source?: string }
+ * 响应：201 / 400 / 409 / 500
+ * 详见 src/routes/waitlist.ts
+ */
+app.post('/waitlist', handleWaitlist);
 
 /**
  * 小工具：把请求代理到共享的 BrowserContainer DO（singleton）。

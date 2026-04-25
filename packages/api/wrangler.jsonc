@@ -9,6 +9,12 @@
     "enabled": true
   },
 
+  // 生产域名：api.muicv.meathill.com。首次部署前在 Cloudflare DNS 把该子域
+  // 代理给本 Worker，然后取消注释下面 `routes` 即可生效。
+  // "routes": [
+  //   { "pattern": "api.muicv.meathill.com/*", "zone_name": "meathill.com" }
+  // ],
+
   // Cloudflare Container：Node + Chromium + Puppeteer，承载 /render、/jobs/fetch。
   // 参见 https://developers.cloudflare.com/containers/
   "containers": [
@@ -35,6 +41,17 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["BrowserContainer"]
+    }
+  ],
+
+  // D1：目前只存 waitlist；M2 起会加 users、subscriptions 等表
+  // 部署前先 `wrangler d1 create muicv-api`，把返回的 database_id 填进去
+  "d1_databases": [
+    {
+      "binding": "MUICV_API_DB",
+      "database_name": "muicv-api",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
     }
   ]
 }
