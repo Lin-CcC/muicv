@@ -205,10 +205,10 @@ export default async function WebsiteHomePage() {
           </a>
           <nav className="flex items-center gap-1 text-sm text-ink-soft">
             <a
-              href="https://github.com/meathill/muicv/blob/master/docs/walkthrough.md"
+              href="/download"
               className="hidden rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink sm:inline-block"
             >
-              文档
+              下载
             </a>
             <a
               href="https://github.com/meathill/muicv"
@@ -280,17 +280,17 @@ export default async function WebsiteHomePage() {
 
             <div className="mt-9 flex flex-wrap items-center gap-3">
               <a
-                href="#install"
+                href="/download"
                 className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
               >
-                开始使用
+                下载桌面 app
                 <ArrowDown />
               </a>
               <a
-                href="https://github.com/meathill/muicv"
+                href="#install"
                 className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
               >
-                看 GitHub
+                或装 skill
                 <ArrowUpRight />
               </a>
             </div>
@@ -640,9 +640,9 @@ export default async function WebsiteHomePage() {
             <FooterCol
               label="产品"
               links={[
-                ['立即安装', '#install'],
-                ['Waitlist', '#install'],
-                ['桌面 app', '#'],
+                ['下载桌面 app', '/download'],
+                ['Skill 安装', '#install'],
+                ['Dashboard', '/dashboard'],
               ]}
             />
             <FooterCol

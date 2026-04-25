@@ -119,7 +119,11 @@ muicv/
 - **Skills**：Markdown + frontmatter，符合 [Claude Skill 规范](https://code.claude.com/docs/en/skills)
 - **Web (`packages/website`)**：Next.js 16 on OpenNext / Cloudflare Workers — landing + dashboard
 - **API (`packages/api`)**：Cloudflare Worker + Hono；PDF 渲染用 Cloudflare Container（Chromium + Puppeteer）
-- **Electron app (`packages/app`)**：规划中，基于 OpenAI Agent SDK 的桌面端
+- **Electron app (`packages/app`)**：electron + React + OpenAI Agents SDK，
+  可下载 .dmg 直接装。LLM 走 muirouter（OpenAI 兼容）；
+  调 muicv API 做 PDF 渲染 + JD 抓取
+  - 下载：[muicv.com/download](https://muicv.com/download)
+  - 发布：tag `v*` 自动触发 `.github/workflows/release.yml`
 - **数据**：D1 + R2（按需接入）
 - **类型**：TypeScript（pnpm workspace）
 

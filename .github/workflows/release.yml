@@ -1,0 +1,76 @@
+name: Release Mui简历 desktop app
+
+# 触发：
+#   1) push tag 形如 v0.1.0 / v1.2.3 → 构建并 upload 到对应 GitHub Release
+#   2) workflow_dispatch → 手动跑（用于自测；不会创建 release）
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# 同时只跑一份 build，避免并发抢同一个 release
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-mac:
+    name: Build & package for macOS
+    runs-on: macos-latest
+    timeout-minutes: 25
+
+    permissions:
+      contents: write # 创建 / 上传 release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # electron-builder 不签名 build。后续申请 Apple Developer ID 后再加
+      # CSC_LINK / CSC_KEY_PASSWORD secrets 启用签名 + notarize。
+      - name: Build & package
+        env:
+          # disable auto-publish；我们自己 upload
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @muicv/app package
+
+      - name: List output
+        run: ls -lah packages/app/release || true
+
+      - name: Upload artifacts (dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: muicv-mac-${{ github.run_id }}
+          path: |
+            packages/app/release/*.dmg
+            packages/app/release/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+          files: |
+            packages/app/release/*.dmg
+            packages/app/release/*.zip
+            packages/app/release/latest-mac.yml
+          fail_on_unmatched_files: false
