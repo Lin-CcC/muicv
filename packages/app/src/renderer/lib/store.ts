@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { AppConfig, ChatMessage } from '../../shared/types.ts';
+import type { AppConfig, ChatMessage, ToolCallRecord } from '../../shared/types.ts';
 import { DEFAULT_CONFIG } from '../../shared/types.ts';
 
 type View = 'chat' | 'settings';
@@ -17,10 +17,17 @@ type AppStore = {
 
   messages: ChatMessage[];
   pushMessage: (m: ChatMessage) => void;
+  appendAssistantText: (id: string, delta: string) => void;
+  attachToolCall: (id: string, call: ToolCallRecord) => void;
+  updateToolOutput: (id: string, toolCallId: string, output: string) => void;
   resetMessages: () => void;
+
+  /** 当前 streaming 的 channelId，none 表示空闲。 */
+  activeChannel: string | null;
+  setActiveChannel: (c: string | null) => void;
 };
 
-export const useAppStore = create<AppStore>((set, get) => ({
+export const useAppStore = create<AppStore>((set) => ({
   view: 'chat',
   setView: (v) => set({ view: v }),
 
@@ -29,7 +36,6 @@ export const useAppStore = create<AppStore>((set, get) => ({
   loadConfig: async () => {
     const cfg = await window.muicv.config.get();
     set({ config: cfg, configLoaded: true });
-    // 配置缺关键字段时直接进 settings 引导
     if (!cfg.workspaceDir || !cfg.muirouterKey) set({ view: 'settings' });
   },
   patchConfig: async (patch) => {
@@ -46,5 +52,31 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   messages: [],
   pushMessage: (m) => set((s) => ({ messages: [...s.messages, m] })),
+  appendAssistantText: (id, delta) =>
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === id ? { ...m, content: m.content + delta } : m)),
+    })),
+  attachToolCall: (id, call) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.id === id ? { ...m, toolCalls: [...(m.toolCalls ?? []), call] } : m,
+      ),
+    })),
+  updateToolOutput: (id, toolCallId, output) =>
+    set((s) => ({
+      messages: s.messages.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              toolCalls: (m.toolCalls ?? []).map((c) =>
+                c.id === toolCallId ? { ...c, output } : c,
+              ),
+            }
+          : m,
+      ),
+    })),
   resetMessages: () => set({ messages: [] }),
+
+  activeChannel: null,
+  setActiveChannel: (c) => set({ activeChannel: c }),
 }));

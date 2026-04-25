@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron';
 
 import type { AppConfig, ChatMessage } from '../shared/types.ts';
+import { abortRun, runAgent } from './agent/runtime.ts';
 import { getConfig, setConfig } from './store.ts';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -69,13 +70,25 @@ ipcMain.handle('shell:openWorkspace', async () => {
   if (cfg.workspaceDir) await shell.openPath(cfg.workspaceDir);
 });
 
-// agent:chat —— Phase 2 接 LLM 后实现，先返回占位错误
-ipcMain.handle('agent:chat', async (_event, _messages: ChatMessage[]) => {
-  throw new Error('agent runtime 还没实现（Phase 2 上线）');
-});
+/**
+ * agent:chat —— 启动一次 agent 流式 run，立刻返回 channelId；
+ * runtime 通过 webContents.send('agent:chunk', channelId, payload) 推增量。
+ */
+ipcMain.handle(
+  'agent:chat',
+  async (event, messages: ChatMessage[]): Promise<{ channelId: string }> => {
+    const channelId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const cfg = getConfig();
+    // 不 await：让 run 后台跑，我们靠 chunk event 给 renderer 反馈
+    runAgent(channelId, messages, cfg, event.sender).catch((err) => {
+      console.error('[agent:chat] runtime crashed', err);
+    });
+    return { channelId };
+  },
+);
 
-ipcMain.handle('agent:abort', async (_event, _channelId: string) => {
-  // noop until Phase 2
+ipcMain.handle('agent:abort', async (_event, channelId: string) => {
+  abortRun(channelId);
 });
 
 // -------------------- App lifecycle --------------------

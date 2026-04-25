@@ -28,21 +28,41 @@ export const DEFAULT_CONFIG: AppConfig = {
 
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
+export type ToolCallRecord = {
+  id: string;
+  name: string;
+  input: unknown;
+  output?: unknown;
+  error?: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: ChatRole;
   /** 文本内容（assistant 回复 / 用户输入 / tool result 摘要）。 */
   content: string;
   /** 如果是 assistant 调了 tool，记录工具名和输入。 */
-  toolCalls?: Array<{
-    id: string;
-    name: string;
-    input: unknown;
-    output?: unknown;
-    error?: string;
-  }>;
+  toolCalls?: ToolCallRecord[];
   createdAt: number;
 };
+
+/**
+ * main → renderer 通过 'agent:chunk' IPC 转发的事件类型。
+ * 包了 OpenAI Agents SDK 的 RunStreamEvent，做扁平化让 renderer 直接消费。
+ */
+export type AgentChunk =
+  /** assistant 文字流增量（model 边输出边给）。 */
+  | { type: 'text-delta'; delta: string }
+  /** 一段完整 message_output_item 已确认（用于纠错 / 完整文本）。 */
+  | { type: 'message-completed'; text: string }
+  /** 工具调用开始：name + 输入参数（JSON 字符串） */
+  | { type: 'tool-called'; toolCallId: string; toolName: string; argsJson: string }
+  /** 工具调用结束：output 字符串（截断 to ~2KB） */
+  | { type: 'tool-output'; toolCallId: string; output: string }
+  /** 整个 run 结束（reason: 'completed' / 'error' / 'aborted'） */
+  | { type: 'finish'; reason: string }
+  /** 出错（network / api / parse）。 */
+  | { type: 'error'; message: string };
 
 /** preload 注入到 window.muicv 的 API 形状。 */
 export type RendererApi = {

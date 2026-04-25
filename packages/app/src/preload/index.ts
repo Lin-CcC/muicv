@@ -1,6 +1,21 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { AppConfig, ChatMessage, RendererApi } from '../shared/types.ts';
+import type { AgentChunk, AppConfig, ChatMessage, RendererApi } from '../shared/types.ts';
+
+/**
+ * 注册全局 agent:chunk 转发：每条 chunk 来了就 dispatch 一个
+ * `muicv:agent:chunk:<channelId>` CustomEvent 到 window，让 renderer 用
+ * addEventListener 订阅自己关心的 channelId。这样不用 contextBridge 暴露
+ * 函数 callback。
+ */
+ipcRenderer.on(
+  'agent:chunk',
+  (_e, channelId: string, payload: AgentChunk) => {
+    window.dispatchEvent(
+      new CustomEvent(`muicv:agent:chunk:${channelId}`, { detail: payload }),
+    );
+  },
+);
 
 /**
  * 桥接 main ↔ renderer。renderer 通过 window.muicv.* 调用，封装的实质是

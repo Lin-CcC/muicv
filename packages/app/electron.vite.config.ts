@@ -18,8 +18,14 @@ export default defineConfig({
       },
     },
     resolve: {
-      alias: { '@main': resolve(__dirname, 'src/main') },
+      alias: {
+        '@main': resolve(__dirname, 'src/main'),
+        '@skills': resolve(__dirname, '../../skills'),
+      },
     },
+    // 把 skill markdown 用 ?raw import 直接编进 main bundle，
+    // 避免运行时找文件路径的麻烦
+    assetsInclude: ['**/*.md'],
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
