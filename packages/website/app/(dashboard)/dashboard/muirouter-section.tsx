@@ -132,7 +132,17 @@ export function MuirouterSection() {
             >
               muirouter.com
             </a>{' '}
-            的 API key 贴过来，dashboard 就能看到余额。Key 用 AES-GCM 加密存储，原文不明文留存。
+            的 API key（<code className="font-mono text-[12px]">sk-gw-…</code>）贴过来，dashboard 就能看到余额。Key 用 AES-GCM 加密存储，原文不明文留存。
+            余额查询走 muirouter 的{' '}
+            <a
+              href="https://muirouter.com/mcp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep"
+            >
+              MCP get_balance
+            </a>{' '}
+            工具。
           </p>
         </div>
       </header>
@@ -215,7 +225,7 @@ export function MuirouterSection() {
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
               disabled={busy}
-              placeholder="mr_…"
+              placeholder="sk-gw-…"
               autoComplete="off"
               spellCheck={false}
               className="mt-1 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 font-mono text-[13px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"

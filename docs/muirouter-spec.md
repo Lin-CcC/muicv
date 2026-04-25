@@ -1,162 +1,120 @@
-# muirouter integration spec — 最小可用版
+# muirouter 集成笔记
 
-这份 spec 给 [muirouter](https://muirouter.com) 的服务端实现做参考，让
-muicv（以及未来其他第三方）能用 BYOK 的方式集成 muirouter 余额查询。
-
-**目标**：muicv 用户在 muirouter 生成自己的 API key，贴到 muicv dashboard，
-muicv 服务端用这个 key 调 muirouter 拿余额展示。
-
-不做 OAuth，不做跨站会话。第三方完全靠用户自己粘贴的 API key 调用。
+> muirouter 已实现 MCP（streamable HTTP transport），见
+> https://muirouter.com/mcp 。以下记录 muicv 这一端**怎么调**、解析、排查。
 
 ---
 
-## 1. API key 约定
+## 1. 协议形态
 
-muirouter 现在已经在用户 sign-up 后给出 API key，建议确认 / 调整：
+| 项 | 值 |
+|---|---|
+| 协议 | Model Context Protocol (MCP) over JSON-RPC 2.0 over Streamable HTTP |
+| Endpoint | `POST https://api.muirouter.com/mcp` |
+| 认证 | `Authorization: Bearer <muirouter API key>` |
+| Key 格式 | `sk-gw-...`（前缀 `sk-gw-`） |
+| Content-Type | 请求 `application/json`；响应可能 `application/json` 或 `text/event-stream`（SSE） |
 
-- **prefix**：建议 `mr_` —— 让用户和 muicv 自己的 `mui_` key 区分开
-- **format**：`mr_<至少 32 字符 base62>`（推荐 sk- 风格，避免特殊字符）
-- **存储**：muirouter 后端只存 `sha256(key)`，原文出现一次给用户复制
-- **撤销**：用户可在 muirouter dashboard 撤销 / 重新生成
+**没有传统 REST endpoint**——所有功能都通过 MCP 工具调用，包括余额查询。
 
-如果 prefix 已经是别的（比如 `sk-` / 没前缀），把下文 `mr_` 替换即可，但建议
-统一加个独特前缀防误粘。
+## 2. 调用余额（muicv 现在用的）
 
-## 2. Balance endpoint（最小必需）
+```http
+POST /mcp HTTP/1.1
+Host: api.muirouter.com
+Authorization: Bearer sk-gw-XXXXXXXX
+Content-Type: application/json
+Accept: application/json, text/event-stream
 
-**`GET https://muirouter.com/api/v1/balance`**
-
-### Headers
-
-```
-Authorization: Bearer <muirouter API key>
-```
-
-### Success 200
-
-```json
 {
-  "currency": "CNY",
-  "balance": "12.34",
-  "balance_cents": 1234,
-  "lifetime_topped_up_cents": 5000,
-  "lifetime_spent_cents": 3766,
-  "updated_at": "2026-04-25T08:30:00Z"
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "get_balance",
+    "arguments": {}
+  }
 }
 ```
 
-字段说明：
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `currency` | string | ISO 4217 code，目前固定 `"CNY"`，未来支持 USD 时变 |
-| `balance` | string | 可显示给用户的余额（保留 2 位小数）。**用 string 不用 float** 避免精度丢失 |
-| `balance_cents` | number | 余额的最小单位（人民币：分），整数 |
-| `lifetime_topped_up_cents` | number | 历史累计充值（最小单位） |
-| `lifetime_spent_cents` | number | 历史累计消费（最小单位） |
-| `updated_at` | string | ISO-8601，余额最新计算时间 |
-
-### Error 401
+响应 envelope（JSON-RPC 2.0）：
 
 ```json
 {
-  "error": "invalid_api_key",
-  "message": "API key 无效或已被撤销"
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      { "type": "text", "text": "钱包余额..." }
+    ],
+    "structuredContent": {
+      // 真正的结构化数据（如 muirouter 实现了的话）
+    },
+    "isError": false
+  }
 }
 ```
 
-### Error 429（速率限制，可选）
+## 3. muicv 的解析策略（lenient）
 
-```json
-{
-  "error": "rate_limited",
-  "message": "请求过于频繁",
-  "retry_after_seconds": 60
-}
-```
+代码：[`packages/website/lib/muirouter.ts`](../packages/website/lib/muirouter.ts) `parseBalance()`。
 
-返回 `Retry-After: 60` header。
+优先级：
+1. `result.structuredContent` 直接拿对象
+2. 否则 `result.content[0].text` JSON.parse 兜底
 
-### CORS
+字段名 lenient 匹配（任一命中即可）：
 
-**不需要**配置 CORS——muicv 只在服务端调用，浏览器不直接 fetch。
+| muicv 内部字段 | muirouter 字段名候选 |
+|---|---|
+| `balanceCents` | `balance_cents` / `balanceCents` / `wallet_cents` / `amount_cents`，或 `balance` / `wallet_balance` / `wallet` / `amount` 当作元 *100 |
+| `lifetimeToppedUpCents` | `total_topped_up_cents` / `topped_up_cents` / `lifetime_topped_up_cents` / `totalToppedUpCents`，或 `total_topped_up` / `topped_up` / `lifetime_topped_up` / `totalToppedUp` 当作元 |
+| `lifetimeSpentCents` | `total_spent_cents` / `spent_cents` / `lifetime_spent_cents` / `totalSpentCents`，或对应元字段 |
+| `currency` | `currency`，缺省 `CNY` |
+| `updatedAt` | `updated_at` / `updatedAt`，缺省当前时间 |
 
-### 速率限制建议
+**如果 muirouter 实际响应的字段名不在上述清单**，dashboard 会显示 `muirouter balance 字段未识别：{...}` 错误（前 200 字符）。把响应贴出来加 case 即可。
 
-每个 key 每分钟 ≤ 30 次。muicv 这边会做缓存（默认 60s），不会高频打。
+## 4. 错误状态映射
 
----
+| muicv 状态 | 触发条件 |
+|---|---|
+| `invalid` | HTTP 401/403；JSON-RPC error `code: -32001`；error message 含 `unauth`/`invalid key`/`forbidden` |
+| `pending` | HTTP 404（端点未上线，dashboard 显示"待上线"提示） |
+| `error` | 其他 4xx/5xx、网络错、JSON 解析错、字段未识别 |
+| `ok` | 解析成功，写入 D1 缓存 |
 
-## 3. 可选扩展 endpoint（M4 起做）
+## 5. 触发时机
 
-### `GET /api/v1/usage?period=month`
+- **绑定时**：`POST /api/muirouter` 立刻调一次。401/403 拒绝绑定（key 无效）；其他状态都允许绑定，把错误存到 `muirouterLink.lastError`
+- **手动刷新**：dashboard 点 "刷新余额" → `POST /api/muirouter/refresh`
+- **不会自动定时拉**（避免对 muirouter 频繁打）
 
-返回该 key 在某个时间段的消费明细，给 dashboard 画用量图。
+D1 缓存 TTL：无主动失效，每次刷新都覆盖。
 
-### `POST /api/v1/topup`
-
-发起充值。返回支付链接 / 二维码（参考 OpenRouter 的实现）。muicv dashboard
-可以直接跳。
-
-### `GET /api/v1/models`
-
-返回 muirouter 支持的模型 + 对应价格，给 muicv 桌面 app 选模型用。
-
----
-
-## 4. 集成时序
-
-```
-[用户 muicv dashboard]
-    │  1. 输入 muirouter key
-    ▼
-[muicv worker]
-    │  2. AES-GCM 加密 key，存 D1
-    │  3. 立刻调 muirouter GET /api/v1/balance 验证
-    ▼
-[muirouter]
-    │  4. 验证 key 合法
-    ▼ 200 + balance
-[muicv worker]
-    │  5. 缓存 balance + updated_at 到 D1
-    ▼
-[用户 dashboard]
-    │  6. 显示余额；点 "刷新" 重打
-    ▼
-```
-
-**缓存策略**：muicv 每次读 dashboard 不打 muirouter。balance 在 D1 里放一份
-带 `updated_at`，用户主动点 "刷新" 才重打。这样 muirouter 端压力可控。
-
----
-
-## 5. 测试 checklist
-
-muirouter 实现完之后：
+## 6. 排查命令
 
 ```bash
-# 1. 用一个真实 user 的 key 拿 200
-curl -H "Authorization: Bearer mr_xxxxx" \
-  https://muirouter.com/api/v1/balance
-
-# 2. 用错误 key 拿 401
-curl -H "Authorization: Bearer mr_invalid" \
-  https://muirouter.com/api/v1/balance
-
-# 3. 用撤销的 key 拿 401
-# （先在 muirouter dashboard 撤销，再调）
+# 直接打 muirouter，看真实响应（用你自己 sk-gw- key）
+curl -X POST https://api.muirouter.com/mcp \
+  -H "Authorization: Bearer sk-gw-XXXXXXXX" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_balance","arguments":{}}}'
 ```
 
----
+如果响应 OK 但 muicv dashboard 报"字段未识别"，把响应里 `result.structuredContent` 或 `result.content[0].text` 贴出来，给 `parseBalance()` 加候选字段名。
 
-## 6. muicv 这一端
+## 7. 历史
 
-muicv 实现见：
+最初版本（v1）我们假设 muirouter 提供 REST `GET /api/v1/balance`，写了对应 client 和 spec。后来确认 muirouter 实际实现的是 MCP（更通用、可扩展），重写了 client 走 JSON-RPC `tools/call get_balance`。该 spec 已废弃，留这一段说明背景。
 
-- `packages/website/lib/muirouter.ts` —— client
-- `packages/website/app/api/muirouter/*` —— routes
-- `packages/website/migrations/0004_muirouter_link.sql` —— schema
-- `packages/website/app/(dashboard)/dashboard/muirouter-section.tsx` —— UI
+可扩展能力（暂未在 muicv 用）：
 
-如果 muirouter API 还没上，muicv 这边能 graceful degrade：保存 key 后显示
-"已绑定，余额查询待 muirouter API 上线"，不报错。
+| MCP 工具 | 用途 | muicv 计划 |
+|---|---|---|
+| `get_usage` | 消费明细 | M4 dashboard 用量图 |
+| `list_recharges` | 充值记录 | M4 充值历史卡片 |
+| `list_models` | 模型 + 价格 | electron app 选模型 |
+| `create_topup_session` | Stripe 充值链接 | M4 dashboard 一键充值 |
+| `image_generation` | 图像生成 | 暂不接 |
