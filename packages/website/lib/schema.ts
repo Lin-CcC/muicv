@@ -64,3 +64,20 @@ export const verification = sqliteTable('verification', {
   createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/**
+ * API keys —— 给 skill / electron app 用。不存原文，只存 sha256(key)；
+ * 撤销走软删（revokedAt 非空 = 已撤销）。
+ */
+export const apiKey = sqliteTable('apiKey', {
+  id: text('id').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  keyHash: text('keyHash').notNull().unique(),
+  keyPreview: text('keyPreview').notNull(),
+  lastUsedAt: integer('lastUsedAt', { mode: 'timestamp_ms' }),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+  revokedAt: integer('revokedAt', { mode: 'timestamp_ms' }),
+});

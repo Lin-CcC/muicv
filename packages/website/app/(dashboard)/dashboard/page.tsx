@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 
 import { getAuth } from '@/lib/auth';
 
+import { ApiKeysSection } from './api-keys-section';
+
 export const metadata: Metadata = {
   title: 'Dashboard',
 };
@@ -31,11 +33,13 @@ export default async function DashboardPage() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card label="邮箱" value={user.email} />
         <Card label="账号 ID" value={user.id} mono />
-        <Card label="muirouter 余额" value="¥0.00" hint="M3 起接入" muted />
-        <Card label="API Key" value="未生成" hint="M3 起可用" muted />
+        <Card label="API Keys" value="见下方管理 ↓" hint="给 skill / 桌面 app 用" />
+        <Card label="muirouter 余额" value="¥0.00" hint="M4 起接入" muted />
         <Card label="订阅档位" value="免费" hint="M4 起可升级" muted />
-        <Card label="本月用量" value="—" hint="M3 起统计" muted />
+        <Card label="本月用量" value="—" hint="M4 起统计" muted />
       </section>
+
+      <ApiKeysSection />
 
       <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
         <h2 className="text-[18px] font-extrabold text-ink">下一步</h2>

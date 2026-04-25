@@ -2,12 +2,17 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { BrowserContainer } from './durable-objects/browser-container.ts';
+import { optionalApiKey } from './middleware/api-key.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
 
 export { BrowserContainer };
 
 type AppBindings = {
   Bindings: CloudflareBindings;
+  Variables: {
+    userId?: string;
+    keyId?: string;
+  };
 };
 
 const app = new Hono<AppBindings>();
@@ -69,7 +74,7 @@ function proxyToContainer(env: CloudflareBindings, path: string, init: RequestIn
  * Body: { markdown: string, template?: string }
  * 响应：200 application/pdf + PDF bytes
  */
-app.post('/render', async (c) => {
+app.post('/render', optionalApiKey, async (c) => {
   const contentType = c.req.header('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
@@ -123,7 +128,7 @@ app.post('/render', async (c) => {
  *   - 不伪装 UA 规避 ToS
  *   - 单次请求 20s 超时（在 container 侧）
  */
-app.post('/jobs/fetch', async (c) => {
+app.post('/jobs/fetch', optionalApiKey, async (c) => {
   const contentType = c.req.header('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
