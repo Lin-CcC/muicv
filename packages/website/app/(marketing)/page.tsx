@@ -134,6 +134,117 @@ npx skills add meathill/muicv -g
         </ol>
       </section>
 
+      {/* Claude Code 用户专区：你现在就能用 */}
+      <section className="space-y-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-6 md:p-8">
+        <div className="space-y-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+            ✓ 已经可用
+          </span>
+          <h2 className="text-2xl font-bold tracking-tight">已经在用 AI agent？现在就能开始</h2>
+          <p className="max-w-3xl text-zinc-600">
+            你不需要等桌面 app。如果你已经装了 Claude Code、Codex、Cursor、OpenCode
+            等任何一种支持 skill 协议的 agent，下面任选一种安装方式，5 秒装完，立刻可用。
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2 rounded-lg border border-zinc-200 bg-white p-4">
+            <div className="text-sm font-semibold">Claude Code Plugin Marketplace</div>
+            <p className="text-sm text-zinc-600">官方机制，`/plugin` 命令管理。</p>
+            <pre className="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-zinc-100">
+              <code>{`/plugin marketplace add meathill/muicv
+/plugin install muicv@meathill`}</code>
+            </pre>
+          </div>
+
+          <div className="space-y-2 rounded-lg border border-zinc-200 bg-white p-4">
+            <div className="text-sm font-semibold">npx skills（多 agent 通用）</div>
+            <p className="text-sm text-zinc-600">兼容 40+ AI agent，一份 skill 通用。</p>
+            <pre className="overflow-x-auto rounded bg-zinc-900 p-3 text-xs text-zinc-100">
+              <code>{`npx skills add meathill/muicv -g`}</code>
+            </pre>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 text-sm">
+          <a
+            href="https://github.com/meathill/muicv/blob/master/docs/walkthrough.md"
+            className="text-zinc-900 underline hover:text-zinc-600"
+          >
+            看一遍 7 步演示（walkthrough）→
+          </a>
+          <a
+            href="https://github.com/meathill/muicv#使用"
+            className="text-zinc-900 underline hover:text-zinc-600"
+          >
+            完整文档 →
+          </a>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="space-y-6">
+        <h2 className="text-2xl font-bold tracking-tight">常见问题</h2>
+        <dl className="max-w-3xl space-y-6">
+          <div>
+            <dt className="font-semibold">我的简历数据存在哪？谁能看到？</dt>
+            <dd className="mt-1 text-sm text-zinc-600">
+              全部存在你当前项目目录下的 <code className="rounded bg-zinc-100 px-1 py-0.5 text-xs">.claude/muicv/</code>{' '}
+              文件夹里，纯 Markdown 文件。要不要入 git、要不要备份到云盘、要不要分享给别人——完全由你决定。
+              我们的服务器只在你主动调 API（PDF 渲染、JD 抓取）时短暂经手数据，不留存。
+            </dd>
+          </div>
+
+          <div>
+            <dt className="font-semibold">现在要付费吗？</dt>
+            <dd className="mt-1 text-sm text-zinc-600">
+              不要。当前 MVP 阶段，PDF 渲染和 JD 抓取的 API 免费，按 IP 限速。
+              将来会上 BYOK（用你自己的 OpenAI / Anthropic API key）和订阅档位，但 skill 本身永远免费。
+            </dd>
+          </div>
+
+          <div>
+            <dt className="font-semibold">什么是 BYOK？muirouter 是什么？</dt>
+            <dd className="mt-1 text-sm text-zinc-600">
+              BYOK = Bring Your Own Key，用你自己的 LLM API key（OpenAI / Anthropic / Gemini 等）。
+              <a
+                href="https://muirouter.com"
+                className="underline hover:text-zinc-900"
+              >
+                muirouter
+              </a>{' '}
+              是一个统一接入多家 LLM 的代理（类似 OpenRouter），不想自己注册那么多家的话，
+              通过 muirouter 充值就能在 muicv 桌面 app 里用。
+            </dd>
+          </div>
+
+          <div>
+            <dt className="font-semibold">桌面 app 什么时候发布？</dt>
+            <dd className="mt-1 text-sm text-zinc-600">
+              基于 OpenAI Agent SDK 的 electron 桌面端正在规划，给不用 AI agent 的求职者用。
+              没有具体时间表，<strong>留邮箱进 waitlist</strong>，发布会第一时间通知你。
+              在那之前，开发者可以直接用 skill 套件（上面有安装命令）。
+            </dd>
+          </div>
+
+          <div>
+            <dt className="font-semibold">支持英文 / 双语简历吗？</dt>
+            <dd className="mt-1 text-sm text-zinc-600">
+              Skill 不强制语言——你的素材是中文，简历就是中文；JD 是英文，simulate 出来的简历会按英文风格写。
+              双语版（中英对照）作为后续模板规划中。
+            </dd>
+          </div>
+
+          <div>
+            <dt className="font-semibold">能投递到 LinkedIn / Boss 直聘吗？</dt>
+            <dd className="mt-1 text-sm text-zinc-600">
+              不能自动投递。我们只帮你抓 JD、生成针对性简历、写 cover letter，
+              真正的"按提交按钮"由你手动完成——这是有意为之，避免账号风险和 ToS 违规。
+            </dd>
+          </div>
+        </dl>
+      </section>
+
       {/* 技术栈（给开发者看） */}
       <section className="space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">技术栈</h2>
