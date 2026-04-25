@@ -76,13 +76,29 @@ open /tmp/test.pdf
 **首次部署前准备**：
 
 ```bash
-# 1. 建 D1 数据库（用于 waitlist 及后续表）
+# 1. 建 D1 数据库（如果还没建过）
 pnpm --filter @muicv/api exec wrangler d1 create muicv-api
 # 把返回的 database_id 填到 packages/api/wrangler.jsonc 的 d1_databases[0].database_id
 
-# 2. 把本地 migration 推到 D1
-pnpm --filter @muicv/api exec wrangler d1 migrations apply muicv-api --remote
+# 2. 把本地 migration 推到生产 D1
+pnpm --filter @muicv/api db:migrate
 ```
+
+本地 dev 环境同步 schema：
+
+```bash
+pnpm --filter @muicv/api db:migrate:local
+```
+
+其他常用命令：
+
+| 脚本 | 作用 |
+|---|---|
+| `db:migrate` | apply 所有未应用的 migration 到生产 D1 |
+| `db:migrate:local` | 同上，但作用于本地 wrangler dev 的 D1 |
+| `db:migrate:list` | 列出生产 D1 已应用的 migration |
+| `db:console -- "SELECT * FROM waitlist"` | 在生产 D1 执行任意 SQL（注意 `--` 后是参数） |
+| `db:console:local -- "..."` | 同上，本地 D1 |
 
 **部署 Worker + Container**：
 
