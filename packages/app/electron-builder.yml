@@ -1,0 +1,51 @@
+appId: com.meathill.muicv
+productName: Mui简历
+copyright: © 2026 meathill
+
+directories:
+  output: release
+  buildResources: build
+
+asar: true
+
+# electron-vite 把所有 bundle 输出到 out/，只把这些 + package.json 打进 .app
+files:
+  - "out/**/*"
+  - "package.json"
+  - "!**/*.map"
+
+extraMetadata:
+  main: out/main/index.js
+
+# ============ macOS ============
+mac:
+  category: public.app-category.productivity
+  # 不签名（unsigned）。用户首次安装时需要右键 → 打开 → 允许。
+  # M5+ 申请 Apple Developer ID 后改成具体身份。
+  identity: null
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+
+dmg:
+  writeUpdateInfo: false
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# ============ Windows / Linux （后续 enable） ============
+# win:
+#   target: nsis
+# linux:
+#   target: AppImage
+
+# 先不挂 publisher，build 出来本地自测，Phase 5 接 GitHub Actions
+publish: null
