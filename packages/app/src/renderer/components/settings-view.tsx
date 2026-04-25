@@ -4,11 +4,12 @@ import { useAppStore } from '../lib/store';
 import { CorgiMascot } from './corgi-mascot';
 
 /**
- * 首次启动 / 用户主动调整时进的设置页。
- * 三件事：
- *   1. 选工作目录（必需）
- *   2. 粘 muirouter sk-gw- key（驱动 LLM）
- *   3. 粘 muicv API key（驱动 PDF 渲染、JD 抓取）—— 可选
+ * 设置页 —— 桌面 app 现在只需要两件东西：
+ *   1. 工作目录（所有简历素材落到这里的 .claude/muicv/）
+ *   2. muicv API key（mui_...）—— 唯一身份凭证
+ *
+ * LLM、PDF、JD 抓取、订阅档位、BYOK（绑定 muirouter）等所有跟账号 / 计费
+ * 相关的事都在 muicv.com/dashboard 里管。桌面端不直接连 muirouter。
  */
 export function SettingsView() {
   const cfg = useAppStore((s) => s.config);
@@ -16,10 +17,8 @@ export function SettingsView() {
   const selectWorkspace = useAppStore((s) => s.selectWorkspace);
   const setView = useAppStore((s) => s.setView);
 
-  const [muirouterKey, setMuirouterKey] = useState(cfg.muirouterKey ?? '');
   const [muicvApiKey, setMuicvApiKey] = useState(cfg.muicvApiKey ?? '');
   const [defaultModel, setDefaultModel] = useState(cfg.defaultModel);
-  const [muirouterLlmBase, setLlmBase] = useState(cfg.muirouterLlmBase);
   const [muicvApiBase, setApiBase] = useState(cfg.muicvApiBase);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,10 +27,8 @@ export function SettingsView() {
     setError(null);
     try {
       await patch({
-        muirouterKey: muirouterKey.trim() || null,
         muicvApiKey: muicvApiKey.trim() || null,
         defaultModel: defaultModel.trim() || 'gpt-4o-mini',
-        muirouterLlmBase: muirouterLlmBase.trim() || 'https://api.muirouter.com/v1',
         muicvApiBase: muicvApiBase.trim() || 'https://api.muicv.com',
       });
       setSaved(true);
@@ -41,7 +38,7 @@ export function SettingsView() {
     }
   }
 
-  const ready = !!cfg.workspaceDir && !!cfg.muirouterKey;
+  const ready = !!cfg.workspaceDir && !!cfg.muicvApiKey;
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col gap-7 overflow-y-auto px-6 py-10">
@@ -49,11 +46,17 @@ export function SettingsView() {
         <CorgiMascot className="h-10 w-10" />
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight text-ink">设置</h1>
-          <p className="text-[13px] text-ink-soft">这些信息只存本地（macOS Keychain 加密），不上传。</p>
+          <p className="text-[13px] text-ink-soft">
+            两步搞定：选工作目录 + 粘 muicv API key。其它（订阅档位 / 绑定 muirouter / 看余额）都在
+            <ExternalLink href="https://muicv.com/dashboard">网页 dashboard</ExternalLink> 管。
+          </p>
         </div>
       </header>
 
-      <Section title="工作目录" hint="所有简历素材会存在该目录下的 .claude/muicv/ 里，由你用 git 自己管。">
+      <Section
+        title="① 工作目录"
+        hint="所有简历素材会存在该目录下的 .claude/muicv/ 里，由你用 git 自己管。"
+      >
         <div className="flex items-center gap-3 rounded-xl border-2 border-ink bg-cream px-4 py-3">
           <code className="flex-1 truncate font-mono text-[12.5px] text-ink-soft">
             {cfg.workspaceDir ?? '(未选)'}
@@ -69,62 +72,70 @@ export function SettingsView() {
       </Section>
 
       <Section
-        title="muirouter API key"
+        title="② muicv API key（登录账号）"
         hint={
           <>
-            驱动 LLM。在{' '}
-            <ExternalLink href="https://muirouter.com">muirouter.com</ExternalLink> 注册 →
-            settings 复制 <code className="font-mono text-[11.5px]">sk-gw-...</code>。
+            桌面端唯一凭证。在{' '}
+            <ExternalLink href="https://muicv.com/dashboard">muicv.com/dashboard</ExternalLink>{' '}
+            登录账号 → "API Keys" 生成 <code className="font-mono text-[11.5px]">mui_...</code>。
+            LLM 调用、PDF 渲染、JD 抓取都通过它代理；档位 / 计费 / muirouter BYOK 都在 dashboard 里管。
           </>
         }
       >
-        <Field
-          type="password"
-          value={muirouterKey}
-          onChange={setMuirouterKey}
-          placeholder="sk-gw-…"
-          mono
-        />
+        <Field type="password" value={muicvApiKey} onChange={setMuicvApiKey} placeholder="mui_…" mono />
       </Section>
 
-      <Section
-        title="muicv API key（可选）"
-        hint={
-          <>
-            驱动 PDF 渲染 + JD 抓取。在{' '}
-            <ExternalLink href="https://muicv.com/dashboard">muicv.com/dashboard</ExternalLink>{' '}
-            生成 <code className="font-mono text-[11.5px]">mui_...</code>。不填也能用，但走匿名速率限制。
-          </>
-        }
-      >
-        <Field
-          type="password"
-          value={muicvApiKey}
-          onChange={setMuicvApiKey}
-          placeholder="mui_…"
-          mono
-        />
-      </Section>
+      <div className="rounded-xl border-2 border-corgi/60 bg-fluff p-4 text-[12.5px] leading-[1.65] text-ink">
+        <div className="font-bold">🐾 想调 LLM？</div>
+        <p className="mt-1 text-ink-soft">
+          桌面端不直连 muirouter。muicv 后端会按你的{' '}
+          <strong>订阅档位</strong> + <strong>是否绑定 muirouter (BYOK)</strong> 路由：
+        </p>
+        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-ink-soft">
+          <li>
+            <strong>BYOK</strong>：在 dashboard 绑定 muirouter API key，所有 LLM 走你自己的余额，
+            <ExternalLink href="https://muirouter.com">muirouter.com</ExternalLink> 充值
+          </li>
+          <li>
+            <strong>Free / Pro / Max</strong>（M4 起）：用平台 token 配额，订阅在 dashboard 升级
+          </li>
+        </ul>
+      </div>
 
       <details className="rounded-xl border-2 border-rule bg-paper">
         <summary className="cursor-pointer px-5 py-3 text-[13px] font-bold text-ink-soft">
           高级 · 模型 / 端点
         </summary>
         <div className="space-y-4 border-t border-rule px-5 py-4">
-          <Section title="默认模型" hint="muirouter 支持的 model id（如 gpt-4o-mini / claude-3-5-haiku-20241022）">
-            <Field type="text" value={defaultModel} onChange={setDefaultModel} placeholder="gpt-4o-mini" mono />
+          <Section
+            title="默认模型"
+            hint="OpenAI 兼容 model id；具体哪些可用看你 muirouter 账号支持的清单（dashboard 可查）"
+          >
+            <Field
+              type="text"
+              value={defaultModel}
+              onChange={setDefaultModel}
+              placeholder="gpt-4o-mini"
+              mono
+            />
           </Section>
-          <Section title="muirouter LLM base URL" hint="OpenAI 兼容端点">
-            <Field type="text" value={muirouterLlmBase} onChange={setLlmBase} placeholder="https://api.muirouter.com/v1" mono />
-          </Section>
-          <Section title="muicv API base URL" hint="一般不用改">
-            <Field type="text" value={muicvApiBase} onChange={setApiBase} placeholder="https://api.muicv.com" mono />
+          <Section title="muicv API base URL" hint="一般不用改；本地 dev wrangler 时指向 http://localhost:8787">
+            <Field
+              type="text"
+              value={muicvApiBase}
+              onChange={setApiBase}
+              placeholder="https://api.muicv.com"
+              mono
+            />
           </Section>
         </div>
       </details>
 
       {error && (
-        <div role="alert" className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue">
+        <div
+          role="alert"
+          className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue"
+        >
           {error}
         </div>
       )}
@@ -147,7 +158,9 @@ export function SettingsView() {
           </button>
         )}
         {!ready && (
-          <p className="text-[12px] text-mute">⚠️ 至少要选工作目录 + 填 muirouter key 才能开始对话。</p>
+          <p className="text-[12px] text-mute">
+            ⚠️ 至少要选工作目录 + 填 muicv API key 才能开始对话。
+          </p>
         )}
       </div>
     </div>

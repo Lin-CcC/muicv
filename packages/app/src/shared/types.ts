@@ -5,24 +5,22 @@
 export type AppConfig = {
   /** 用户工作目录绝对路径，所有 .claude/muicv/ 操作落到这里。 */
   workspaceDir: string | null;
-  /** muirouter API key（sk-gw-...），用于 LLM 调用 + 余额查询。可选 */
-  muirouterKey: string | null;
-  /** muicv 后端 API key（mui_...），用于调 /render /jobs/fetch。可选 */
+  /**
+   * muicv 账号 API key（mui_...）—— 在 muicv.com/dashboard 生成。
+   * 桌面端唯一身份凭证：调 muicv API 用它，agent 调 LLM 也走 muicv 的
+   * /llm/v1/* 反向代理，由 muicv 后端按用户档位 / BYOK 路由到 muirouter。
+   */
   muicvApiKey: string | null;
   /** muicv API base URL，默认 https://api.muicv.com */
   muicvApiBase: string;
-  /** muirouter LLM base URL，默认 https://api.muirouter.com/v1（OpenAI 兼容） */
-  muirouterLlmBase: string;
-  /** 默认模型 id（具体 muirouter 支持哪些跑通后再调） */
+  /** 默认模型 id（muirouter 支持的 OpenAI 兼容 model name） */
   defaultModel: string;
 };
 
 export const DEFAULT_CONFIG: AppConfig = {
   workspaceDir: null,
-  muirouterKey: null,
   muicvApiKey: null,
   muicvApiBase: 'https://api.muicv.com',
-  muirouterLlmBase: 'https://api.muirouter.com/v1',
   defaultModel: 'gpt-4o-mini',
 };
 

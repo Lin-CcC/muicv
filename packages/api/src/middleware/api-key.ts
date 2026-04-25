@@ -1,6 +1,6 @@
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 
-type AppEnv = {
+export type AppEnv = {
   Bindings: CloudflareBindings;
   Variables: {
     userId?: string;
@@ -19,29 +19,20 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 /**
- * 可选 Bearer key 验证。
+ * 校验 Authorization header，set userId / keyId 进 context；
+ * 失败返回 Response，调用方应该立刻 return。
  *
- * 不带 Authorization → 直接放行（走 Cloudflare 层 IP 速率限制）
- * 带了但格式错 / key 不存在 / 已撤销 → 401
- * 带了合法 key → set userId / keyId 进 context，异步更新 lastUsedAt 后放行
- *
- * 数据源：MUICV_API_DB 是和 packages/website 共用的 muicv D1，apiKey 表
+ * 数据源：MUICV_API_DB 是和 packages/website 共用的 muicv D1。apiKey 表
  * schema 由 website migrations/0003_api_keys.sql 创建。
  */
-export const optionalApiKey: MiddlewareHandler<AppEnv> = async (c, next) => {
-  const auth = c.req.header('authorization');
-  if (!auth) {
-    await next();
-    return;
-  }
-
-  const match = /^Bearer\s+(\S+)$/i.exec(auth);
+async function verifyKey(c: Context<AppEnv>, authHeader: string): Promise<Response | void> {
+  const match = /^Bearer\s+(\S+)$/i.exec(authHeader);
   if (!match) {
     return c.json({ error: 'authorization 必须是 "Bearer <key>" 格式' }, 401);
   }
   const key = match[1] ?? '';
   if (!KEY_PATTERN.test(key)) {
-    return c.json({ error: 'api key 格式不合法' }, 401);
+    return c.json({ error: 'api key 格式不合法（应该是 mui_ 开头 36 字符）' }, 401);
   }
 
   const hash = await sha256Hex(key);
@@ -65,6 +56,36 @@ export const optionalApiKey: MiddlewareHandler<AppEnv> = async (c, next) => {
       .run()
       .catch(() => {}),
   );
+}
 
+/** 必须带合法 Bearer key 验证。失败统一 401。用于 /llm/*、未来收费端点。 */
+export const requireApiKey: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const auth = c.req.header('authorization');
+  if (!auth) {
+    return c.json(
+      { error: 'missing-api-key', message: '需要 mui_ API key（在 muicv.com/dashboard 生成）' },
+      401,
+    );
+  }
+  const r = await verifyKey(c, auth);
+  if (r instanceof Response) return r;
+  await next();
+};
+
+/**
+ * 可选 Bearer key 验证。
+ *
+ * 不带 Authorization → 直接放行（走 Cloudflare 层 IP 速率限制）
+ * 带了但格式错 / key 不存在 / 已撤销 → 401
+ * 带了合法 key → set userId / keyId 进 context，异步更新 lastUsedAt 后放行
+ */
+export const optionalApiKey: MiddlewareHandler<AppEnv> = async (c, next) => {
+  const auth = c.req.header('authorization');
+  if (!auth) {
+    await next();
+    return;
+  }
+  const r = await verifyKey(c, auth);
+  if (r instanceof Response) return r;
   await next();
 };

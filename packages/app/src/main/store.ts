@@ -14,11 +14,8 @@ import { type AppConfig, DEFAULT_CONFIG } from '../shared/types.ts';
 type StoredShape = {
   workspaceDir: string | null;
   muicvApiBase: string;
-  muirouterLlmBase: string;
   defaultModel: string;
-  /** safeStorage 加密后的 muirouter key（base64） */
-  muirouterKeyCipher: string | null;
-  /** 同上 */
+  /** safeStorage 加密后的 muicv API key（mui_...） */
   muicvApiKeyCipher: string | null;
 };
 
@@ -27,9 +24,7 @@ const store = new Store<StoredShape>({
   defaults: {
     workspaceDir: null,
     muicvApiBase: DEFAULT_CONFIG.muicvApiBase,
-    muirouterLlmBase: DEFAULT_CONFIG.muirouterLlmBase,
     defaultModel: DEFAULT_CONFIG.defaultModel,
-    muirouterKeyCipher: null,
     muicvApiKeyCipher: null,
   },
 });
@@ -58,10 +53,8 @@ function decrypt(cipher: string | null): string | null {
 export function getConfig(): AppConfig {
   return {
     workspaceDir: store.get('workspaceDir'),
-    muirouterKey: decrypt(store.get('muirouterKeyCipher')),
     muicvApiKey: decrypt(store.get('muicvApiKeyCipher')),
     muicvApiBase: store.get('muicvApiBase'),
-    muirouterLlmBase: store.get('muirouterLlmBase'),
     defaultModel: store.get('defaultModel'),
   };
 }
@@ -71,13 +64,9 @@ export function setConfig(patch: Partial<AppConfig>): AppConfig {
   if ('muicvApiBase' in patch && typeof patch.muicvApiBase === 'string') {
     store.set('muicvApiBase', patch.muicvApiBase);
   }
-  if ('muirouterLlmBase' in patch && typeof patch.muirouterLlmBase === 'string') {
-    store.set('muirouterLlmBase', patch.muirouterLlmBase);
-  }
   if ('defaultModel' in patch && typeof patch.defaultModel === 'string') {
     store.set('defaultModel', patch.defaultModel);
   }
-  if ('muirouterKey' in patch) store.set('muirouterKeyCipher', encrypt(patch.muirouterKey ?? null));
   if ('muicvApiKey' in patch) store.set('muicvApiKeyCipher', encrypt(patch.muicvApiKey ?? null));
   return getConfig();
 }

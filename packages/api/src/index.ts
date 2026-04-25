@@ -2,7 +2,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { BrowserContainer } from './durable-objects/browser-container.ts';
-import { optionalApiKey } from './middleware/api-key.ts';
+import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
+import { handleLlmProxy } from './routes/llm.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
 
 export { BrowserContainer };
@@ -43,11 +44,23 @@ app.use(
 app.get('/', (c) =>
   c.json({
     name: 'muicv-api',
-    routes: ['GET /health', 'POST /render', 'POST /jobs/fetch', 'POST /waitlist'],
+    routes: [
+      'GET /health',
+      'POST /render',
+      'POST /jobs/fetch',
+      'POST /waitlist',
+      'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
+    ],
   }),
 );
 
 app.get('/health', (c) => c.text('ok'));
+
+/**
+ * /llm/v1/* —— OpenAI 兼容反向代理到用户绑定的 muirouter（BYOK）。
+ * 详见 src/routes/llm.ts。
+ */
+app.all('/llm/v1/*', requireApiKey, handleLlmProxy);
 
 /**
  * POST /waitlist

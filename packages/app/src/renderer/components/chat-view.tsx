@@ -14,7 +14,7 @@ import { CorgiMascot } from './corgi-mascot';
  *   4. 'finish' / 'error' 解绑 + 解锁输入
  */
 export function ChatView() {
-  const ready = useAppStore((s) => !!s.config.workspaceDir && !!s.config.muirouterKey);
+  const ready = useAppStore((s) => !!s.config.workspaceDir && !!s.config.muicvApiKey);
   const setView = useAppStore((s) => s.setView);
   const messages = useAppStore((s) => s.messages);
   const pushMessage = useAppStore((s) => s.pushMessage);

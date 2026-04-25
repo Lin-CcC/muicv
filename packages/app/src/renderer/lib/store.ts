@@ -36,7 +36,7 @@ export const useAppStore = create<AppStore>((set) => ({
   loadConfig: async () => {
     const cfg = await window.muicv.config.get();
     set({ config: cfg, configLoaded: true });
-    if (!cfg.workspaceDir || !cfg.muirouterKey) set({ view: 'settings' });
+    if (!cfg.workspaceDir || !cfg.muicvApiKey) set({ view: 'settings' });
   },
   patchConfig: async (patch) => {
     const next = await window.muicv.config.set(patch);

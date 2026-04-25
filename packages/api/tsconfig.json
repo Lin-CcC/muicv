@@ -7,6 +7,6 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "worker-configuration.d.ts"],
+  "include": ["src/**/*.ts", "worker-configuration.d.ts", "env.d.ts"],
   "exclude": ["node_modules", "container", "dist"]
 }

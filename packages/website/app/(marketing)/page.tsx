@@ -59,11 +59,26 @@ const FAQ_ITEMS = [
     ),
   },
   {
-    q: '现在要付费吗？',
+    q: '怎么收费？档位什么样？',
     a: (
       <>
-        不要。当前 MVP 阶段，PDF 渲染和 JD 抓取的 API 免费，按 IP 限速。 将来会上 BYOK（用你自己的 OpenAI / Anthropic
-        API key）和订阅档位，但 skill 本身永远免费。
+        三档 + BYOK：
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          <li>
+            <strong>Free</strong>：每月免费 token 试用，可输出 markdown 简历；不含 PDF 导出 / 招聘库 / 自动投递
+          </li>
+          <li>
+            <strong>Pro</strong>（M4 起开放）：更多 token + PDF + 招聘库 + 辅助投递（数量有限）
+          </li>
+          <li>
+            <strong>Max</strong>：不受限制
+          </li>
+          <li>
+            <strong>BYOK</strong>（覆盖任意档）：在 dashboard 绑定 muirouter，LLM 走你自己 muirouter 余额，
+            不消耗平台 token。功能权限按所在档（Free 即可启用）
+          </li>
+        </ul>
+        Skill 本身永远免费——开发者用 <code className="rounded bg-fluff px-1 py-0.5 font-mono text-[12px]">npx skills add</code> 直接接入 Claude Code 等 agent。
       </>
     ),
   },
@@ -71,15 +86,15 @@ const FAQ_ITEMS = [
     q: '什么是 BYOK？muirouter 是什么？',
     a: (
       <>
-        BYOK = Bring Your Own Key，用你自己的 LLM API key（OpenAI / Anthropic / Gemini 等）。{' '}
+        BYOK = Bring Your Own Key。在{' '}
         <a
           href="https://muirouter.com"
           className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
         >
-          muirouter
+          muirouter.com
         </a>{' '}
-        是一个统一接入多家 LLM 的代理（类似 OpenRouter），不想自己注册那么多家的话， 通过 muirouter 充值就能在 muicv
-        桌面 app 里用。
+        充一笔 LLM 余额，把 sk-gw key 绑到 muicv dashboard。所有 LLM 调用都走你自己的 muirouter 余额——
+        muirouter 是统一接入多家 LLM 的代理（OpenAI / Anthropic / Gemini 等都通），余额可以跨任何 BYOK 服务复用。
       </>
     ),
   },

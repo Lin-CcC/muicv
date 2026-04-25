@@ -9,23 +9,31 @@ import { buildSystemPrompt } from './skills.ts';
 import { buildFileTools } from './tools.ts';
 
 /**
- * 配置 OpenAI Agents SDK 的全局 client，让它走 muirouter（OpenAI 兼容）。
- * muirouter 不一定支持 Responses API，先用 Chat Completions API。
+ * 配置 OpenAI Agents SDK 全局 client，让它走 muicv API 的 OpenAI 兼容代理：
+ *
+ *   electron → POST ${muicvApiBase}/llm/v1/chat/completions
+ *           Authorization: Bearer mui_xxx
+ *      muicv worker requireApiKey → 查 muirouterLink → 替换 Authorization
+ *           为用户的 sk-gw-xxx → 转发到 https://api.muirouter.com/v1
+ *
+ * 这样：
+ *   - 桌面 app 只需要 mui_ key 一个凭证
+ *   - LLM 调用统一被 muicv 后端审计 / 计费 / 路由
+ *   - 用户付费档位 (Free/Pro/Max) + BYOK 状态完全由 muicv 后端控制，
+ *     电脑端不需要知道
  */
 let configuredKey: string | null = null;
 let configuredBase: string | null = null;
 
 function ensureConfigured(config: AppConfig): boolean {
-  if (!config.muirouterKey) return false;
-  // 同样的 key + base 不重复 setDefault
-  if (configuredKey === config.muirouterKey && configuredBase === config.muirouterLlmBase) return true;
+  if (!config.muicvApiKey) return false;
+  const llmBase = `${config.muicvApiBase.replace(/\/$/, '')}/llm/v1`;
+  if (configuredKey === config.muicvApiKey && configuredBase === llmBase) return true;
   setOpenAIAPI('chat_completions');
-  setDefaultOpenAIKey(config.muirouterKey, false);
-  setDefaultOpenAIClient(
-    new OpenAI({ apiKey: config.muirouterKey, baseURL: config.muirouterLlmBase }),
-  );
-  configuredKey = config.muirouterKey;
-  configuredBase = config.muirouterLlmBase;
+  setDefaultOpenAIKey(config.muicvApiKey, false);
+  setDefaultOpenAIClient(new OpenAI({ apiKey: config.muicvApiKey, baseURL: llmBase }));
+  configuredKey = config.muicvApiKey;
+  configuredBase = llmBase;
   return true;
 }
 
@@ -51,7 +59,11 @@ export async function runAgent(
     return;
   }
   if (!ensureConfigured(config)) {
-    send({ type: 'error', message: '未配置 muirouter API key（sk-gw-...），请去设置粘贴。' });
+    send({
+      type: 'error',
+      message:
+        '未配置 muicv API key（mui_...）。在 https://muicv.com/dashboard 生成后粘贴到设置页。',
+    });
     send({ type: 'finish', reason: 'error' });
     return;
   }

@@ -5,6 +5,7 @@ import { getAuth } from '@/lib/auth';
 
 import { ApiKeysSection } from './api-keys-section';
 import { MuirouterSection } from './muirouter-section';
+import { PlansSection } from './plans-section';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -34,15 +35,17 @@ export default async function DashboardPage() {
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card label="邮箱" value={user.email} />
         <Card label="账号 ID" value={user.id} mono />
-        <Card label="API Keys" value="见下方管理 ↓" hint="给 skill / 桌面 app 用" />
-        <Card label="muirouter" value="见下方绑定 ↓" hint="贴 muirouter key 看余额" />
-        <Card label="订阅档位" value="免费" hint="M4 起可升级" muted />
+        <Card label="API Keys" value="见下方管理 ↓" hint="桌面 app 唯一登录凭证" />
+        <Card label="muirouter (BYOK)" value="见下方绑定 ↓" hint="LLM 走你自己余额" />
+        <Card label="订阅档位" value="Free" hint="见下方升级（M4 起开放）" />
         <Card label="本月用量" value="—" hint="M4 起统计" muted />
       </section>
 
       <ApiKeysSection />
 
       <MuirouterSection />
+
+      <PlansSection />
 
       <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
         <h2 className="text-[18px] font-extrabold text-ink">下一步</h2>

@@ -103,7 +103,8 @@ export function ApiKeysSection() {
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>
           <h2 className="mt-2 text-[18px] font-extrabold text-ink">给 skill / 桌面 app 用的钥匙</h2>
           <p className="mt-1 text-[13px] text-ink-soft">
-            创建后<strong>仅显示一次</strong>，立刻保存到 <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10 个有效 key。
+            <strong>桌面 app 唯一登录凭证</strong>。创建后仅显示一次：
+            桌面 app → 设置 → 粘进来；或 skill 里 <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10 个有效 key。
           </p>
         </div>
       </header>

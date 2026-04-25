@@ -170,9 +170,17 @@ Worker name `muicv-web`。承载：
 ### Secrets（必须 put）
 
 ```bash
-# 生成 32+ 字节 secret，存到 Cloudflare 的 secret 管理
-openssl rand -base64 32 | pnpm --filter @muicv/website exec wrangler secret put BETTER_AUTH_SECRET
+# 生成 32+ 字节 secret
+SECRET=$(openssl rand -base64 32)
+
+# 1) website 用它给 Better Auth 签 session + AES-GCM 加密 muirouter key
+echo -n "$SECRET" | pnpm --filter @muicv/website exec wrangler secret put BETTER_AUTH_SECRET
+
+# 2) api 用同一个值解密 muirouter key（/llm/* 反向代理时要用）
+echo -n "$SECRET" | pnpm --filter @muicv/api exec wrangler secret put BETTER_AUTH_SECRET
 ```
+
+**两个 worker 的 secret 必须是同一个值**，否则 api 解不开 website 加密的 muirouter key，桌面 app 调 /llm/* 会拿到 `decrypt-failed` 错。
 
 本地 dev 需要在 `packages/website/.dev.vars`（gitignored）加：
 
@@ -270,9 +278,11 @@ pnpm install
 
 | 配置项 | 哪里拿 | 说明 |
 |---|---|---|
-| **muirouter API key** | [muirouter.com](https://muirouter.com) sign up → settings 复制 `sk-gw-...` | LLM 必需 |
-| **muicv API key** | [muicv.com/dashboard](https://muicv.com/dashboard) 登录 → 生成 `mui_...` | 可选，让 PDF 渲染 / JD 抓取走身份计费 |
+| **muicv API key** | [muicv.com/dashboard](https://muicv.com/dashboard) 登录 → "API Keys" → 生成 `mui_...` | 桌面 app **唯一登录凭证**（必需） |
+| **muirouter API key** | [muirouter.com](https://muirouter.com) sign up → 复制 `sk-gw-...`，**贴到 muicv dashboard "muirouter 余额" 绑定**（不是粘到桌面端） | BYOK 必需，让 LLM 走你自己的余额 |
 | **工作目录** | 在本地任选一个目录，例如 `~/muicv-test/`（先建好或让 app 引导你选） | 所有产物落这里 |
+
+> 桌面端**只**需要 mui_ key + 工作目录。LLM 调用 / 余额 / 档位 / BYOK 都由 muicv 后端按你账号状态决定，前端不直连 muirouter。
 
 #### 2. 启动 dev 模式
 
@@ -286,11 +296,13 @@ pnpm --filter @muicv/app dev
 
 打开后流程：
 
-1. 自动进入 **Settings**（首次没有 workspaceDir / muirouterKey）
+1. 自动进入 **Settings**（首次没有 workspaceDir / muicvApiKey）
 2. **选目录** → 弹原生 finder 选你刚才那个测试目录
-3. **粘 muirouter API key** → 默认模型如果跑不通，改成 muirouter 实际支持的 model id（比如 `openai/gpt-4o-mini` 或别的，看 muirouter 文档）
-4. **粘 muicv API key**（可选）
+3. **粘 muicv API key** → 不需要 muirouter key（那个绑在 dashboard 上）
+4. 默认模型如果 muirouter 不认，改成它实际支持的 model id（比如 `openai/gpt-4o-mini` 或别的，看 muirouter list_models）
 5. 保存 → 切回"对话"
+
+**前提**：你已经登录 muicv 账号 + 在 dashboard "muirouter 余额" section 绑定过 muirouter key（BYOK）。否则 LLM 调用会拿到 402 / no-muirouter-link 错。
 
 #### 3. 跑一遍端到端流程（最简版）
 
