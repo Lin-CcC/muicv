@@ -248,9 +248,115 @@ pnpm --filter @muicv/website cf:deploy
 
 ---
 
-## packages/app 桌面 app 发布
+## packages/app（桌面端 electron app）
 
 不部署到任何服务，通过 GitHub Releases 给用户下载 `.dmg` / `.zip`。
+
+### 本地开发 / 自测（dogfood + 找 bug）
+
+> 这一节是给 meathill 自己测、找问题给 Claude 让他修用的。**所有 dev
+> 时间都在自己机器上跑，不影响生产。**
+
+#### 1. 前置一次性准备
+
+```bash
+# 仓库根
+pnpm install
+```
+
+第一次会下载 electron 二进制（~500 MB），会比较慢；以后 install 走缓存就快了。
+
+需要的钥匙（事先准备好）：
+
+| 配置项 | 哪里拿 | 说明 |
+|---|---|---|
+| **muirouter API key** | [muirouter.com](https://muirouter.com) sign up → settings 复制 `sk-gw-...` | LLM 必需 |
+| **muicv API key** | [muicv.com/dashboard](https://muicv.com/dashboard) 登录 → 生成 `mui_...` | 可选，让 PDF 渲染 / JD 抓取走身份计费 |
+| **工作目录** | 在本地任选一个目录，例如 `~/muicv-test/`（先建好或让 app 引导你选） | 所有产物落这里 |
+
+#### 2. 启动 dev 模式
+
+```bash
+pnpm --filter @muicv/app dev
+```
+
+- electron-vite 起 Vite dev server + 启动 electron 窗口
+- HMR：改 renderer (React) 立即生效；改 main / preload 会重启窗口
+- 默认右侧打开 DevTools（Console / Network / React tree 都能看）
+
+打开后流程：
+
+1. 自动进入 **Settings**（首次没有 workspaceDir / muirouterKey）
+2. **选目录** → 弹原生 finder 选你刚才那个测试目录
+3. **粘 muirouter API key** → 默认模型如果跑不通，改成 muirouter 实际支持的 model id（比如 `openai/gpt-4o-mini` 或别的，看 muirouter 文档）
+4. **粘 muicv API key**（可选）
+5. 保存 → 切回"对话"
+
+#### 3. 跑一遍端到端流程（最简版）
+
+按下面 4 句话依次发，用对话流验证 8 个工具是否都能动：
+
+```
+帮我准备简历
+我叫张三，前端工程师，2023 年至今在 ACME 做 dashboard 重构，把 LCP 从 3.1s 降到 1.4s
+抓这个 JD: https://jobs.ashbyhq.com/anthropic
+针对它生成一版简历然后导出 PDF
+```
+
+期望的 agent 行为（对应 8 个工具）：
+
+| 你说的 | agent 大概会调 |
+|---|---|
+| 帮我准备简历 | `list_dir` → `write_file` 创建 `.claude/muicv/profile.md` 等骨架 |
+| 加经历 | `write_file` 写 `experience/acme-2023.md` |
+| 抓 JD | `fetch_jd` → `targets/anthropic-...md` |
+| 生成简历 | `read_file` ×N + `write_file` `versions/...md` |
+| 导出 PDF | `render_resume_pdf` → `versions/...pdf` |
+
+#### 4. 验证产物
+
+工作目录现在应该有：
+
+```
+~/muicv-test/.claude/muicv/
+├── profile.md
+├── experience/acme-2023.md
+├── targets/anthropic-...md
+└── versions/anthropic-...md + .pdf
+```
+
+也可以点 app 顶部的 📁 路径按钮，直接在 Finder 打开看。
+
+#### 5. 找 bug 的常见入口 + 反馈给我
+
+- **agent 答非所问 / 不会用工具** → 打开 DevTools → Console 看 `[agent:chat] ...` 报错；问题大概率在 prompt 里某段表达不清，把"对话原文 + agent 调了什么工具 + 没调什么工具"贴给我
+- **muirouter 401 / 模型不存在** → settings 里把 model id 换成 muirouter 实际支持的；告诉我哪个 model id 在哪个场景下能跑
+- **`render_resume_pdf` 失败** → 看 DevTools Network 里 POST 到 api.muicv.com/render 的响应；如果没部署 packages/api，把响应贴出来
+- **`fetch_jd` 拿不到内容** → 同上，把 URL 和报错贴出来
+- **窗口/UI 错乱** → 截图 + 说明在哪个步骤
+- **进程崩溃 / "白屏"** → 在终端看 `pnpm dev` 输出的 main 进程 stderr，把整段 log 贴过来
+
+> 反馈格式：**截图 + 复现步骤 + 实际表现 + 预期表现**，能给我什么我就改什么。可以放在 GitHub Issue 里，也可以直接发我对话。
+
+#### 6. 重启 / 清状态
+
+- **清配置**（清掉粘过的 key、选过的目录）：
+  ```bash
+  rm -rf ~/Library/Application\ Support/@muicv/app/
+  ```
+  （或者直接重选 Settings 覆盖）
+- **清工作目录**：删 `~/muicv-test/.claude/muicv/` 整个目录，让 agent 重新引导初始化
+- **彻底重启**：关 app → 重新 `pnpm --filter @muicv/app dev`
+
+#### 7. 想看完整 production 行为（不打 .dmg）
+
+```bash
+pnpm --filter @muicv/app build && pnpm --filter @muicv/app preview
+```
+
+这跑的是 build 后的 main / preload / renderer bundle（不带 HMR），最贴近用户拿到 .dmg 后的实际体验。
+
+---
 
 ### 自动 release（推荐）
 
