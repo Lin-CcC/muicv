@@ -4,8 +4,7 @@ import { useState } from 'react';
 
 type Status = 'idle' | 'loading' | 'success' | 'already' | 'error';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_MUICV_API_BASE ?? 'https://api.muicv.com';
+const API_BASE = process.env.NEXT_PUBLIC_MUICV_API_BASE ?? 'https://api.muicv.com';
 
 export function WaitlistForm({ source }: { source: string }) {
   const [email, setEmail] = useState('');
@@ -45,11 +44,7 @@ export function WaitlistForm({ source }: { source: string }) {
   if (status === 'success' || status === 'already') {
     return (
       <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-        {status === 'success' ? (
-          <>✓ 收到了。产品就绪会第一时间通知你。</>
-        ) : (
-          <>你已经在 waitlist 里了 — 等通知就好。</>
-        )}
+        {status === 'success' ? <>✓ 收到了。产品就绪会第一时间通知你。</> : <>你已经在 waitlist 里了 — 等通知就好。</>}
       </div>
     );
   }
@@ -75,9 +70,7 @@ export function WaitlistForm({ source }: { source: string }) {
         {isLoading ? '提交中…' : '加入 Waitlist'}
       </button>
       {status === 'error' && (
-        <p className="text-sm text-rose-600 sm:col-span-2">
-          提交失败：{errorMsg ?? '请稍后重试'}
-        </p>
+        <p className="text-sm text-rose-600 sm:col-span-2">提交失败：{errorMsg ?? '请稍后重试'}</p>
       )}
     </form>
   );

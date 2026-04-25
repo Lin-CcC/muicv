@@ -13,16 +13,12 @@ export default function WebsiteHomePage() {
           </p>
           <h1 className="text-5xl font-bold tracking-tight md:text-6xl">Mui简历</h1>
           <p className="max-w-2xl text-lg text-zinc-600 md:text-xl">
-            在你熟悉的 AI agent 里管理简历。素材存在你自己的项目目录，
-            由你用 git 管。不用学新 UI、不用注册账号。
+            在你熟悉的 AI agent 里管理简历。素材存在你自己的项目目录， 由你用 git 管。不用学新 UI、不用注册账号。
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <a
-            href="https://github.com/meathill/muicv#安装"
-            className="no-underline"
-          >
+          <a href="https://github.com/meathill/muicv#安装" className="no-underline">
             <Button type="button">开始使用</Button>
           </a>
           <a href="https://github.com/meathill/muicv" className="no-underline">
@@ -46,8 +42,8 @@ npx skills add meathill/muicv -g
           <div>
             <h3 className="text-base font-semibold">桌面 app 开发中</h3>
             <p className="mt-1 text-sm text-zinc-600">
-              准备一个独立的 desktop app，让不用 AI agent 的求职者也能用，支持 BYOK
-              或通过 muirouter 购买额度。留个邮箱，发布时第一时间通知你。
+              准备一个独立的 desktop app，让不用 AI agent 的求职者也能用，支持 BYOK 或通过 muirouter
+              购买额度。留个邮箱，发布时第一时间通知你。
             </p>
           </div>
           <WaitlistForm source="landing-hero" />
@@ -58,30 +54,26 @@ npx skills add meathill/muicv -g
       <section className="space-y-6">
         <h2 className="text-2xl font-bold tracking-tight">为什么不做 Chatbot？</h2>
         <p className="max-w-3xl text-zinc-600">
-          AI agent 本身就会对话、有记忆、能操作文件，我们再做一遍 chat UI 和记忆库，
-          是重复建设。Mui简历只做 AI agent 做不好的事：**结构化的简历工作流** 和
-          **服务端能力**（PDF 渲染、JD 抓取）。
+          AI agent 本身就会对话、有记忆、能操作文件，我们再做一遍 chat UI 和记忆库， 是重复建设。Mui简历只做 AI agent
+          做不好的事：**结构化的简历工作流** 和 **服务端能力**（PDF 渲染、JD 抓取）。
         </p>
         <div className="grid w-full gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-zinc-200 p-5">
             <div className="font-semibold">数据主权</div>
             <p className="mt-2 text-sm text-zinc-600">
-              所有简历素材是 Markdown 文件，存在你自己的项目里。
-              要不要入 git、怎么备份、如何同步，完全由你决定。
+              所有简历素材是 Markdown 文件，存在你自己的项目里。 要不要入 git、怎么备份、如何同步，完全由你决定。
             </p>
           </div>
           <div className="rounded-lg border border-zinc-200 p-5">
             <div className="font-semibold">agent 无关</div>
             <p className="mt-2 text-sm text-zinc-600">
-              一套 skill 在 Claude Code、Codex、Cursor、OpenCode 等 40+ agent 通用。
-              换工具不换数据。
+              一套 skill 在 Claude Code、Codex、Cursor、OpenCode 等 40+ agent 通用。 换工具不换数据。
             </p>
           </div>
           <div className="rounded-lg border border-zinc-200 p-5">
             <div className="font-semibold">不编造</div>
             <p className="mt-2 text-sm text-zinc-600">
-              所有生成严格限定在你明确写下的事实里。缺素材就追问或留空，
-              绝不替你"发挥"。
+              所有生成严格限定在你明确写下的事实里。缺素材就追问或留空， 绝不替你"发挥"。
             </p>
           </div>
         </div>
@@ -90,9 +82,7 @@ npx skills add meathill/muicv -g
       {/* 工作流 */}
       <section className="space-y-6">
         <h2 className="text-2xl font-bold tracking-tight">端到端工作流</h2>
-        <p className="max-w-3xl text-zinc-600">
-          从零到投递一份针对性简历，全程在你的 terminal 里对话完成：
-        </p>
+        <p className="max-w-3xl text-zinc-600">从零到投递一份针对性简历，全程在你的 terminal 里对话完成：</p>
         <ol className="space-y-4">
           {[
             {
@@ -159,10 +149,7 @@ npx skills add meathill/muicv -g
       <footer className="mt-auto border-t border-zinc-200 pt-6 text-sm text-zinc-500">
         <p>
           开源在{' '}
-          <a
-            href="https://github.com/meathill/muicv"
-            className="underline hover:text-zinc-900"
-          >
+          <a href="https://github.com/meathill/muicv" className="underline hover:text-zinc-900">
             github.com/meathill/muicv
           </a>
           · 由 meathill 维护

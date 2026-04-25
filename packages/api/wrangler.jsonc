@@ -3,13 +3,8 @@
   "name": "muicv-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-23",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
-  "observability": {
-    "enabled": true
-  },
   // 生产域名：api.muicv.com。首次部署前在 Cloudflare DNS 把该子域
   // 代理给本 Worker，然后取消注释下面 `routes` 即可生效。
   // "routes": [
@@ -38,9 +33,7 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": [
-        "BrowserContainer"
-      ]
+      "new_sqlite_classes": ["BrowserContainer"]
     }
   ],
   // D1：和 packages/website 共用同一个名为 `muicv` 的数据库。本 worker 主要写
@@ -52,5 +45,11 @@
       "database_id": "db60cfbd-48e1-4220-9239-18c117f26ed0",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "observability": {
+    "enabled": false
+  },
+  "placement": {
+    "mode": "smart"
+  }
 }

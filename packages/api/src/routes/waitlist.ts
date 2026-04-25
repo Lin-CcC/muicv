@@ -7,12 +7,7 @@ type AppEnv = { Bindings: CloudflareBindings };
  * 真正验证留给后续的邮件发送链路（发送失败即为无效）。
  */
 function looksLikeEmail(s: unknown): s is string {
-  return (
-    typeof s === 'string' &&
-    s.length > 0 &&
-    s.length < 320 &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
-  );
+  return typeof s === 'string' && s.length > 0 && s.length < 320 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
 /** SHA-256 hex 哈希。用于 ip_hash，避免存原 IP。 */

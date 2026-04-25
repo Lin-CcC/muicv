@@ -95,10 +95,7 @@ app.post('/render', async (c) => {
 
   if (!containerResponse.ok) {
     const text = await containerResponse.text().catch(() => '');
-    return c.json(
-      { error: 'container 渲染失败', status: containerResponse.status, detail: text.slice(0, 500) },
-      502,
-    );
+    return c.json({ error: 'container 渲染失败', status: containerResponse.status, detail: text.slice(0, 500) }, 502);
   }
 
   return new Response(containerResponse.body, {

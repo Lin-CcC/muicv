@@ -55,11 +55,7 @@ async function loadTemplate(name: string): Promise<string> {
 }
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function renderHtml(template: string, vars: Record<string, string>): string {
@@ -186,9 +182,7 @@ app.post('/jobs/fetch', async (c) => {
     // 在页面内跑 Readability + 抽取 meta
     const extracted = await page.evaluate(() => {
       const getMeta = (name: string): string | null => {
-        const el = document.querySelector(
-          `meta[property="${name}"], meta[name="${name}"]`,
-        ) as HTMLMetaElement | null;
+        const el = document.querySelector(`meta[property="${name}"], meta[name="${name}"]`) as HTMLMetaElement | null;
         return el?.content?.trim() || null;
       };
 

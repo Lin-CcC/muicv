@@ -3,29 +3,24 @@
   "private": true,
   "version": "0.0.0",
   "engines": {
-    "node": ">=24"
+    "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @muicv/website dev",
-    "dev:web": "pnpm --filter @muicv/website dev",
-    "dev:cf": "pnpm --filter @muicv/website dev:cf",
-    "dev:api": "pnpm --filter @muicv/api dev",
-    "dev:cron": "pnpm --filter @muicv/cron dev",
-    "build": "pnpm -r --if-present build",
-    "test": "pnpm -r --if-present test",
     "format": "biome format --write"
   },
   "keywords": [],
   "author": "",
   "license": "UNLICENSED",
-  "packageManager": "pnpm@10.26.2",
+  "packageManager": "pnpm@10.33.2",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.11",
-    "@cloudflare/workers-types": "^4.20260103.0",
-    "@opennextjs/cloudflare": "^1.14.7",
-    "wrangler": "^4.54.0"
+    "@biomejs/biome": "^2.4.13",
+    "wrangler": "^4.85.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp", "workerd"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }
