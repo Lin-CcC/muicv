@@ -1,14 +1,22 @@
 import type { SessionCheckResult, SessionInfo } from '../shared/types.ts';
-import { getConfig, setConfig } from './store.ts';
+import { inferWebBase } from './deep-link.ts';
+import { getConfig, patchConfig } from './store.ts';
 
 /**
- * 用一个 mui_ key 调 GET ${muicvApiBase}/me 验证。
- * 把网络错 / 401 / 404 区分清楚返回，让 renderer 给出准确提示。
+ * 用一个 mui_ key 调 GET <webBase>/api/me 验证。
+ *
+ * 注意：/api/me 住在 website worker（muicv.com），不是 api worker
+ * （api.muicv.com）。这样登录功能不依赖 api worker 是否上线——api worker
+ * 只负责 LLM 代理 / PDF 渲染等"重资源"。webBase 由 muicvApiBase 派生
+ * （见 deep-link.ts 的 inferWebBase）。
+ *
+ * 把网络错 / 401 / 4xx 区分清楚返回，让 renderer 给出准确提示。
  */
 async function fetchMe(apiBase: string, key: string): Promise<SessionCheckResult> {
+  const webBase = inferWebBase(apiBase);
   let res: Response;
   try {
-    res = await fetch(`${apiBase.replace(/\/$/, '')}/me`, {
+    res = await fetch(`${webBase.replace(/\/$/, '')}/api/me`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${key}`,
@@ -36,7 +44,7 @@ async function fetchMe(apiBase: string, key: string): Promise<SessionCheckResult
   if (!res.ok) {
     return {
       status: 'invalid-key',
-      message: `muicv /me 返回 ${res.status}`,
+      message: `muicv 服务端返回 ${res.status}`,
     };
   }
 
@@ -69,12 +77,12 @@ export async function verifyCandidateKey(candidate: string): Promise<SessionChec
 export async function loginWithKey(candidate: string): Promise<SessionCheckResult> {
   const result = await verifyCandidateKey(candidate);
   if (result.status === 'ok') {
-    setConfig({ muicvApiKey: candidate.trim() });
+    patchConfig({ muicvApiKey: candidate.trim() });
   }
   return result;
 }
 
 /** 清 mui_ key（不动其它配置如工作目录，让用户切账号也方便重登）。 */
 export function logout(): void {
-  setConfig({ muicvApiKey: null });
+  patchConfig({ muicvApiKey: null });
 }

@@ -14,9 +14,9 @@ import { CorgiMascot } from './corgi-mascot';
  *   4. 'finish' / 'error' 解绑 + 解锁输入
  */
 export function ChatView() {
-  // view 路由已经保证：未登录 → login，未选工作目录 → onboarding。
-  // 这里仅作防御性 fallback。
-  const ready = useAppStore((s) => !!s.config.workspaceDir && !!s.config.muicvApiKey && !!s.session);
+  // 路由已保证：未登录 → login。这里没简历资料夹就引导新建（极少见，bootstrap 会自动建一份）。
+  const session = useAppStore((s) => s.session);
+  const activeProfile = useAppStore((s) => s.activeProfile);
   const setView = useAppStore((s) => s.setView);
   const messages = useAppStore((s) => s.messages);
   const pushMessage = useAppStore((s) => s.pushMessage);
@@ -29,16 +29,42 @@ export function ChatView() {
 
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  /** 是否需要展示"AI 服务还没配好"的友好卡片（覆盖在聊天区上方）。 */
+  const [needsAiSetup, setNeedsAiSetup] = useState(false);
 
-  if (!ready) {
+  function classifyError(raw: string): 'ai-not-configured' | 'no-profile' | 'plain' {
+    if (!raw) return 'plain';
+    if (raw === 'NOT_LOGGED_IN') return 'plain'; // 不应该发生（路由会挡），降级为普通报错
+    if (raw === 'NO_PROFILE') return 'no-profile';
+    // muirouter 没绑定 / 无余额：包含 "no-muirouter-link" / "402" / "muirouter" 关键词
+    if (/no-muirouter-link|402|muirouter|byok/i.test(raw)) return 'ai-not-configured';
+    return 'plain';
+  }
+
+  function handleErrorChunk(message: string, assistantId: string) {
+    const kind = classifyError(message);
+    if (kind === 'ai-not-configured') {
+      setNeedsAiSetup(true);
+      // 把刚 push 的空 assistant msg 移除（友好卡片代替它）
+      // 简单起见：在内容里留一个"⚠️ AI 服务还没连上"占位
+      appendAssistantText(assistantId, '⚠️ AI 服务还没连上 — 看一下下面的引导');
+      setError(null);
+    } else if (kind === 'no-profile') {
+      setError('当前没有简历资料夹，先去设置新建一份。');
+      appendAssistantText(assistantId, '⚠️ 没有简历资料夹');
+    } else {
+      setError(message);
+      appendAssistantText(assistantId, `\n\n⚠️ ${message}`);
+    }
+  }
+
+  if (!session || !activeProfile) {
     return (
       <div className="flex h-full items-center justify-center px-6">
         <div className="max-w-md rounded-2xl border-2 border-ink bg-cream p-7 text-center shadow-[0_4px_0_0_var(--color-ink)]">
           <CorgiMascot className="mx-auto h-16 w-16" />
-          <h2 className="mt-3 text-2xl font-extrabold text-ink">先来配两个东西</h2>
-          <p className="mt-2 text-[13px] text-ink-soft">
-            选工作目录 + 填 muirouter API key（可选填 muicv key）。1 分钟搞定。
-          </p>
+          <h2 className="mt-3 text-2xl font-extrabold text-ink">先建一份简历</h2>
+          <p className="mt-2 text-[13px] text-ink-soft">在设置里新建一份就能开始啦。</p>
           <button
             type="button"
             onClick={() => setView('settings')}
@@ -104,8 +130,7 @@ export function ChatView() {
             updateToolOutput(assistantId, chunk.toolCallId, chunk.output);
             break;
           case 'error':
-            setError(chunk.message);
-            appendAssistantText(assistantId, `\n\n⚠️ ${chunk.message}`);
+            handleErrorChunk(chunk.message, assistantId);
             break;
           case 'finish':
             window.removeEventListener(`muicv:agent:chunk:${channelId}`, handler);
@@ -116,8 +141,7 @@ export function ChatView() {
       window.addEventListener(`muicv:agent:chunk:${channelId}`, handler);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
-      appendAssistantText(assistantId, `\n\n⚠️ ${msg}`);
+      handleErrorChunk(msg, assistantId);
       setActiveChannel(null);
     }
   }
@@ -134,6 +158,9 @@ export function ChatView() {
             <Empty />
           ) : (
             messages.map((m) => <MessageBubble key={m.id} role={m.role} content={m.content} toolCalls={m.toolCalls} />)
+          )}
+          {needsAiSetup && (
+            <AiSetupCard onGoSettings={() => setView('settings')} onDismiss={() => setNeedsAiSetup(false)} />
           )}
         </div>
       </div>
@@ -205,6 +232,39 @@ function Empty() {
             {s}
           </span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function AiSetupCard({ onGoSettings, onDismiss }: { onGoSettings: () => void; onDismiss: () => void }) {
+  return (
+    <div className="rounded-2xl border-2 border-ink bg-fluff p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+      <div className="flex items-start gap-3">
+        <CorgiMascot className="h-10 w-10 shrink-0" />
+        <div className="flex-1">
+          <h3 className="text-[16px] font-extrabold text-ink">AI 服务还没连上</h3>
+          <p className="mt-1.5 text-[13px] leading-[1.6] text-ink-soft">
+            Mui 需要联网调用 AI 才能帮你写简历。免费版当前需要连一下你自己的 AI 余额（叫
+            muirouter，类似话费充值），或升级 Pro 会员后由我们提供。
+          </p>
+          <div className="mt-3.5 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onGoSettings}
+              className="press inline-flex items-center justify-center rounded-lg bg-yellow px-4 py-2 text-[13px] font-bold text-ink"
+            >
+              去设置完成 →
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="rounded-lg px-3 py-2 text-[12px] text-mute hover:text-ink"
+            >
+              先关掉
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

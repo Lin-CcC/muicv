@@ -25,15 +25,36 @@ import { buildFileTools } from './tools.ts';
 let configuredKey: string | null = null;
 let configuredBase: string | null = null;
 
+/**
+ * 决定这次 run 用谁的 endpoint：
+ *
+ *   1. 如果用户配了自带的 LLM endpoint + key（customLlmBase / customLlmKey），
+ *      直接打那个 endpoint —— "自带 AI 余额"模式，跳过 muicv 平台代理。
+ *   2. 否则走 muicv 平台代理（${muicvApiBase}/llm/v1），由 muicv 后端按账号
+ *      档位 / muirouter BYOK 路由。
+ *
+ * 没 key 也没自带 endpoint = 不能用，返回 false。
+ */
 function ensureConfigured(config: AppConfig): boolean {
-  if (!config.muicvApiKey) return false;
-  const llmBase = `${config.muicvApiBase.replace(/\/$/, '')}/llm/v1`;
-  if (configuredKey === config.muicvApiKey && configuredBase === llmBase) return true;
+  let baseURL: string;
+  let apiKey: string;
+
+  if (config.customLlmKey && config.customLlmBase) {
+    baseURL = config.customLlmBase.replace(/\/$/, '');
+    apiKey = config.customLlmKey;
+  } else if (config.muicvApiKey) {
+    baseURL = `${config.muicvApiBase.replace(/\/$/, '')}/llm/v1`;
+    apiKey = config.muicvApiKey;
+  } else {
+    return false;
+  }
+
+  if (configuredKey === apiKey && configuredBase === baseURL) return true;
   setOpenAIAPI('chat_completions');
-  setDefaultOpenAIKey(config.muicvApiKey);
-  setDefaultOpenAIClient(new OpenAI({ apiKey: config.muicvApiKey, baseURL: llmBase }));
-  configuredKey = config.muicvApiKey;
-  configuredBase = llmBase;
+  setDefaultOpenAIKey(apiKey);
+  setDefaultOpenAIClient(new OpenAI({ apiKey, baseURL }));
+  configuredKey = apiKey;
+  configuredBase = baseURL;
   return true;
 }
 
@@ -54,15 +75,12 @@ export async function runAgent(
   };
 
   if (!config.workspaceDir) {
-    send({ type: 'error', message: '未选工作目录，请去设置选一个。' });
+    send({ type: 'error', message: 'NO_PROFILE' });
     send({ type: 'finish', reason: 'error' });
     return;
   }
   if (!ensureConfigured(config)) {
-    send({
-      type: 'error',
-      message: '未配置 muicv API key（mui_...）。在 https://muicv.com/dashboard 生成后粘贴到设置页。',
-    });
+    send({ type: 'error', message: 'NOT_LOGGED_IN' });
     send({ type: 'finish', reason: 'error' });
     return;
   }

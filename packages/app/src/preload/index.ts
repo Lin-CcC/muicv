@@ -1,26 +1,27 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { AgentChunk, AppConfig, ChatMessage, RendererApi, SessionCheckResult } from '../shared/types.ts';
+import type { AgentChunk, AppConfig, ChatMessage, Profile, RendererApi, SessionCheckResult } from '../shared/types.ts';
 
-/**
- * 注册全局 agent:chunk 转发：每条 chunk 来了就 dispatch 一个
- * `muicv:agent:chunk:<channelId>` CustomEvent 到 window，让 renderer 用
- * addEventListener 订阅自己关心的 channelId。这样不用 contextBridge 暴露
- * 函数 callback。
- */
 ipcRenderer.on('agent:chunk', (_e, channelId: string, payload: AgentChunk) => {
   window.dispatchEvent(new CustomEvent(`muicv:agent:chunk:${channelId}`, { detail: payload }));
 });
 
-/**
- * 桥接 main ↔ renderer。renderer 通过 window.muicv.* 调用，封装的实质是
- * ipcRenderer.invoke（Promise）+ event channel（流式）。
- */
+type ProfileResult = { ok: boolean; profile?: Profile; message?: string };
+
 const api: RendererApi = {
   config: {
     get: () => ipcRenderer.invoke('config:get') as Promise<AppConfig>,
-    set: (patch: Partial<AppConfig>) => ipcRenderer.invoke('config:set', patch) as Promise<AppConfig>,
-    selectWorkspace: () => ipcRenderer.invoke('config:selectWorkspace') as Promise<string | null>,
+    set: (patch) => ipcRenderer.invoke('config:set', patch) as Promise<AppConfig>,
+  },
+  profile: {
+    create: (opts) => ipcRenderer.invoke('profile:create', opts) as Promise<ProfileResult>,
+    createInDocuments: (name) => ipcRenderer.invoke('profile:createInDocuments', name) as Promise<ProfileResult>,
+    pickFolder: (name) => ipcRenderer.invoke('profile:pickFolder', name) as Promise<ProfileResult>,
+    switchTo: (id) => ipcRenderer.invoke('profile:switchTo', id) as Promise<AppConfig>,
+    rename: (id, name) => ipcRenderer.invoke('profile:rename', id, name) as Promise<AppConfig>,
+    remove: (id) => ipcRenderer.invoke('profile:remove', id) as Promise<AppConfig>,
+    openInFinder: (id) => ipcRenderer.invoke('profile:openInFinder', id) as Promise<void>,
+    ensureDefault: () => ipcRenderer.invoke('profile:ensureDefault') as Promise<AppConfig>,
   },
   session: {
     check: () => ipcRenderer.invoke('session:check') as Promise<SessionCheckResult>,

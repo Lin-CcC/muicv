@@ -2,26 +2,58 @@
  * main 和 renderer 共用的类型。preload 把同形 API 暴露给 window.muicv。
  */
 
+/**
+ * 一份"简历"的元数据。每份 profile 对应硬盘上的一个独立资料夹，
+ * 里面 .claude/muicv/ 是真实素材库。同一账号支持多份 profile，
+ * 解决"夫妻共用账号"、"求职 / 跳槽两套素材"等场景。
+ */
+export type Profile = {
+  id: string;
+  /** 用户给的名字，例如 "默认"、"求职 2026"、"老婆的"。 */
+  name: string;
+  /** 资料夹绝对路径。 */
+  dir: string;
+  /** 创建时间（unix ms）。 */
+  createdAt: number;
+};
+
 export type AppConfig = {
-  /** 用户工作目录绝对路径，所有 .claude/muicv/ 操作落到这里。 */
-  workspaceDir: string | null;
+  /** 当前用户已创建的所有 profile。空数组 = 还没初始化（首次登录会自动建一份默认）。 */
+  profiles: Profile[];
+  /** 当前激活的 profile id；null = 还没激活任何 profile。 */
+  activeProfileId: string | null;
   /**
-   * muicv 账号 API key（mui_...）—— 在 muicv.com/dashboard 生成。
-   * 桌面端唯一身份凭证：调 muicv API 用它，agent 调 LLM 也走 muicv 的
-   * /llm/v1/* 反向代理，由 muicv 后端按用户档位 / BYOK 路由到 muirouter。
+   * 当前激活 profile 的资料夹绝对路径（由 main 进程根据 activeProfileId 推导出来）。
+   * 给 agent runtime / 老代码用的派生字段，本身不可写。
    */
+  workspaceDir: string | null;
+  /** muicv 账号 API key（mui_...）。桌面端唯一身份凭证。 */
   muicvApiKey: string | null;
-  /** muicv API base URL，默认 https://api.muicv.com */
+  /** muicv API base URL（高级配置）。 */
   muicvApiBase: string;
-  /** 默认模型 id（muirouter 支持的 OpenAI 兼容 model name） */
+  /** 默认模型 id。 */
   defaultModel: string;
+  /**
+   * 用户自带 LLM endpoint（OpenAI 兼容）。例如：
+   *   - https://api.openai.com/v1
+   *   - https://api.muirouter.com/v1
+   *   - 自部署 llama.cpp / ollama 等
+   * 留空 = 走 muicv 平台代理（默认）。
+   */
+  customLlmBase: string | null;
+  /** 自带 LLM endpoint 的 API key。和 customLlmBase 配套使用。 */
+  customLlmKey: string | null;
 };
 
 export const DEFAULT_CONFIG: AppConfig = {
+  profiles: [],
+  activeProfileId: null,
   workspaceDir: null,
   muicvApiKey: null,
   muicvApiBase: 'https://api.muicv.com',
   defaultModel: 'gpt-4o-mini',
+  customLlmBase: null,
+  customLlmKey: null,
 };
 
 /**
@@ -86,8 +118,29 @@ export type SessionCheckResult =
 export type RendererApi = {
   config: {
     get(): Promise<AppConfig>;
-    set(patch: Partial<AppConfig>): Promise<AppConfig>;
-    selectWorkspace(): Promise<string | null>;
+    set(
+      patch: Partial<
+        Pick<AppConfig, 'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey'>
+      >,
+    ): Promise<AppConfig>;
+  };
+  profile: {
+    /** 创建一份新的 profile。如果不传 dir 会让用户挑（dialog）；传了就用那个目录。 */
+    create(opts: { name: string; dir?: string }): Promise<{ ok: boolean; profile?: Profile; message?: string }>;
+    /** 让 main 进程在 ~/Documents/Mui简历/<name> 下自动建一个目录并创建 profile。 */
+    createInDocuments(name: string): Promise<{ ok: boolean; profile?: Profile; message?: string }>;
+    /** 让用户选目录后，把它挂成一份 profile。dialog 取消则返回 ok:false。 */
+    pickFolder(name: string): Promise<{ ok: boolean; profile?: Profile; message?: string }>;
+    /** 切换激活 profile。 */
+    switchTo(id: string): Promise<AppConfig>;
+    /** 重命名（只改 metadata，不动磁盘）。 */
+    rename(id: string, name: string): Promise<AppConfig>;
+    /** 从 app 里移除（不删盘上文件）；如果是激活的，会切到列表里下一个。 */
+    remove(id: string): Promise<AppConfig>;
+    /** 在文件管理器里打开某个 profile 的目录。 */
+    openInFinder(id: string): Promise<void>;
+    /** 登录后调一次：如果还没任何 profile，就在 ~/Documents/Mui简历/默认/ 自动建一份。 */
+    ensureDefault(): Promise<AppConfig>;
   };
   session: {
     /** 用当前 muicvApiKey 调 GET /me 验证，结果区分网络错 vs key 无效 */

@@ -1,0 +1,101 @@
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+
+/**
+ * 通用确认对话框，替代 window.confirm —— 系统弹框样式跟 app 风格不搭，
+ * 而且 macOS 下还会带 Electron Atom 图标。
+ *
+ * 用法：
+ *   const [open, setOpen] = useState(false);
+ *   <ConfirmDialog
+ *     open={open}
+ *     title="..."
+ *     description="..."
+ *     onConfirm={() => doIt()}
+ *     onCancel={() => setOpen(false)}
+ *   />
+ *
+ * Esc / 点 backdrop / 点 Cancel 都触发 onCancel；点 OK 触发 onConfirm
+ *（onConfirm 内部需要自己关 dialog，或者用 confirmAndClose 模式）。
+ */
+export function ConfirmDialog({
+  open,
+  title,
+  description,
+  confirmLabel = 'OK',
+  cancelLabel = '取消',
+  destructive = false,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  description?: React.ReactNode;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  destructive?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const confirmRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    confirmRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Enter') onConfirm();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onCancel, onConfirm]);
+
+  if (!open) return null;
+
+  // 用 portal 挂到 body：祖先有 backdrop-filter / transform / filter 等
+  // 都会创建 containing block，把 position:fixed 的定位改成相对那个祖先。
+  // titlebar 自己用了 backdrop-blur-sm，dropdown 又是这个组件的祖先，
+  // 直接渲染会让 dialog 被困在 dropdown 内。
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+      <div
+        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
+        aria-hidden
+        onClick={onCancel}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        className="relative w-full max-w-sm rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_var(--color-ink)]"
+      >
+        <h2 id="confirm-title" className="text-[16px] font-extrabold text-ink">
+          {title}
+        </h2>
+        {description && <div className="mt-2 text-[13px] leading-[1.65] text-ink-soft">{description}</div>}
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="press-ink rounded-lg border-2 border-ink bg-cream px-4 py-1.5 text-[13px] font-bold text-ink"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            ref={confirmRef}
+            type="button"
+            onClick={onConfirm}
+            className={
+              destructive
+                ? 'press inline-flex items-center justify-center rounded-lg bg-tongue px-4 py-1.5 text-[13px] font-bold text-cream'
+                : 'press inline-flex items-center justify-center rounded-lg bg-yellow px-4 py-1.5 text-[13px] font-bold text-ink'
+            }
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}

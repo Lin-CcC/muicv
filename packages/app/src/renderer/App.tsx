@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 
 import { ChatView } from './components/chat-view';
 import { LoginView } from './components/login-view';
-import { OnboardingView } from './components/onboarding-view';
 import { SettingsView } from './components/settings-view';
 import { TitleBar } from './components/title-bar';
 import { bootstrap, useAppStore } from './lib/store';
@@ -23,8 +22,6 @@ export function App() {
           <div className="flex h-full items-center justify-center text-mute">加载中…</div>
         ) : view === 'login' ? (
           <LoginView />
-        ) : view === 'onboarding' ? (
-          <OnboardingView />
         ) : view === 'settings' ? (
           <SettingsView />
         ) : (

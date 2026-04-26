@@ -91,13 +91,21 @@ export async function beginConnect(): Promise<{ ok: boolean; message?: string }>
   }
 }
 
-function inferWebBase(apiBase: string): string {
+/**
+ * 从 muicvApiBase（api worker URL）推导出 website 的 base URL。
+ *
+ * 用途：connect 授权页 + /api/me 都住在 website 上，桌面 app 只配了一个
+ * muicvApiBase（api worker），需要派生一份 webBase 才能调那些。
+ *
+ * 也被 session.ts 复用 → 所以 export。
+ */
+export function inferWebBase(apiBase: string): string {
   try {
     const u = new URL(apiBase);
     if (u.hostname === 'api.muicv.com') return 'https://muicv.com';
     if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
-      // dev：连接页通常跑在 :3000；用户配 muicvApiBase 是 :8787 时也是 :3000
-      return 'http://localhost:3000';
+      // dev：website 默认 :3070（见 packages/website/package.json）
+      return 'http://localhost:3070';
     }
     // 其它环境（自定义 domain）就直接拿同 host，去掉 api. 前缀
     if (u.hostname.startsWith('api.')) return `${u.protocol}//${u.hostname.slice(4)}`;

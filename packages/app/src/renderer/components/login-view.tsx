@@ -84,37 +84,35 @@ export function LoginView() {
                   disabled={busy}
                   className="press mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {busy ? '准备中…' : '用 muicv 账号登录'}
+                  {busy ? '准备中…' : '登录'}
                   <ArrowOut />
                 </button>
-                <p className="mt-3 text-center text-[12px] text-mute">会在浏览器里打开授权页 → 授权后自动回到这里</p>
+                <p className="mt-3 text-center text-[12px] text-mute">会在浏览器里登录，完成后自动回到这里</p>
               </>
             ) : (
               <div className="mt-7 space-y-3 rounded-xl border-2 border-ink bg-fluff p-5 text-center">
                 <div className="inline-flex items-center gap-2.5 text-[14px] font-bold text-ink">
                   <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-yellow-deep" />
-                  在浏览器里完成授权…
+                  在浏览器里完成登录…
                 </div>
-                <p className="text-[12.5px] leading-[1.6] text-ink-soft">
-                  授权完成后浏览器会自动唤起这个 app。如果一直没反应，
+                <p className="text-[12.5px] leading-[1.6] text-ink-soft">登录完成后浏览器会自动回到这个 app。</p>
+                <div className="flex items-center justify-center gap-3 text-[12px]">
+                  <button type="button" onClick={() => setWaitingCallback(false)} className="text-mute hover:text-ink">
+                    取消
+                  </button>
+                  <span className="text-mute">·</span>
                   <button
                     type="button"
                     onClick={() => {
                       setWaitingCallback(false);
                       setStep('paste');
                     }}
-                    className="ml-0.5 font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
+                    title="高级：直接用一段 API key 登录"
+                    className="text-mute hover:text-ink"
                   >
-                    手动粘贴 API key
+                    卡住了？
                   </button>
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setWaitingCallback(false)}
-                  className="text-[12px] text-mute hover:text-ink"
-                >
-                  取消
-                </button>
+                </div>
               </div>
             )}
 
@@ -126,23 +124,13 @@ export function LoginView() {
                 {error}
               </div>
             )}
-
-            <div className="mt-6 flex items-center justify-between gap-3 text-[12px] text-mute">
-              <span>有 API key？</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setStep('paste');
-                  setError(null);
-                }}
-                className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
-              >
-                手动粘贴登录
-              </button>
-            </div>
           </div>
         )}
 
+        {/*
+          paste 模式仅作为 OAuth 唤起失败时的兜底（在 waitingCallback 状态里露出入口），
+          不在主登录界面暴露给普通用户 —— API key 是底层凭证，不该是用户日常感知的概念。
+        */}
         {step === 'paste' && <PasteFallback onBack={() => setStep('oauth')} onLogin={setSession} />}
       </div>
     </div>
