@@ -1,42 +1,42 @@
 import { useState } from 'react';
 
-import type { AgentChunk, ToolCallRecord } from '../../shared/types.ts';
+import { type AgentChunk, type ArtifactRef, CONVERSATION_TYPE_META, type ToolCallRecord } from '../../shared/types.ts';
 import { useAppStore } from '../lib/store';
+import { ArtifactCard } from './artifact-card';
 import { CorgiMascot } from './corgi-mascot';
 
 /**
- * Phase 2 chat：调 main 进程 agent runtime，订阅 chunk event 流式渲染。
+ * 中栏：当前 activeConversation 的对话流 + 输入框。
  *
  * 流程：
- *   1. 发送 → push user msg + 一条空 assistant msg
- *   2. invoke('agent:chat', messages) 拿 channelId
- *   3. addEventListener `muicv:agent:chunk:<channelId>` 累加增量
- *   4. 'finish' / 'error' 解绑 + 解锁输入
+ *   1. 发送 → push user msg + 一条空 assistant msg 到 activeConversation.messages
+ *   2. invoke('agent:chat', { profileId, convId, type, messages }) 拿 channelId
+ *   3. addEventListener `muicv:agent:chunk:<channelId>` 累加增量；artifact chunk
+ *      attach 到当前 assistant msg
+ *   4. 'finish' / 'error' 解绑 + 解锁输入；main 已经把整份 conv flush 到磁盘
  */
 export function ChatView() {
-  // 路由已保证：未登录 → login。这里没简历资料夹就引导新建（极少见，bootstrap 会自动建一份）。
   const session = useAppStore((s) => s.session);
   const activeProfile = useAppStore((s) => s.activeProfile);
+  const activeConversation = useAppStore((s) => s.activeConversation);
   const setView = useAppStore((s) => s.setView);
-  const messages = useAppStore((s) => s.messages);
   const pushMessage = useAppStore((s) => s.pushMessage);
   const appendAssistantText = useAppStore((s) => s.appendAssistantText);
   const attachToolCall = useAppStore((s) => s.attachToolCall);
   const updateToolOutput = useAppStore((s) => s.updateToolOutput);
-  const resetMessages = useAppStore((s) => s.resetMessages);
+  const attachArtifact = useAppStore((s) => s.attachArtifact);
   const activeChannel = useAppStore((s) => s.activeChannel);
   const setActiveChannel = useAppStore((s) => s.setActiveChannel);
+  const openRightPanel = useAppStore((s) => s.openRightPanel);
 
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  /** 是否需要展示"AI 服务还没配好"的友好卡片（覆盖在聊天区上方）。 */
   const [needsAiSetup, setNeedsAiSetup] = useState(false);
 
   function classifyError(raw: string): 'ai-not-configured' | 'no-profile' | 'plain' {
     if (!raw) return 'plain';
-    if (raw === 'NOT_LOGGED_IN') return 'plain'; // 不应该发生（路由会挡），降级为普通报错
+    if (raw === 'NOT_LOGGED_IN') return 'plain';
     if (raw === 'NO_PROFILE') return 'no-profile';
-    // muirouter 没绑定 / 无余额：包含 "no-muirouter-link" / "402" / "muirouter" 关键词
     if (/no-muirouter-link|402|muirouter|byok/i.test(raw)) return 'ai-not-configured';
     return 'plain';
   }
@@ -45,8 +45,6 @@ export function ChatView() {
     const kind = classifyError(message);
     if (kind === 'ai-not-configured') {
       setNeedsAiSetup(true);
-      // 把刚 push 的空 assistant msg 移除（友好卡片代替它）
-      // 简单起见：在内容里留一个"⚠️ AI 服务还没连上"占位
       appendAssistantText(assistantId, '⚠️ AI 服务还没连上 — 看一下下面的引导');
       setError(null);
     } else if (kind === 'no-profile') {
@@ -60,29 +58,39 @@ export function ChatView() {
 
   if (!session || !activeProfile) {
     return (
+      <CenteredCard
+        title="先建一份简历"
+        body="在设置里新建一份就能开始啦。"
+        ctaLabel="去设置 →"
+        onCta={() => setView('settings')}
+      />
+    );
+  }
+
+  if (!activeConversation) {
+    return (
       <div className="flex h-full items-center justify-center px-6">
-        <div className="max-w-md rounded-2xl border-2 border-ink bg-cream p-7 text-center shadow-[0_4px_0_0_var(--color-ink)]">
+        <div className="max-w-md text-center">
           <CorgiMascot className="mx-auto h-16 w-16" />
-          <h2 className="mt-3 text-2xl font-extrabold text-ink">先建一份简历</h2>
-          <p className="mt-2 text-[13px] text-ink-soft">在设置里新建一份就能开始啦。</p>
-          <button
-            type="button"
-            onClick={() => setView('settings')}
-            className="press mt-5 inline-flex rounded-lg bg-yellow px-5 py-2 text-[14px] font-bold text-ink"
-          >
-            去设置 →
-          </button>
+          <h2 className="mt-4 text-2xl font-extrabold text-ink">还没选对话</h2>
+          <p className="mt-2 text-[13px] leading-[1.7] text-ink-soft">
+            左栏点 <strong>+ 新建</strong> 选一种对话类型开始，或者点列表里某个对话切过去。
+          </p>
         </div>
       </div>
     );
   }
 
+  const meta = CONVERSATION_TYPE_META[activeConversation.type];
+  const messages = activeConversation.messages;
   const busy = activeChannel !== null;
 
   async function onSend() {
     const text = input.trim();
     if (!text || busy) return;
+    if (!activeProfile || !activeConversation) return;
     setError(null);
+    setNeedsAiSetup(false);
 
     const userMsg = {
       id: cryptoRandomId(),
@@ -96,6 +104,7 @@ export function ChatView() {
       role: 'assistant' as const,
       content: '',
       toolCalls: [] as ToolCallRecord[],
+      artifacts: [] as ArtifactRef[],
       createdAt: Date.now(),
     };
     pushMessage(userMsg);
@@ -103,10 +112,12 @@ export function ChatView() {
     setInput('');
 
     try {
-      const { channelId } = await window.muicv.agent.chat([
-        ...messages.filter((m) => m.role === 'user' || m.role === 'assistant'),
-        userMsg,
-      ]);
+      const { channelId } = await window.muicv.agent.chat({
+        profileId: activeProfile.id,
+        convId: activeConversation.id,
+        type: activeConversation.type,
+        messages: [...messages, userMsg],
+      });
       setActiveChannel(channelId);
 
       const handler = (e: Event) => {
@@ -116,8 +127,6 @@ export function ChatView() {
             appendAssistantText(assistantId, chunk.delta);
             break;
           case 'message-completed':
-            // 兜底：如果 text-delta 没传完整内容，用 message-completed 校正
-            // 但我们 append 流时已是完整流，这里 noop 避免重复
             break;
           case 'tool-called':
             attachToolCall(assistantId, {
@@ -128,6 +137,9 @@ export function ChatView() {
             break;
           case 'tool-output':
             updateToolOutput(assistantId, chunk.toolCallId, chunk.output);
+            break;
+          case 'artifact':
+            attachArtifact(assistantId, { kind: chunk.kind, path: chunk.path, title: chunk.title });
             break;
           case 'error':
             handleErrorChunk(chunk.message, assistantId);
@@ -152,12 +164,23 @@ export function ChatView() {
 
   return (
     <div className="flex h-full flex-col">
+      <ConversationHeader title={activeConversation.title} typeLabel={`${meta.emoji} ${meta.label}`} />
+
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 ? (
-            <Empty />
+            <Empty type={activeConversation.type} />
           ) : (
-            messages.map((m) => <MessageBubble key={m.id} role={m.role} content={m.content} toolCalls={m.toolCalls} />)
+            messages.map((m) => (
+              <MessageBubble
+                key={m.id}
+                role={m.role}
+                content={m.content}
+                toolCalls={m.toolCalls}
+                artifacts={m.artifacts}
+                onOpenArtifact={(a) => openRightPanel(a.path)}
+              />
+            ))
           )}
           {needsAiSetup && (
             <AiSetupCard onGoSettings={() => setView('settings')} onDismiss={() => setNeedsAiSetup(false)} />
@@ -179,7 +202,7 @@ export function ChatView() {
               onKeyDown={(e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') void onSend();
               }}
-              placeholder="跟 Mui 说说你的求职目标，比如：「帮我准备一份针对 Google L5 的简历」"
+              placeholder={meta.placeholder}
               disabled={busy}
               rows={2}
               className="flex-1 resize-none rounded-lg bg-transparent px-3 py-2 text-[14px] text-ink placeholder:text-mute focus:outline-none disabled:opacity-60"
@@ -203,36 +226,63 @@ export function ChatView() {
               </button>
             )}
           </div>
-          {messages.length > 0 && !busy && (
-            <div className="flex justify-end">
-              <button type="button" onClick={() => resetMessages()} className="text-[12px] text-mute hover:text-ink">
-                清空对话
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-function Empty() {
+function ConversationHeader({ title, typeLabel }: { title: string; typeLabel: string }) {
   return (
-    <div className="mt-12 flex flex-col items-center text-center">
-      <CorgiMascot className="h-20 w-20" />
-      <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-ink">汪？(在等你)</h2>
-      <p className="mt-2 max-w-sm text-[13px] text-ink-soft">
-        告诉 Mui 你想做什么。
-        <br />
-        准备简历、抓 JD、生成 PDF、写 cover letter —— 一句话开始。
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-2 text-[12px]">
-        {['帮我准备简历', '我来介绍下我自己', '看看我现有的素材', '生成一份针对 Google 的简历'].map((s) => (
-          <span key={s} className="rounded-full border border-rule bg-paper px-3 py-1 text-ink-soft">
-            {s}
-          </span>
-        ))}
+    <header className="flex shrink-0 items-center gap-3 border-b border-rule bg-cream/70 px-6 py-3 backdrop-blur-sm">
+      <h1 className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-ink">{title}</h1>
+      <span className="rounded-full border border-rule bg-paper px-2 py-0.5 font-mono text-[10.5px] font-semibold text-ink-soft">
+        {typeLabel}
+      </span>
+    </header>
+  );
+}
+
+function CenteredCard({
+  title,
+  body,
+  ctaLabel,
+  onCta,
+}: {
+  title: string;
+  body: string;
+  ctaLabel: string;
+  onCta: () => void;
+}) {
+  return (
+    <div className="flex h-full items-center justify-center px-6">
+      <div className="max-w-md rounded-2xl border-2 border-ink bg-cream p-7 text-center shadow-[0_4px_0_0_var(--color-ink)]">
+        <CorgiMascot className="mx-auto h-16 w-16" />
+        <h2 className="mt-3 text-2xl font-extrabold text-ink">{title}</h2>
+        <p className="mt-2 text-[13px] text-ink-soft">{body}</p>
+        <button
+          type="button"
+          onClick={onCta}
+          className="press mt-5 inline-flex rounded-lg bg-yellow px-5 py-2 text-[14px] font-bold text-ink"
+        >
+          {ctaLabel}
+        </button>
       </div>
+    </div>
+  );
+}
+
+function Empty({ type }: { type: keyof typeof CONVERSATION_TYPE_META }) {
+  const meta = CONVERSATION_TYPE_META[type];
+  return (
+    <div className="mt-10 flex flex-col items-center text-center">
+      <span className="text-[40px]">{meta.emoji}</span>
+      <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{meta.label}</h2>
+      <p className="mt-2 max-w-md text-[13px] leading-[1.7] text-ink-soft">{meta.tagline}</p>
+      <p className="mt-4 max-w-md text-[12px] text-mute">下面输入框直接说就行 —— 例：</p>
+      <p className="mt-1 max-w-md text-[12px] text-ink-soft">
+        "{meta.placeholder.replace(/^比如：/, '').replace(/^\「|\」$/g, '')}"
+      </p>
     </div>
   );
 }
@@ -274,10 +324,14 @@ function MessageBubble({
   role,
   content,
   toolCalls,
+  artifacts,
+  onOpenArtifact,
 }: {
   role: string;
   content: string;
   toolCalls?: ToolCallRecord[] | undefined;
+  artifacts?: ArtifactRef[] | undefined;
+  onOpenArtifact: (a: ArtifactRef) => void;
 }) {
   const isUser = role === 'user';
   return (
@@ -295,11 +349,18 @@ function MessageBubble({
           </div>
         )}
         {content && <div className="whitespace-pre-wrap">{content}</div>}
-        {!content && (!toolCalls || toolCalls.length === 0) && (
+        {!content && (!toolCalls || toolCalls.length === 0) && (!artifacts || artifacts.length === 0) && (
           <span className="inline-flex items-center gap-2 text-mute">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow" />
             思考中…
           </span>
+        )}
+        {artifacts && artifacts.length > 0 && (
+          <div className="space-y-1.5 pt-1">
+            {artifacts.map((a, i) => (
+              <ArtifactCard key={`${a.path}-${i}`} artifact={a} onOpen={() => onOpenArtifact(a)} />
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -315,7 +376,7 @@ function ToolCallChip({ call }: { call: ToolCallRecord }) {
       onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
       className="rounded-md border border-rule bg-fluff/70"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 text-[12px] font-mono">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 font-mono text-[12px]">
         <span className={done ? 'text-yellow-deep' : 'text-mute'}>{done ? '✓' : '⏳'}</span>
         <span className="font-bold text-ink">{call.name}</span>
         <span className="truncate text-mute">{previewArgs(call.input)}</span>

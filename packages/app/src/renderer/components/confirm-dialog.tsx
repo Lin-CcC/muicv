@@ -58,11 +58,7 @@ export function ConfirmDialog({
   // 直接渲染会让 dialog 被困在 dropdown 内。
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
-      <div
-        className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
-        aria-hidden
-        onClick={onCancel}
-      />
+      <div className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" aria-hidden onClick={onCancel} />
       <div
         role="dialog"
         aria-modal="true"

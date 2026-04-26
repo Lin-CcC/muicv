@@ -1,12 +1,19 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron';
 
-import type { AppConfig, ChatMessage, Profile } from '../shared/types.ts';
+import type { AppConfig, ChatMessage, ConversationType, Profile } from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
+import {
+  createConversation,
+  deleteConversation,
+  getConversation,
+  listConversations,
+  renameConversation,
+} from './conversations.ts';
 import { beginConnect, handleDeepLink, registerScheme, setMainWindowGetter } from './deep-link.ts';
 import { checkSession as runCheckSession, loginWithKey, logout as runLogout, verifyCandidateKey } from './session.ts';
 import {
@@ -210,17 +217,72 @@ ipcMain.handle('shell:openWorkspace', async () => {
 
 // -------------------- IPC: agent --------------------
 
-ipcMain.handle('agent:chat', async (event, messages: ChatMessage[]): Promise<{ channelId: string }> => {
-  const channelId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const cfg = getConfig();
-  runAgent(channelId, messages, cfg, event.sender).catch((err) => {
-    console.error('[agent:chat] runtime crashed', err);
-  });
-  return { channelId };
-});
+ipcMain.handle(
+  'agent:chat',
+  async (
+    event,
+    opts: {
+      profileId: string;
+      convId: string;
+      type: ConversationType;
+      messages: ChatMessage[];
+    },
+  ): Promise<{ channelId: string }> => {
+    const channelId = `chat-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const cfg = getConfig();
+    runAgent({
+      channelId,
+      profileId: opts.profileId,
+      convId: opts.convId,
+      type: opts.type,
+      messages: opts.messages,
+      config: cfg,
+      sender: event.sender,
+    }).catch((err) => {
+      console.error('[agent:chat] runtime crashed', err);
+    });
+    return { channelId };
+  },
+);
 
 ipcMain.handle('agent:abort', async (_event, channelId: string) => {
   abortRun(channelId);
+});
+
+// -------------------- IPC: conversation --------------------
+
+ipcMain.handle('conversation:list', (_e, profileId: string) => listConversations(profileId));
+ipcMain.handle('conversation:get', (_e, profileId: string, convId: string) => getConversation(profileId, convId));
+ipcMain.handle('conversation:create', (_e, opts: { profileId: string; type: ConversationType; title?: string }) =>
+  createConversation(opts),
+);
+ipcMain.handle('conversation:rename', (_e, profileId: string, convId: string, title: string) =>
+  renameConversation(profileId, convId, title),
+);
+ipcMain.handle('conversation:remove', (_e, profileId: string, convId: string) => deleteConversation(profileId, convId));
+
+// -------------------- IPC: fs (右栏文件预览) --------------------
+
+ipcMain.handle('fs:read', async (_e, path: string): Promise<string | null> => {
+  if (typeof path !== 'string' || !path) return null;
+  // 安全：只允许读当前激活 profile 工作目录下的文件
+  const cfg = getConfig();
+  if (!cfg.workspaceDir) return null;
+  const abs = path;
+  // 简单校验：abs 必须以 workspaceDir 开头
+  if (!abs.startsWith(cfg.workspaceDir)) return null;
+  try {
+    return await readFile(abs, 'utf8');
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('fs:showInFolder', async (_e, path: string) => {
+  if (typeof path !== 'string') return;
+  const cfg = getConfig();
+  if (!cfg.workspaceDir || !path.startsWith(cfg.workspaceDir)) return;
+  shell.showItemInFolder(path);
 });
 
 // -------------------- App lifecycle --------------------

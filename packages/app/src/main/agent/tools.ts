@@ -1,9 +1,30 @@
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 
 import { tool } from '@openai/agents';
 import fg from 'fast-glob';
 import { z } from 'zod';
+
+import type { ArtifactKind } from '../../shared/types.ts';
+
+/**
+ * 路径模式 → 工件类型推断。
+ * agent 调 read/write_file 落到 .claude/muicv/ 下约定子目录时，
+ * 包装层 emit 一个 artifact chunk 给 renderer，左中右三栏可以做对应交互。
+ */
+function inferArtifactKind(relPath: string): ArtifactKind | null {
+  const norm = relPath.replace(/\\/g, '/');
+  if (!norm.includes('.claude/muicv/')) return null;
+  if (/\.claude\/muicv\/profile\.md$/.test(norm)) return 'profile';
+  if (/\.claude\/muicv\/experience\//.test(norm)) return 'experience';
+  if (/\.claude\/muicv\/projects\//.test(norm)) return 'project';
+  if (/\.claude\/muicv\/targets\//.test(norm)) return 'jd-target';
+  if (/\.claude\/muicv\/versions\//.test(norm) && norm.endsWith('.md')) return 'resume-version';
+  if (/\.claude\/muicv\/applications\//.test(norm)) return 'cover-letter';
+  // critique 报告通常没固定路径，让 agent 写 reports/ 时落 critique-report
+  if (/\.claude\/muicv\/(reports|critiques)\//.test(norm)) return 'critique-report';
+  return null;
+}
 
 /**
  * 文件 / 系统工具集合。所有路径都相对于"工作目录"（用户在 Settings 里
@@ -28,7 +49,17 @@ function shortRel(workspaceDir: string, abs: string): string {
   return relative(workspaceDir, abs) || '.';
 }
 
-export function buildFileTools(workspaceDir: string) {
+export type ArtifactEmitter = (artifact: { kind: ArtifactKind; path: string; title: string }) => void;
+
+export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmitter) {
+  /** 工具调用成功后调一次：如果路径命中约定，emit 一条 artifact chunk。 */
+  function maybeEmit(relPath: string, abs: string) {
+    if (!emitArtifact) return;
+    const kind = inferArtifactKind(relPath);
+    if (!kind) return;
+    emitArtifact({ kind, path: abs, title: basename(abs) });
+  }
+
   const readFileTool = tool({
     name: 'read_file',
     description: '读取工作目录下某个文件的全部文本内容。对 .claude/muicv/ 下的 markdown 等都可用。',
@@ -39,6 +70,7 @@ export function buildFileTools(workspaceDir: string) {
       const abs = resolveInWorkspace(workspaceDir, path);
       try {
         const content = await readFile(abs, 'utf8');
+        maybeEmit(path, abs);
         return content;
       } catch (err) {
         return `读取失败: ${err instanceof Error ? err.message : String(err)}`;
@@ -59,6 +91,7 @@ export function buildFileTools(workspaceDir: string) {
       try {
         await mkdir(dirname(abs), { recursive: true });
         await writeFile(abs, content, 'utf8');
+        maybeEmit(path, abs);
         return `已写入 ${shortRel(workspaceDir, abs)}（${content.length} 字符）`;
       } catch (err) {
         return `写入失败: ${err instanceof Error ? err.message : String(err)}`;
@@ -90,6 +123,7 @@ export function buildFileTools(workspaceDir: string) {
         }
         const next = replaceAll ? original.split(oldString).join(newString) : original.replace(oldString, newString);
         await writeFile(abs, next, 'utf8');
+        maybeEmit(path, abs);
         const delta = next.length - original.length;
         return `已编辑 ${shortRel(workspaceDir, abs)}（${delta >= 0 ? '+' : ''}${delta} 字符）`;
       } catch (err) {

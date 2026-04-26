@@ -87,7 +87,102 @@ export type ChatMessage = {
   content: string;
   /** 如果是 assistant 调了 tool，记录工具名和输入。 */
   toolCalls?: ToolCallRecord[];
+  /** assistant 完成时附带的 artifact 卡片（用户写的文件 / 读的关键资料）。 */
+  artifacts?: ArtifactRef[];
   createdAt: number;
+};
+
+/**
+ * 对话类型：每种类型对应一个主线 skill。新建对话时选类型，
+ * agent 拿到 focusType 后在 system prompt 里加一句"本次主线是 X"，
+ * 让 agent 优先按对应 skill 的章节工作。所有 skill 仍然全量加载，
+ * 类型只决定侧重，不锁工具。
+ */
+export type ConversationType =
+  | 'core' // 记录职业生涯（素材整理）—— muicv-core
+  | 'generate' // 针对岗位生成简历 —— muicv-generate
+  | 'critique' // 简历评审 —— muicv-critique
+  | 'jobs' // JD 抓取与匹配 —— muicv-jobs
+  | 'interview' // 模拟面试 —— muicv-interview
+  | 'coaching'; // 就业辅导 —— muicv-coaching
+
+export const CONVERSATION_TYPE_META: Record<
+  ConversationType,
+  { label: string; emoji: string; tagline: string; placeholder: string }
+> = {
+  core: {
+    label: '记录职业生涯',
+    emoji: '📝',
+    tagline: '记录工作经历、项目、技能、亮点',
+    placeholder: '比如：「我 2023 年在 ACME 做高级前端，做了 X 项目，业务量提升 30%」',
+  },
+  generate: {
+    label: '针对岗位生成简历',
+    emoji: '📄',
+    tagline: '基于素材库，生成适合特定 JD 的简历版本',
+    placeholder: '比如：「针对 Google L5 的岗位生成一份简历」',
+  },
+  critique: {
+    label: '简历评审',
+    emoji: '🔍',
+    tagline: 'STAR 结构、量化、关键词、长度全方位检查',
+    placeholder: '比如：「评审我最近生成的 google-l5 简历」',
+  },
+  jobs: {
+    label: 'JD 抓取与匹配',
+    emoji: '🎯',
+    tagline: '从招聘链接抓 JD，分析与你素材的匹配度',
+    placeholder: '比如：粘一个招聘链接，或者「分析一下 openai-swe 这个岗位」',
+  },
+  interview: {
+    label: '模拟面试',
+    emoji: '🎤',
+    tagline: '行为题 / 技术题角色扮演 + 反馈',
+    placeholder: '比如：「针对 google-l5 模拟一轮 behavioral 面试」',
+  },
+  coaching: {
+    label: '就业辅导',
+    emoji: '🧭',
+    tagline: '职业方向、薪资协商、跳槽时机等',
+    placeholder: '比如：「我现在该不该跳槽？」',
+  },
+};
+
+/** 工件类型 —— renderer 拿到 artifact chunk 后按 kind 选 icon / 文案。 */
+export type ArtifactKind =
+  | 'profile'
+  | 'experience'
+  | 'project'
+  | 'jd-target'
+  | 'resume-version'
+  | 'critique-report'
+  | 'cover-letter'
+  | 'other';
+
+/** 一次工件引用 —— 路径 + 类型 + 标题（标题给卡片显示用，path 是绝对路径或相对于 workspace 的路径）。 */
+export type ArtifactRef = {
+  kind: ArtifactKind;
+  /** 绝对路径，方便右栏直接 fs.read。 */
+  path: string;
+  /** 显示用文件名（basename）。 */
+  title: string;
+};
+
+/** 一份对话的元数据 + 消息历史。持久化到 <profile.dir>/.claude/muicv/conversations/<id>.json。 */
+export type Conversation = {
+  id: string;
+  profileId: string;
+  type: ConversationType;
+  /** 用户改 / 默认按类型 + 创建日期生成。 */
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: ChatMessage[];
+};
+
+/** 列表用的轻量 summary（不含 messages，省 IO）。 */
+export type ConversationSummary = Omit<Conversation, 'messages'> & {
+  messageCount: number;
 };
 
 /**
@@ -106,7 +201,13 @@ export type AgentChunk =
   /** 整个 run 结束（reason: 'completed' / 'error' / 'aborted'） */
   | { type: 'finish'; reason: string }
   /** 出错（network / api / parse）。 */
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string }
+  /**
+   * Agent 调 read/write_file 落到约定路径时（versions/* / targets/* / applications/*），
+   * runtime 主动推一个 artifact chunk，renderer 在消息流里渲染卡片，
+   * 点卡片或后续 agent 再访问该路径都会切右栏到这个文件。
+   */
+  | { type: 'artifact'; kind: ArtifactKind; path: string; title: string };
 
 export type SessionCheckResult =
   | { status: 'ok'; session: SessionInfo }
@@ -166,9 +267,38 @@ export type RendererApi = {
     openWorkspace(): Promise<void>;
   };
   agent: {
-    /** 发起一次 chat（流式）。返回的是一个 channel id，渲染层订阅 'agent:chunk:<id>' 拿增量。 */
-    chat(messages: ChatMessage[]): Promise<{ channelId: string }>;
+    /**
+     * 发起一次 chat（流式）。
+     *
+     * conv: 关联的 conversation —— runtime 用 conv.type 选 focus skill，
+     * 用 conv.id + profileId 在 finish 后 flush 整份对话到磁盘。
+     * messages 是当前对话的全部历史 + 刚 push 的 user msg。
+     *
+     * 返回 channelId，渲染层订阅 'muicv:agent:chunk:<id>' 拿增量。
+     */
+    chat(opts: {
+      profileId: string;
+      convId: string;
+      type: ConversationType;
+      messages: ChatMessage[];
+    }): Promise<{ channelId: string }>;
     /** 中断当前 chat。 */
     abort(channelId: string): Promise<void>;
+  };
+  conversation: {
+    /** 列出当前 profile 下所有对话（不含 messages，按 updatedAt 倒序）。 */
+    list(profileId: string): Promise<ConversationSummary[]>;
+    /** 加载一份对话（含 messages）。 */
+    get(profileId: string, convId: string): Promise<Conversation | null>;
+    /** 新建。type 决定默认 title 和 system prompt focus。 */
+    create(opts: { profileId: string; type: ConversationType; title?: string }): Promise<Conversation>;
+    rename(profileId: string, convId: string, title: string): Promise<void>;
+    remove(profileId: string, convId: string): Promise<void>;
+  };
+  fs: {
+    /** 读一个文件（utf8）。给右栏文件预览用。失败返回 null。 */
+    read(path: string): Promise<string | null>;
+    /** 在文件管理器里打开。 */
+    showInFolder(path: string): Promise<void>;
   };
 };

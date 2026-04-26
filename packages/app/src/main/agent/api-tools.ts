@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, relative, resolve, sep } from 'node:path';
+import { basename, dirname, relative, resolve, sep } from 'node:path';
 
 import { tool } from '@openai/agents';
 import { z } from 'zod';
 
 import type { AppConfig } from '../../shared/types.ts';
+import type { ArtifactEmitter } from './tools.ts';
 
 /**
  * muicv 后端 API 工具：让 agent 能渲染简历 PDF + 抓取 JD。
@@ -36,7 +37,7 @@ function authHeader(config: AppConfig): Record<string, string> {
   return config.muicvApiKey ? { authorization: `Bearer ${config.muicvApiKey}` } : {};
 }
 
-export function buildApiTools(config: AppConfig) {
+export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter) {
   const renderResumePdf = tool({
     name: 'render_resume_pdf',
     description:
@@ -80,6 +81,7 @@ export function buildApiTools(config: AppConfig) {
       const targetAbs = resolveInWorkspace(config.workspaceDir, targetRel);
       await mkdir(dirname(targetAbs), { recursive: true });
       await writeFile(targetAbs, pdfBytes);
+      emitArtifact?.({ kind: 'resume-version', path: targetAbs, title: basename(targetAbs) });
       return `PDF 已生成：${shortRel(config.workspaceDir, targetAbs)}（${(pdfBytes.length / 1024).toFixed(1)} KB）`;
     },
   });
@@ -159,6 +161,7 @@ export function buildApiTools(config: AppConfig) {
       const content = `${frontmatter}\n\n## JD 正文\n\n${body.markdown.trim()}\n`;
       await mkdir(dirname(targetAbs), { recursive: true });
       await writeFile(targetAbs, content, 'utf8');
+      emitArtifact?.({ kind: 'jd-target', path: targetAbs, title: basename(targetAbs) });
       return `JD 已保存到 ${shortRel(config.workspaceDir, targetAbs)}${
         meta.company ? `（${meta.company} / ${meta.title}）` : ''
       }`;

@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 
-import { ChatView } from './components/chat-view';
+import { AppShell } from './components/app-shell';
 import { LoginView } from './components/login-view';
-import { SettingsView } from './components/settings-view';
-import { TitleBar } from './components/title-bar';
 import { bootstrap, useAppStore } from './lib/store';
 
 export function App() {
@@ -14,20 +12,18 @@ export function App() {
     void bootstrap();
   }, []);
 
-  return (
-    <div className="flex h-screen flex-col bg-cream">
-      <TitleBar />
-      <main className="flex-1 overflow-hidden">
-        {bootstrapping ? (
-          <div className="flex h-full items-center justify-center text-mute">加载中…</div>
-        ) : view === 'login' ? (
-          <LoginView />
-        ) : view === 'settings' ? (
-          <SettingsView />
-        ) : (
-          <ChatView />
-        )}
-      </main>
-    </div>
-  );
+  if (bootstrapping) {
+    return <div className="flex h-screen items-center justify-center bg-cream text-mute">加载中…</div>;
+  }
+
+  if (view === 'login') {
+    // 登录页保留原来的全屏卡片布局，不套 AppShell（没 session 没法显示左栏）
+    return (
+      <div className="flex h-screen flex-col bg-cream">
+        <LoginView />
+      </div>
+    );
+  }
+
+  return <AppShell />;
 }

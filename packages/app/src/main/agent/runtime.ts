@@ -3,10 +3,13 @@ import type { WebContents } from 'electron';
 import { Agent, run, setDefaultOpenAIClient, setDefaultOpenAIKey, setOpenAIAPI } from '@openai/agents';
 import OpenAI from 'openai';
 
-import type { AgentChunk, AppConfig, ChatMessage } from '../../shared/types.ts';
+import { randomUUID } from 'node:crypto';
+
+import type { AgentChunk, AppConfig, ChatMessage, ConversationType, ToolCallRecord } from '../../shared/types.ts';
+import { getConversation, saveConversation } from '../conversations.ts';
 import { buildApiTools } from './api-tools.ts';
 import { buildSystemPrompt } from './skills.ts';
-import { buildFileTools } from './tools.ts';
+import { type ArtifactEmitter, buildFileTools } from './tools.ts';
 
 /**
  * 配置 OpenAI Agents SDK 全局 client，让它走 muicv API 的 OpenAI 兼容代理：
@@ -60,16 +63,23 @@ function ensureConfigured(config: AppConfig): boolean {
 
 const activeRuns = new Map<string, AbortController>();
 
+type RunOpts = {
+  channelId: string;
+  profileId: string;
+  convId: string;
+  type: ConversationType;
+  messages: ChatMessage[];
+  config: AppConfig;
+  sender: WebContents;
+};
+
 /**
  * 启动一次 agent 流式 run。每个 chunk 通过 sender.send('agent:chunk', channelId, payload)
- * 转发到 renderer。返回一个 promise，run 结束时 resolve。
+ * 转发到 renderer。run 结束时把整份 conversation flush 到磁盘。
  */
-export async function runAgent(
-  channelId: string,
-  messages: ChatMessage[],
-  config: AppConfig,
-  sender: WebContents,
-): Promise<void> {
+export async function runAgent(opts: RunOpts): Promise<void> {
+  const { channelId, profileId, convId, type, messages, config, sender } = opts;
+
   const send = (chunk: AgentChunk) => {
     if (!sender.isDestroyed()) sender.send('agent:chunk', channelId, chunk);
   };
@@ -85,10 +95,18 @@ export async function runAgent(
     return;
   }
 
-  const tools = [...buildFileTools(config.workspaceDir), ...buildApiTools(config)];
+  // artifact 收集：tool 调用过程中累计 artifact，完成后塞进 assistant message
+  const collectedArtifacts: Array<{ kind: import('../../shared/types.ts').ArtifactKind; path: string; title: string }> =
+    [];
+  const emitArtifact: ArtifactEmitter = (a) => {
+    collectedArtifacts.push(a);
+    send({ type: 'artifact', ...a });
+  };
+
+  const tools = [...buildFileTools(config.workspaceDir, emitArtifact), ...buildApiTools(config, emitArtifact)];
   const agent = new Agent({
     name: 'Mui简历',
-    instructions: buildSystemPrompt(),
+    instructions: buildSystemPrompt(type),
     model: config.defaultModel,
     tools,
   });
@@ -111,6 +129,10 @@ export async function runAgent(
   const abort = new AbortController();
   activeRuns.set(channelId, abort);
 
+  // 提到 try 外面，让 error / abort 路径也能拿到部分输出存盘
+  let assistantText = '';
+  const assistantToolCalls: ToolCallRecord[] = [];
+
   try {
     const stream = await run(agent, input, {
       stream: true,
@@ -118,12 +140,12 @@ export async function runAgent(
       maxTurns: 30,
     });
 
+    // assistantText / assistantToolCalls 已在 try 外定义；这里不再 redeclare
     for await (const event of stream) {
       if (event.type === 'raw_model_stream_event') {
-        // raw event from OpenAI Responses / Chat Completions stream
         const data = event.data as unknown as { type?: string; delta?: string; text?: string };
-        // chat_completions stream 的 chunk 类型可能是 'output_text_delta' / 'response.output_text.delta'
         if (data?.type && /text.*delta/i.test(data.type) && typeof data.delta === 'string') {
+          assistantText += data.delta;
           send({ type: 'text-delta', delta: data.delta });
         }
       } else if (event.type === 'run_item_stream_event') {
@@ -138,11 +160,21 @@ export async function runAgent(
           } catch {
             /* keep default */
           }
+          let parsedInput: unknown;
+          try {
+            parsedInput = JSON.parse(argsJson);
+          } catch {
+            parsedInput = argsJson;
+          }
+          assistantToolCalls.push({ id: toolCallId, name: toolName, input: parsedInput });
           send({ type: 'tool-called', toolCallId, toolName, argsJson });
         } else if (event.name === 'tool_output' && item.type === 'tool_call_output_item') {
           const raw = item.rawItem ?? {};
           const toolCallId = String(raw.callId ?? raw.id ?? '');
           const output = typeof item.output === 'string' ? item.output : JSON.stringify(item.output ?? '');
+          // 写回 toolCalls 数组里对应那条
+          const tc = assistantToolCalls.find((c) => c.id === toolCallId);
+          if (tc) tc.output = output.slice(0, 2048);
           send({ type: 'tool-output', toolCallId, output: output.slice(0, 2048) });
         } else if (event.name === 'message_output_created' && item.type === 'message_output_item') {
           const raw = item.rawItem ?? {};
@@ -159,9 +191,17 @@ export async function runAgent(
     }
 
     await stream.completed;
+    await flushConversation();
     send({ type: 'finish', reason: 'completed' });
   } catch (error) {
-    if (abort.signal.aborted) {
+    const aborted = abort.signal.aborted;
+    // error / abort 路径也保存已累积的部分，否则用户体感"全丢了"
+    try {
+      await flushConversation();
+    } catch {
+      /* 存盘失败不再二次报错 */
+    }
+    if (aborted) {
       send({ type: 'finish', reason: 'aborted' });
     } else {
       const msg = error instanceof Error ? error.message : String(error);
@@ -170,6 +210,28 @@ export async function runAgent(
     }
   } finally {
     activeRuns.delete(channelId);
+  }
+
+  /** 把本轮 user msg + 累积的 assistant msg 追加到 conversation 文件。 */
+  async function flushConversation(): Promise<void> {
+    if (!lastUser) return;
+    const conv = await getConversation(profileId, convId);
+    if (!conv) return;
+    // 防重复 push：极端 race 下可能 user msg 已经在里面
+    const lastConv = conv.messages[conv.messages.length - 1];
+    if (lastConv?.id !== lastUser.id) {
+      conv.messages.push(lastUser);
+    }
+    const assistantMsg: ChatMessage = {
+      id: randomUUID(),
+      role: 'assistant',
+      content: assistantText,
+      createdAt: Date.now(),
+    };
+    if (assistantToolCalls.length > 0) assistantMsg.toolCalls = assistantToolCalls;
+    if (collectedArtifacts.length > 0) assistantMsg.artifacts = collectedArtifacts;
+    conv.messages.push(assistantMsg);
+    await saveConversation(conv);
   }
 }
 
