@@ -11,12 +11,13 @@ export function TitleBar() {
   const activeChannel = useAppStore((s) => s.activeChannel);
   const leftCollapsed = useAppStore((s) => s.leftCollapsed);
   const rightCollapsed = useAppStore((s) => s.rightCollapsed);
-  const rightPanelMode = useAppStore((s) => s.rightPanelMode);
+  const treeRoot = useAppStore((s) => s.rightPanelTreeRoot);
+  const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
   const toggleLeft = useAppStore((s) => s.toggleLeft);
   const toggleRight = useAppStore((s) => s.toggleRight);
 
   const busy = activeChannel !== null;
-  const canToggleRight = rightPanelMode !== null; // 右栏没东西时不显示折叠按钮
+  const canToggleRight = treeRoot !== null || previewPath !== null;
 
   return (
     <header className="titlebar-drag flex h-11 shrink-0 items-center justify-between border-b border-rule bg-cream/85 pl-[80px] pr-3 backdrop-blur-sm">

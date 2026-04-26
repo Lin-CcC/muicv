@@ -5,29 +5,50 @@ import { FileTree } from './file-tree';
 import { MarkdownView } from './markdown-view';
 
 /**
- * 右栏：两种模式
- *   - tree：浏览当前 profile 工作目录的文件树
- *   - preview：预览某个具体文件
+ * 右栏：tree + preview 是独立两层。
+ *   - 底层：tree（rightPanelTreeRoot 不空时一直挂着，expand 状态自然保留）
+ *   - 上层：preview drawer，覆盖整个右栏，关掉后下面的 tree 立刻可见
  *
- * 切换：用户点 profile 行的文件按钮进入 tree；点树里的文件 → preview；
- * preview 里点"返回文件树" → 回到 tree。
+ * 这样用户回退到树不需要重新拉取目录子项，体感是真"drawer"。
  */
 export function SidebarRight() {
-  const mode = useAppStore((s) => s.rightPanelMode);
-  const path = useAppStore((s) => s.rightPanelPath);
+  const treeRoot = useAppStore((s) => s.rightPanelTreeRoot);
+  const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
   const closePanel = useAppStore((s) => s.closeRightPanel);
+  const closePreview = useAppStore((s) => s.closePreview);
   const openFileTree = useAppStore((s) => s.openFileTree);
   const openPreview = useAppStore((s) => s.openRightPanel);
   const activeProfile = useAppStore((s) => s.activeProfile);
 
-  if (!mode || !path) return null;
+  if (!treeRoot && !previewPath) return null;
 
   return (
-    <aside className="flex h-full w-full flex-col border-l-2 border-ink bg-paper">
-      {mode === 'tree' && (
-        <TreeMode rootPath={path} onPickFile={openPreview} onClose={closePanel} workspaceLabel={activeProfile?.name} />
+    <aside className="relative h-full w-full border-l-2 border-ink bg-paper">
+      {treeRoot && (
+        <TreeMode
+          rootPath={treeRoot}
+          onPickFile={openPreview}
+          onClose={closePanel}
+          workspaceLabel={activeProfile?.name}
+        />
       )}
-      {mode === 'preview' && <PreviewMode path={path} onBackToTree={() => openFileTree()} onClose={closePanel} />}
+      {/* 没开树但 preview 来了（artifact 卡片直接打开）—— 整个面板就只有 preview */}
+      {!treeRoot && previewPath && (
+        <PreviewMode
+          path={previewPath}
+          onClose={closePanel}
+          onBackToTree={() => {
+            openFileTree();
+            closePreview();
+          }}
+        />
+      )}
+      {/* 树 + preview 同时存在：preview 作为 drawer overlay 盖在树上 */}
+      {treeRoot && previewPath && (
+        <div className="absolute inset-0 bg-paper">
+          <PreviewMode path={previewPath} onClose={closePanel} onBackToTree={closePreview} />
+        </div>
+      )}
     </aside>
   );
 }
@@ -44,7 +65,7 @@ function TreeMode({
   workspaceLabel?: string | undefined;
 }) {
   return (
-    <>
+    <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-rule bg-cream px-4 py-2">
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10px] uppercase tracking-wider text-mute">文件浏览</p>
@@ -64,7 +85,7 @@ function TreeMode({
       <div className="flex-1 overflow-y-auto px-2 py-2">
         <FileTree rootPath={rootPath} onPickFile={onPickFile} />
       </div>
-    </>
+    </div>
   );
 }
 
@@ -93,7 +114,7 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
   const isPdf = /\.pdf$/i.test(path);
 
   return (
-    <>
+    <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-center gap-2 border-b border-rule bg-cream px-4 py-2">
         <button
           type="button"
@@ -112,7 +133,7 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
         <button
           type="button"
           onClick={onClose}
-          title="关闭"
+          title="关闭整个右栏"
           className="shrink-0 rounded-md px-2 py-1 text-[14px] text-mute hover:bg-fluff hover:text-ink"
         >
           ✕
@@ -162,6 +183,6 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
           复制路径
         </button>
       </footer>
-    </>
+    </div>
   );
 }
