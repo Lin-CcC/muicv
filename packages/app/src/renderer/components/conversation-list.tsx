@@ -49,7 +49,7 @@ export function ConversationList() {
           + 新建
         </button>
         {picking && (
-          <div className="absolute right-3 top-full z-50 mt-1 w-64 rounded-xl border-2 border-ink bg-cream p-1.5 shadow-[0_5px_0_0_var(--color-ink)]">
+          <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border-2 border-ink bg-cream p-1.5 shadow-[0_5px_0_0_var(--color-ink)]">
             <p className="px-2 py-1 text-[10.5px] font-bold uppercase tracking-wider text-mute">挑一种对话类型</p>
             {ALL_TYPES.map((t) => {
               const meta = CONVERSATION_TYPE_META[t];

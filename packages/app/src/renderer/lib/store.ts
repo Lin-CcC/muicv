@@ -194,15 +194,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
     const profileId = get().activeProfile?.id;
     if (!profileId) return;
     const conv = await window.muicv.conversation.get(profileId, convId);
-    set({ activeConversation: conv });
+    // 切对话 = 用户想聊天了，自动从 settings/其他 view 拉回 chat
+    set({ activeConversation: conv, view: 'chat' });
   },
   createConversation: async (type, title) => {
     const profileId = get().activeProfile?.id;
     if (!profileId) throw new Error('no-active-profile');
     const conv = await window.muicv.conversation.create({ profileId, type, ...(title ? { title } : {}) });
+    // 新建对话 = 用户已经选好类型要开始了，自动切到 chat
     set((st) => ({
       conversations: [toSummary(conv), ...st.conversations],
       activeConversation: conv,
+      view: 'chat',
     }));
     return conv;
   },
