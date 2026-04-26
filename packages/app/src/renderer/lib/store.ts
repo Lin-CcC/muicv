@@ -75,10 +75,19 @@ type AppStore = {
 
   leftCollapsed: boolean;
   rightCollapsed: boolean;
-  /** 右栏当前预览的文件绝对路径；null = 右栏关。 */
+  /**
+   * 右栏当前展示什么：
+   *   - 'preview'：预览某个文件，path = 文件绝对路径
+   *   - 'tree'：浏览目录树，path = 起始目录（通常是 workspaceDir）
+   *   - null：什么都没有，右栏不显示
+   */
+  rightPanelMode: 'preview' | 'tree' | null;
   rightPanelPath: string | null;
   toggleLeft: () => void;
   toggleRight: () => void;
+  /** 打开文件树（path 缺省时用当前 profile 的 workspaceDir）。 */
+  openFileTree: (path?: string) => void;
+  /** 打开文件预览（被工件卡片 / 文件树点击调用）。 */
   openRightPanel: (path: string) => void;
   closeRightPanel: () => void;
 };
@@ -297,11 +306,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   leftCollapsed: false,
   rightCollapsed: true,
+  rightPanelMode: null,
   rightPanelPath: null,
   toggleLeft: () => set((s) => ({ leftCollapsed: !s.leftCollapsed })),
   toggleRight: () => set((s) => ({ rightCollapsed: !s.rightCollapsed })),
-  openRightPanel: (path) => set({ rightPanelPath: path, rightCollapsed: false }),
-  closeRightPanel: () => set({ rightPanelPath: null, rightCollapsed: true }),
+  openFileTree: (path) => {
+    const root = path ?? get().activeProfile?.dir;
+    if (!root) return;
+    set({ rightPanelMode: 'tree', rightPanelPath: root, rightCollapsed: false });
+  },
+  openRightPanel: (path) => set({ rightPanelMode: 'preview', rightPanelPath: path, rightCollapsed: false }),
+  closeRightPanel: () => set({ rightPanelMode: null, rightPanelPath: null, rightCollapsed: true }),
 }));
 
 /**

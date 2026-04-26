@@ -64,6 +64,12 @@ const api: RendererApi = {
   },
   fs: {
     read: (path) => ipcRenderer.invoke('fs:read', path) as Promise<string | null>,
+    listDir: (path) =>
+      ipcRenderer.invoke('fs:listDir', path) as Promise<Array<{
+        name: string;
+        path: string;
+        isDirectory: boolean;
+      }> | null>,
     showInFolder: (path) => ipcRenderer.invoke('fs:showInFolder', path) as Promise<void>,
   },
 };

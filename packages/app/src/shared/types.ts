@@ -298,6 +298,8 @@ export type RendererApi = {
   fs: {
     /** 读一个文件（utf8）。给右栏文件预览用。失败返回 null。 */
     read(path: string): Promise<string | null>;
+    /** 列目录（仅当前 workspace 内）。返回 null = 路径越界 / 读不到。 */
+    listDir(path: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }> | null>;
     /** 在文件管理器里打开。 */
     showInFolder(path: string): Promise<void>;
   };

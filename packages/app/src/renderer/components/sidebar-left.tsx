@@ -39,6 +39,7 @@ function ProfileSection() {
   const removeProfile = useAppStore((s) => s.removeProfile);
   const openInFinder = useAppStore((s) => s.openProfileInFinder);
   const createPick = useAppStore((s) => s.createProfilePickFolder);
+  const openFileTree = useAppStore((s) => s.openFileTree);
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,19 +58,34 @@ function ProfileSection() {
 
   return (
     <div ref={ref} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        title={activeProfile?.dir}
-        className="flex w-full min-w-0 items-center gap-2 px-3 py-3 text-left hover:bg-fluff/60"
-      >
-        <CorgiMascot className="h-7 w-7 shrink-0" />
-        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-deep" />
-        <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
-          {activeProfile?.name ?? 'Mui简历'}
-        </span>
-        <span className="shrink-0 text-[11px] text-mute">▾</span>
-      </button>
+      <div className="flex w-full min-w-0 items-center gap-2 px-3 py-3">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          title={activeProfile?.dir}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <CorgiMascot className="h-7 w-7 shrink-0" />
+          <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-deep" />
+          <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+            {activeProfile?.name ?? 'Mui简历'}
+          </span>
+          <span className="shrink-0 text-[11px] text-mute">▾</span>
+        </button>
+        {activeProfile && (
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false); // 顺手关掉 profile dropdown
+              openFileTree();
+            }}
+            title="查看文件"
+            className="shrink-0 rounded-md px-1.5 py-1 text-[14px] text-mute hover:bg-fluff hover:text-ink"
+          >
+            📁
+          </button>
+        )}
+      </div>
 
       {open && (
         <div className="absolute left-2 right-2 top-full z-50 mt-1 rounded-xl border-2 border-ink bg-cream p-1.5 shadow-[0_5px_0_0_var(--color-ink)]">

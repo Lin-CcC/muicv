@@ -15,9 +15,9 @@ export function AppShell() {
   const view = useAppStore((s) => s.view);
   const leftCollapsed = useAppStore((s) => s.leftCollapsed);
   const rightCollapsed = useAppStore((s) => s.rightCollapsed);
-  const rightPanelPath = useAppStore((s) => s.rightPanelPath);
+  const rightPanelMode = useAppStore((s) => s.rightPanelMode);
 
-  const showRight = !rightCollapsed && rightPanelPath !== null;
+  const showRight = !rightCollapsed && rightPanelMode !== null;
 
   return (
     <div className="flex h-screen flex-col bg-cream">

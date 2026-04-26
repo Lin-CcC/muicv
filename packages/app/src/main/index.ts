@@ -1,4 +1,4 @@
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -277,6 +277,33 @@ ipcMain.handle('fs:read', async (_e, path: string): Promise<string | null> => {
     return null;
   }
 });
+
+ipcMain.handle(
+  'fs:listDir',
+  async (_e, path: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }> | null> => {
+    if (typeof path !== 'string' || !path) return null;
+    const cfg = getConfig();
+    if (!cfg.workspaceDir) return null;
+    if (!path.startsWith(cfg.workspaceDir)) return null;
+    try {
+      const entries = await readdir(path, { withFileTypes: true });
+      return entries
+        .filter((e) => !e.name.startsWith('.') || e.name === '.claude')
+        .map((e) => ({
+          name: e.name,
+          path: join(path, e.name),
+          isDirectory: e.isDirectory(),
+        }))
+        .sort((a, b) => {
+          // 目录在前，名字字母序
+          if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+          return a.name.localeCompare(b.name, 'zh');
+        });
+    } catch {
+      return null;
+    }
+  },
+);
 
 ipcMain.handle('fs:showInFolder', async (_e, path: string) => {
   if (typeof path !== 'string') return;
