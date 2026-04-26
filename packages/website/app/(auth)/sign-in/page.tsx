@@ -12,7 +12,15 @@ export const metadata: Metadata = {
   description: '登录 Mui简历，管理你的简历素材库与订阅。',
 };
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const flags = await getAuthFlags();
-  return <AuthForm mode="sign-in" githubEnabled={flags.githubEnabled} />;
+  const params = await searchParams;
+  const nextRaw = Array.isArray(params.next) ? params.next[0] : params.next;
+  // 防 open redirect：next 必须是站内相对路径
+  const next = typeof nextRaw === 'string' && nextRaw.startsWith('/') ? nextRaw : undefined;
+  return <AuthForm mode="sign-in" githubEnabled={flags.githubEnabled} next={next} />;
 }

@@ -16,11 +16,7 @@ export async function POST(): Promise<Response> {
 
   const db = await getDb();
   const row = (
-    await db
-      .select()
-      .from(schema.muirouterLink)
-      .where(eq(schema.muirouterLink.userId, session.user.id))
-      .limit(1)
+    await db.select().from(schema.muirouterLink).where(eq(schema.muirouterLink.userId, session.user.id)).limit(1)
   )[0];
 
   if (!row) {
@@ -55,10 +51,7 @@ export async function POST(): Promise<Response> {
           lastError: result.message,
         };
 
-  await db
-    .update(schema.muirouterLink)
-    .set(balanceFields)
-    .where(eq(schema.muirouterLink.userId, session.user.id));
+  await db.update(schema.muirouterLink).set(balanceFields).where(eq(schema.muirouterLink.userId, session.user.id));
 
   return Response.json({
     status: result.status,

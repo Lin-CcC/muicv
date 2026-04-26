@@ -103,14 +103,18 @@ export function ApiKeysSection() {
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>
           <h2 className="mt-2 text-[18px] font-extrabold text-ink">给 skill / 桌面 app 用的钥匙</h2>
           <p className="mt-1 text-[13px] text-ink-soft">
-            <strong>桌面 app 唯一登录凭证</strong>。创建后仅显示一次：
-            桌面 app → 设置 → 粘进来；或 skill 里 <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10 个有效 key。
+            <strong>桌面 app 唯一登录凭证</strong>。创建后仅显示一次： 桌面 app → 设置 → 粘进来；或 skill 里{' '}
+            <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10 个有效
+            key。
           </p>
         </div>
       </header>
 
       {error && (
-        <div role="alert" className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue">
+        <div
+          role="alert"
+          className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue"
+        >
           {error}
         </div>
       )}
@@ -145,7 +149,8 @@ export function ApiKeysSection() {
             <div>
               <p className="text-[13px] font-bold text-ink">⚠️ 复制保存——关掉就再也看不到了</p>
               <p className="mt-1 text-[12px] text-ink-soft">
-                建议立刻设到 shell：<code className="rounded bg-cream px-1 font-mono text-[11.5px]">export MUICV_API_KEY=…</code>
+                建议立刻设到 shell：
+                <code className="rounded bg-cream px-1 font-mono text-[11.5px]">export MUICV_API_KEY=…</code>
               </p>
             </div>
             <button

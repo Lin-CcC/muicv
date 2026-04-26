@@ -140,9 +140,7 @@ export function buildApiTools(config: AppConfig) {
       }
 
       const meta = body.meta ?? {};
-      const slug = savePath
-        ? null
-        : slugify(`${meta.company ?? 'company'}-${meta.title ?? 'role'}`);
+      const slug = savePath ? null : slugify(`${meta.company ?? 'company'}-${meta.title ?? 'role'}`);
       const targetRel = savePath ?? `.claude/muicv/targets/${slug}.md`;
       const targetAbs = resolveInWorkspace(config.workspaceDir, targetRel);
 
@@ -171,11 +169,13 @@ export function buildApiTools(config: AppConfig) {
 }
 
 function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9一-龥-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60) || 'target';
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9一-龥-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'target'
+  );
 }
 
 function escapeYaml(s: string): string {

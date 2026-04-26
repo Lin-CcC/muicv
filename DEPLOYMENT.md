@@ -450,3 +450,40 @@ npx skills add meathill/muicv -g
 - **Worker CPU 时限 30s**：如果 Puppeteer 某次渲染超过 30s，会被 kill。MVP 默认 page load timeout 设为 20s 留出余量。
 - **Cloudflare Container 只在付费 plan 可用**。免费账号会部署失败。
 - **wrangler 版本**：Container GA 要求 `wrangler >= 4.20`（我们锁的 4.54+ 足够）。升级时注意看 release notes。
+
+---
+
+## Electron OAuth-style 自动登录（Phase 8）
+
+桌面端登录默认走 `muicv://` 自定义 URL scheme，避免用户手动复制 API key。
+
+### 流程
+
+1. 用户在 LoginView 点 **"用 muicv 账号登录"**
+2. main 进程 `beginConnect()` 生成随机 `state`（base64url，24 字节），缓存到内存 5 分钟
+3. `shell.openExternal('https://muicv.com/connect?state=...&redirect=muicv://callback&app=...')`
+4. 用户在网页登录（已登录直接跳过）→ 看到授权 UI → 点"授权"
+5. `POST /api/connect/approve` 验 better-auth session → 生成 `mui_` key 入 `apiKey` 表 → 返回 `redirectUrl`
+6. 浏览器 `location.href = muicv://callback?state=...&key=mui_...`
+7. macOS：`app.on('open-url')`；Windows/Linux：`app.requestSingleInstanceLock()` + `second-instance` argv → 都汇聚到 `handleDeepLink()`
+8. main 验 `state`、调 `loginWithKey(key)`（其内部 `GET /me` 校验）→ `webContents.send('session:autoLogin', result)`
+9. renderer 在 `onAutoLogin` 收到结果 → `setSession` → router 自动切到 onboarding/chat
+
+### 安全要点
+
+- **state**：renderer 随机生成（main 侧），仅存在 main 内存。重启失效（重启后接受任何 callback 都没意义）
+- **redirect**：`/connect` 页和 `/api/connect/approve` 都校验 `redirect` 必须以 `muicv://` 开头，防 open-redirect
+- **key 配额**：每用户最多 10 个 active key（和 dashboard 手动生成共享）
+- **撤销**：用户在 dashboard `/dashboard` API Keys 区域可一键撤销任意 key
+
+### 开发调试
+
+- macOS dev 模式下，scheme 生效需要先 build 一次（`pnpm --filter @muicv/app build` + `electron-builder --mac --dir`）让 `Info.plist` 注册到 LaunchServices；纯 `pnpm --filter @muicv/app dev` 启动的 electron 不会被 OS 当成 muicv:// 的 handler
+- 调试 deep-link 流：build 出 `release/mac-arm64/Mui简历.app` → `open /tmp/some.app` 一次后，浏览器里 `open "muicv://callback?state=test&key=mui_xxx"` 就会唤起
+- 本地测 connect 页：把 muicvApiBase 改成 `http://localhost:8787` 后 main 会推导出 `http://localhost:3000` 作为 webBase（`packages/website` dev 默认端口）
+
+### 常见问题
+
+- **点了"授权"浏览器没唤起 app**：检查 macOS 系统设置 → 默认 → 自定义 URL scheme 是否正确指向 Mui简历.app；或者用 paste fallback
+- **state 不匹配**：用户在浏览器停留太久（>5 分钟）/ 多次发起 connect 后用了旧链接 → 重新点登录按钮
+- **app 已开但浏览器在另一台机器**：scheme 仅本机有效，跨机器场景必须 fallback paste

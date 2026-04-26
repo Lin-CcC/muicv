@@ -21,9 +21,19 @@ const COPY: Record<Mode, { title: string; cta: string; alt: { text: string; href
   },
 };
 
-export function AuthForm({ mode, githubEnabled = false }: { mode: Mode; githubEnabled?: boolean }) {
+export function AuthForm({
+  mode,
+  githubEnabled = false,
+  next,
+}: {
+  mode: Mode;
+  githubEnabled?: boolean;
+  next?: string | undefined;
+}) {
   const router = useRouter();
   const copy = COPY[mode];
+  // 登录后跳哪里：next（站内相对路径）优先，否则 dashboard
+  const successTarget = next && next.startsWith('/') ? next : '/dashboard';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,7 +59,7 @@ export function AuthForm({ mode, githubEnabled = false }: { mode: Mode; githubEn
         });
         if (result.error) throw new Error(result.error.message ?? '邮箱或密码不对');
       }
-      router.push('/dashboard');
+      router.push(successTarget);
       router.refresh();
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : '出错了，再试一次？');
@@ -65,7 +75,7 @@ export function AuthForm({ mode, githubEnabled = false }: { mode: Mode; githubEn
       // 这一步会跳转到 GitHub 授权页，不会 resolve 回来；finally 在跳转后执行也没关系
       await signIn.social({
         provider: 'github',
-        callbackURL: '/dashboard',
+        callbackURL: successTarget,
       });
     } catch (error) {
       setErrorMsg(error instanceof Error ? error.message : 'GitHub 登录出错');
@@ -80,7 +90,7 @@ export function AuthForm({ mode, githubEnabled = false }: { mode: Mode; githubEn
         <p className="mt-2 text-[14px] text-ink-soft">
           {copy.alt.text}{' '}
           <Link
-            href={copy.alt.href}
+            href={next ? `${copy.alt.href}?next=${encodeURIComponent(next)}` : copy.alt.href}
             className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
           >
             {copy.alt.label}

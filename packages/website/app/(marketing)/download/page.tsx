@@ -3,8 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: '下载桌面 app',
-  description:
-    'Mui简历桌面端：让不用 AI agent 的求职者也能跑完整简历工作流。macOS Apple Silicon / Intel 双版本。',
+  description: 'Mui简历桌面端：让不用 AI agent 的求职者也能跑完整简历工作流。macOS Apple Silicon / Intel 双版本。',
 };
 
 // 5 分钟 ISR 缓存 GitHub releases API（user-agent 防 60/h 限流）
@@ -113,22 +112,16 @@ export default async function DownloadPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-5 py-14 md:px-8 md:py-20">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">
-          — 桌面 app
-        </p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 app</p>
         <h1 className="mt-3 text-[clamp(2.2rem,5vw,3.4rem)] font-extrabold leading-[1.05] tracking-tight">
           下载 Mui简历
         </h1>
         <p className="mt-4 max-w-xl text-[15px] leading-[1.7] text-ink-soft">
-          让你不用装 Claude Code 也能跑完整简历工作流：选目录、贴 muirouter key，
-          打开 app 直接对话。Skills、API、UI 都内置，开箱即用。
+          让你不用装 Claude Code 也能跑完整简历工作流：选目录、贴 muirouter key， 打开 app 直接对话。Skills、API、UI
+          都内置，开箱即用。
         </p>
 
-        {!release ? (
-          <NoRelease />
-        ) : (
-          <ReleasePanel release={release} />
-        )}
+        {!release ? <NoRelease /> : <ReleasePanel release={release} />}
 
         <FirstRunHelp />
 
@@ -150,9 +143,7 @@ function ReleasePanel({ release }: { release: GhRelease }) {
   return (
     <section className="mt-12 space-y-6">
       <div className="flex flex-wrap items-baseline gap-3 rounded-2xl border-2 border-ink bg-cream px-5 py-3 shadow-[0_4px_0_0_var(--color-ink)]">
-        <span className="font-mono text-[12px] font-bold tabular-nums text-yellow-deep">
-          {release.tag_name}
-        </span>
+        <span className="font-mono text-[12px] font-bold tabular-nums text-yellow-deep">{release.tag_name}</span>
         <span className="text-[12px] text-mute">发布于 {formatDate(release.published_at)}</span>
         <a
           href={release.html_url}
@@ -182,15 +173,7 @@ function ReleasePanel({ release }: { release: GhRelease }) {
   );
 }
 
-function Platform({
-  title,
-  subtitle,
-  assets,
-}: {
-  title: string;
-  subtitle: string;
-  assets: ParsedAsset[];
-}) {
+function Platform({ title, subtitle, assets }: { title: string; subtitle: string; assets: ParsedAsset[] }) {
   return (
     <div className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div>
@@ -225,9 +208,7 @@ function Platform({
 function NoRelease() {
   return (
     <section className="mt-12 rounded-2xl border-2 border-rule bg-paper p-6 text-[14px] text-ink-soft">
-      <p>
-        🐾 还没有发布版本。第一波正式发布前，你可以：
-      </p>
+      <p>🐾 还没有发布版本。第一波正式发布前，你可以：</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px]">
         <li>
           关注{' '}
@@ -242,10 +223,12 @@ function NoRelease() {
           仓库 → Releases 接通知
         </li>
         <li>
-          自己 clone 跑：<code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px]">pnpm --filter @muicv/app dev</code>
+          自己 clone 跑：
+          <code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px]">pnpm --filter @muicv/app dev</code>
         </li>
         <li>
-          或者直接用 skill：<code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px]">npx skills add meathill/muicv</code>
+          或者直接用 skill：
+          <code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px]">npx skills add meathill/muicv</code>
         </li>
       </ul>
     </section>
@@ -257,8 +240,7 @@ function FirstRunHelp() {
     <section className="mt-12 space-y-4 rounded-2xl border-2 border-ink bg-fluff p-6">
       <h2 className="text-[16px] font-extrabold text-ink">⚠️ 首次打开需要解除限制</h2>
       <p className="text-[13.5px] leading-[1.7] text-ink-soft">
-        当前版本未做苹果开发者签名（Apple Developer ID）。macOS 第一次打开会提示
-        "无法验证开发者"。需要：
+        当前版本未做苹果开发者签名（Apple Developer ID）。macOS 第一次打开会提示 "无法验证开发者"。需要：
       </p>
       <ol className="list-decimal space-y-1 pl-5 text-[13.5px] text-ink-soft">
         <li>下载 .dmg 拖到 /Applications</li>

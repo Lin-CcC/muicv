@@ -68,8 +68,7 @@ export function buildFileTools(workspaceDir: string) {
 
   const editFileTool = tool({
     name: 'edit_file',
-    description:
-      '在文件里精确替换字符串。oldString 必须在文件里唯一出现一次，否则报错；要替换多处用 replaceAll=true。',
+    description: '在文件里精确替换字符串。oldString 必须在文件里唯一出现一次，否则报错；要替换多处用 replaceAll=true。',
     parameters: z.object({
       path: z.string(),
       oldString: z.string().describe('要被替换的字符串（要精确匹配，包括缩进）'),
@@ -89,9 +88,7 @@ export function buildFileTools(workspaceDir: string) {
             return `编辑失败：oldString 在文件里出现 ${occurrences} 次，要么传更长上下文让它唯一，要么 replaceAll=true`;
           }
         }
-        const next = replaceAll
-          ? original.split(oldString).join(newString)
-          : original.replace(oldString, newString);
+        const next = replaceAll ? original.split(oldString).join(newString) : original.replace(oldString, newString);
         await writeFile(abs, next, 'utf8');
         const delta = next.length - original.length;
         return `已编辑 ${shortRel(workspaceDir, abs)}（${delta >= 0 ? '+' : ''}${delta} 字符）`;

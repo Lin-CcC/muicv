@@ -82,7 +82,9 @@ export async function fetchMuirouterBalance(rawKey: string, signal?: AbortSignal
   const ct = res.headers.get('content-type') ?? '';
   let envelope: JsonRpcEnvelope | null;
   try {
-    envelope = ct.includes('text/event-stream') ? await readSseFirstMessage(res) : ((await res.json()) as JsonRpcEnvelope);
+    envelope = ct.includes('text/event-stream')
+      ? await readSseFirstMessage(res)
+      : ((await res.json()) as JsonRpcEnvelope);
   } catch {
     return { status: 'error', message: 'muirouter 响应不是合法 JSON' };
   }
@@ -172,9 +174,7 @@ function parseBalance(p: Record<string, unknown>): Balance | null {
 
   const updatedAtRaw = p.updated_at ?? p.updatedAt;
   const updatedAt =
-    typeof updatedAtRaw === 'string' && !Number.isNaN(Date.parse(updatedAtRaw))
-      ? new Date(updatedAtRaw)
-      : new Date();
+    typeof updatedAtRaw === 'string' && !Number.isNaN(Date.parse(updatedAtRaw)) ? new Date(updatedAtRaw) : new Date();
 
   return { currency, balanceCents: bc, lifetimeToppedUpCents: tu, lifetimeSpentCents: sp, updatedAt };
 }

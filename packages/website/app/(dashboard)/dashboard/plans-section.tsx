@@ -61,9 +61,8 @@ export function PlansSection() {
           你现在是 <span className="rounded-md bg-fluff px-2 py-0.5">Free</span>
         </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          升级 Pro / Max（M4 起激活）解锁 PDF 导出、招聘信息库、辅助投递。
-          也可以走 <strong>BYOK</strong>：在上方"muirouter 余额"绑定你自己的 muirouter key，
-          所有 LLM 走你自己余额，功能权限同 Free。
+          升级 Pro / Max（M4 起激活）解锁 PDF 导出、招聘信息库、辅助投递。 也可以走 <strong>BYOK</strong>
+          ：在上方"muirouter 余额"绑定你自己的 muirouter key， 所有 LLM 走你自己余额，功能权限同 Free。
         </p>
       </header>
 
@@ -86,11 +85,7 @@ export function PlansSection() {
                 <li key={f.label} className="flex items-start gap-2">
                   <span
                     className={`mt-0.5 inline-block w-3 shrink-0 text-center font-bold ${
-                      f.ok === true
-                        ? 'text-yellow-deep'
-                        : f.ok === 'limited'
-                          ? 'text-amber'
-                          : 'text-mute'
+                      f.ok === true ? 'text-yellow-deep' : f.ok === 'limited' ? 'text-amber' : 'text-mute'
                     }`}
                   >
                     {f.ok === true ? '✓' : f.ok === 'limited' ? '◔' : '×'}
@@ -109,10 +104,9 @@ export function PlansSection() {
       </div>
 
       <div className="mt-6 rounded-xl border border-rule bg-paper p-4 text-[12.5px] leading-[1.65] text-ink-soft">
-        <strong className="text-ink">BYOK（Bring Your Own Key）</strong>：
-        在 muirouter.com 注册，把你的 sk-gw key 绑到上面"muirouter 余额"。所有 LLM 调用走你自己的余额，
-        muicv 不收 token 费。功能权限同 Free（不含 PDF / 招聘库 / 自动投递），
-        但 skill 全套可用，可以手动复制粘贴 JD 文本来分析、生成 markdown 简历。
+        <strong className="text-ink">BYOK（Bring Your Own Key）</strong>： 在 muirouter.com 注册，把你的 sk-gw key
+        绑到上面"muirouter 余额"。所有 LLM 调用走你自己的余额， muicv 不收 token 费。功能权限同 Free（不含 PDF / 招聘库
+        / 自动投递）， 但 skill 全套可用，可以手动复制粘贴 JD 文本来分析、生成 markdown 简历。
       </div>
     </section>
   );

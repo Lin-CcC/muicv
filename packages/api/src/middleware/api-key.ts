@@ -36,9 +36,7 @@ async function verifyKey(c: Context<AppEnv>, authHeader: string): Promise<Respon
   }
 
   const hash = await sha256Hex(key);
-  const row = await c.env.MUICV_API_DB.prepare(
-    'SELECT id, userId, revokedAt FROM apiKey WHERE keyHash = ? LIMIT 1',
-  )
+  const row = await c.env.MUICV_API_DB.prepare('SELECT id, userId, revokedAt FROM apiKey WHERE keyHash = ? LIMIT 1')
     .bind(hash)
     .first<{ id: string; userId: string; revokedAt: number | null }>();
 
@@ -62,10 +60,7 @@ async function verifyKey(c: Context<AppEnv>, authHeader: string): Promise<Respon
 export const requireApiKey: MiddlewareHandler<AppEnv> = async (c, next) => {
   const auth = c.req.header('authorization');
   if (!auth) {
-    return c.json(
-      { error: 'missing-api-key', message: '需要 mui_ API key（在 muicv.com/dashboard 生成）' },
-      401,
-    );
+    return c.json({ error: 'missing-api-key', message: '需要 mui_ API key（在 muicv.com/dashboard 生成）' }, 401);
   }
   const r = await verifyKey(c, auth);
   if (r instanceof Response) return r;

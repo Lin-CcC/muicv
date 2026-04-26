@@ -22,9 +22,7 @@ export function OnboardingView() {
       <header className="flex items-center gap-3">
         <CorgiMascot className="h-12 w-12" />
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">
-            欢迎回来，{greet}
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">欢迎回来，{greet}</p>
           <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-ink">来设置一下吧</h1>
           <p className="mt-1 text-[13px] text-ink-soft">两件事，1 分钟搞定。</p>
         </div>
@@ -37,9 +35,7 @@ export function OnboardingView() {
         done={!!cfg.workspaceDir}
       >
         <div className="flex items-center gap-3 rounded-xl border-2 border-ink bg-cream px-4 py-3">
-          <code className="flex-1 truncate font-mono text-[12.5px] text-ink-soft">
-            {cfg.workspaceDir ?? '(未选)'}
-          </code>
+          <code className="flex-1 truncate font-mono text-[12.5px] text-ink-soft">{cfg.workspaceDir ?? '(未选)'}</code>
           <button
             type="button"
             onClick={selectWorkspace}
@@ -63,9 +59,9 @@ export function OnboardingView() {
         {!session.hasBYOK && (
           <div className="space-y-3 rounded-xl border-2 border-ink bg-fluff p-4">
             <p className="text-[13px] leading-[1.65] text-ink-soft">
-              <strong className="text-ink">为什么需要</strong>：当前桌面 app 必须 BYOK 才能跑 LLM
-              （Pro/Max 档位 M4 起开放）。muirouter 是统一 LLM 余额，跨任何 BYOK 服务复用，
-              在 <ExternalLink href="https://muirouter.com">muirouter.com</ExternalLink> 充一笔即可。
+              <strong className="text-ink">为什么需要</strong>：当前桌面 app 必须 BYOK 才能跑 LLM （Pro/Max 档位 M4
+              起开放）。muirouter 是统一 LLM 余额，跨任何 BYOK 服务复用， 在{' '}
+              <ExternalLink href="https://muirouter.com">muirouter.com</ExternalLink> 充一笔即可。
             </p>
             <div className="flex flex-wrap gap-2">
               <button

@@ -30,7 +30,7 @@ function ensureConfigured(config: AppConfig): boolean {
   const llmBase = `${config.muicvApiBase.replace(/\/$/, '')}/llm/v1`;
   if (configuredKey === config.muicvApiKey && configuredBase === llmBase) return true;
   setOpenAIAPI('chat_completions');
-  setDefaultOpenAIKey(config.muicvApiKey, false);
+  setDefaultOpenAIKey(config.muicvApiKey);
   setDefaultOpenAIClient(new OpenAI({ apiKey: config.muicvApiKey, baseURL: llmBase }));
   configuredKey = config.muicvApiKey;
   configuredBase = llmBase;
@@ -61,8 +61,7 @@ export async function runAgent(
   if (!ensureConfigured(config)) {
     send({
       type: 'error',
-      message:
-        '未配置 muicv API key（mui_...）。在 https://muicv.com/dashboard 生成后粘贴到设置页。',
+      message: '未配置 muicv API key（mui_...）。在 https://muicv.com/dashboard 生成后粘贴到设置页。',
     });
     send({ type: 'finish', reason: 'error' });
     return;
@@ -117,10 +116,7 @@ export async function runAgent(
           const toolName = String(raw.name ?? 'tool');
           let argsJson = '{}';
           try {
-            argsJson =
-              typeof raw.arguments === 'string'
-                ? raw.arguments
-                : JSON.stringify(raw.arguments ?? {});
+            argsJson = typeof raw.arguments === 'string' ? raw.arguments : JSON.stringify(raw.arguments ?? {});
           } catch {
             /* keep default */
           }

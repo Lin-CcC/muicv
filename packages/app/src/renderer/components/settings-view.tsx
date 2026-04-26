@@ -72,9 +72,7 @@ export function SettingsView() {
         <div className="flex items-center gap-3">
           <Avatar session={session} />
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">
-              已登录
-            </p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">已登录</p>
             <p className="text-[15px] font-extrabold text-ink">{session.name}</p>
             <p className="text-[12px] text-mute">{session.email}</p>
           </div>
@@ -114,9 +112,7 @@ export function SettingsView() {
               ? '已是 Pro。需要无限制？升级 Max。'
               : '已是 Max，无功能限制。'
         }
-        action={
-          <ExternalButton href={`${DASHBOARD_URL}#plans`} label="在 dashboard 看档位 →" />
-        }
+        action={<ExternalButton href={`${DASHBOARD_URL}#plans`} label="在 dashboard 看档位 →" />}
       />
 
       {/* BYOK */}
@@ -131,7 +127,9 @@ export function SettingsView() {
           ) : (
             <>
               <span className="text-mute">未绑定</span>
-              <span className="ml-2 text-[13px] font-medium text-ink-soft">{session.plan === 'free' ? 'LLM 调不通' : '可选，省平台 token'}</span>
+              <span className="ml-2 text-[13px] font-medium text-ink-soft">
+                {session.plan === 'free' ? 'LLM 调不通' : '可选，省平台 token'}
+              </span>
             </>
           )
         }
@@ -193,9 +191,7 @@ export function SettingsView() {
       />
 
       <details className="rounded-2xl border-2 border-rule bg-paper">
-        <summary className="cursor-pointer px-5 py-3 text-[13px] font-bold text-ink-soft">
-          高级 · 模型 / 端点
-        </summary>
+        <summary className="cursor-pointer px-5 py-3 text-[13px] font-bold text-ink-soft">高级 · 模型 / 端点</summary>
         <div className="space-y-4 border-t border-rule px-5 py-4">
           <Field
             label="默认模型"
@@ -286,13 +282,7 @@ function Field({
 
 function Avatar({ session }: { session: { name: string; image: string | null } }) {
   if (session.image) {
-    return (
-      <img
-        src={session.image}
-        alt=""
-        className="h-12 w-12 rounded-full border-2 border-ink object-cover"
-      />
-    );
+    return <img src={session.image} alt="" className="h-12 w-12 rounded-full border-2 border-ink object-cover" />;
   }
   const initial = session.name?.[0]?.toUpperCase() || 'M';
   return (
@@ -302,15 +292,7 @@ function Avatar({ session }: { session: { name: string; image: string | null } }
   );
 }
 
-function ExternalButton({
-  href,
-  label,
-  primary,
-}: {
-  href: string;
-  label: string;
-  primary?: boolean;
-}) {
+function ExternalButton({ href, label, primary }: { href: string; label: string; primary?: boolean }) {
   return (
     <button
       type="button"

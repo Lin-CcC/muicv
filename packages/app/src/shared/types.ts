@@ -98,6 +98,15 @@ export type RendererApi = {
     login(candidateKey: string): Promise<SessionCheckResult>;
     /** 清 mui_ key + 任何缓存的 session */
     logout(): Promise<void>;
+    /**
+     * OAuth-style 自动登录：main 进程生成随机 state，记到内存里，
+     * 打开浏览器 https://muicv.com/connect?state=...&redirect=muicv://callback。
+     * 用户在网页授权后会通过 muicv:// scheme 唤起 app，main 验证 state 后
+     * 自动 loginWithKey + 推送 session:autoLogin 事件给 renderer。
+     */
+    beginConnect(): Promise<{ ok: boolean; message?: string }>;
+    /** 订阅自动登录结果（成功 / 失败）。返回 unsubscribe。 */
+    onAutoLogin(handler: (result: SessionCheckResult) => void): () => void;
   };
   shell: {
     openExternal(url: string): Promise<void>;

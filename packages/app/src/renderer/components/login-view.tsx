@@ -1,54 +1,55 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
 import { CorgiMascot } from './corgi-mascot';
 
-const DASHBOARD_URL = 'https://muicv.com/dashboard';
-
 /**
  * 第一屏：登录 muicv 账号。
  *
- * 没有 OAuth flow（v1）：用户在 dashboard 网页登录后复制 mui_ key 粘进来，
- * app 调 /me 验证。验证通过即"登录成功"，view 自动切到 onboarding（如果
- * 还没选工作目录）或 chat。
+ * 主流程是 **OAuth-style 自动登录**：
+ *   1. 点"用 muicv 账号登录" → IPC 'session:beginConnect' → main 打开浏览器到 /connect
+ *   2. 用户在网页授权 → 浏览器 muicv://callback 唤起 app
+ *   3. main 验 state + 用 key 调 /me → 推 'session:autoLogin' 给 renderer
+ *   4. store 在 onAutoLogin 里 setSession → router 自动切到 onboarding/chat
  *
- * 这一步本质是 paste-as-login，但 UI 包装成"两步登录"流程。完整 OAuth
- * device flow 留 v2。
+ * 兜底：手动粘贴 mui_ key（适合开发 / 自部署 / 出问题时）。
  */
 export function LoginView() {
   const setSession = useAppStore((s) => s.setSession);
-  const setView = useAppStore((s) => s.setView);
-  const apiBase = useAppStore((s) => s.config.muicvApiBase);
 
-  const [step, setStep] = useState<'intro' | 'paste'>('intro');
-  const [keyInput, setKeyInput] = useState('');
+  const [step, setStep] = useState<'oauth' | 'paste'>('oauth');
   const [busy, setBusy] = useState(false);
+  const [waitingCallback, setWaitingCallback] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openDashboard() {
-    void window.muicv.shell.openExternal(`${DASHBOARD_URL}?from=app`);
-    setStep('paste');
-    setError(null);
-  }
-
-  async function onLogin() {
-    const candidate = keyInput.trim();
-    if (!candidate) return;
-    setError(null);
-    setBusy(true);
-    try {
-      const result = await window.muicv.session.login(candidate);
+  // OAuth 等待中订阅 auto-login 事件（成功 / 失败都会清 waitingCallback）
+  useEffect(() => {
+    const off = window.muicv.session.onAutoLogin((result) => {
+      setWaitingCallback(false);
       if (result.status === 'ok') {
-        setSession(result.session);
+        // store 那边会处理 setSession；这里不重复
+        setError(null);
       } else if (result.status === 'invalid-key') {
         setError(result.message || 'API key 无效');
       } else if (result.status === 'network-error') {
         setError(`网络错：${result.message}`);
+      }
+    });
+    return off;
+  }, []);
+
+  async function onBeginConnect() {
+    setError(null);
+    setBusy(true);
+    try {
+      const result = await window.muicv.session.beginConnect();
+      if (!result.ok) {
+        setError(result.message || '打开浏览器失败');
       } else {
-        setError('未知状态');
+        setWaitingCallback(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '登录失败');
+      setError(err instanceof Error ? err.message : '出错了');
     } finally {
       setBusy(false);
     }
@@ -67,131 +68,180 @@ export function LoginView() {
       />
 
       <div className="relative z-10 w-full max-w-md">
-        {step === 'intro' && (
+        {step === 'oauth' && (
           <div className="rounded-3xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
             <CorgiMascot className="mx-auto h-20 w-20" />
-            <h1 className="mt-5 text-center text-3xl font-extrabold tracking-tight text-ink">
-              欢迎来到 Mui简历
-            </h1>
+            <h1 className="mt-5 text-center text-3xl font-extrabold tracking-tight text-ink">欢迎来到 Mui简历</h1>
             <p className="mt-3 text-center text-[14px] leading-[1.65] text-ink-soft">
-              登录你的 muicv 账号，开始简历工作流。
-              <br />
-              没账号？去网页注册一个，整个过程 1 分钟。
+              用 muicv 账号登录，开始简历工作流。
             </p>
 
-            <button
-              type="button"
-              onClick={openDashboard}
-              className="press mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
-            >
-              打开 muicv.com 登录
-              <ArrowOut />
-            </button>
-
-            <p className="mt-3 text-center text-[12px] text-mute">
-              已经登录过？
-              <button
-                type="button"
-                onClick={() => setStep('paste')}
-                className="ml-1 font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
-              >
-                直接粘贴 API key
-              </button>
-            </p>
-
-            <div className="mt-6 rounded-xl border border-rule bg-paper p-3 text-[12px] leading-[1.6] text-mute">
-              <strong className="text-ink-soft">桌面端为什么需要登录？</strong>
-              <p className="mt-1">
-                muicv 后端按账号管理订阅档位（Free/Pro/Max）、平台 token 配额、
-                muirouter BYOK 路由。所有 LLM 调用都过 muicv 中转，由你的账号决定能用多少、走谁的余额。
-              </p>
-            </div>
-          </div>
-        )}
-
-        {step === 'paste' && (
-          <div className="rounded-3xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
-            <div className="flex items-start gap-3">
-              <CorgiMascot className="h-12 w-12 shrink-0" />
-              <div>
-                <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
-                  粘贴你的 API key
-                </h1>
-                <p className="mt-1.5 text-[13px] leading-[1.65] text-ink-soft">
-                  在网页 dashboard → "API Keys" 生成一个，复制 <code className="font-mono text-[12px]">mui_...</code> 粘到下面。
-                </p>
-              </div>
-            </div>
-
-            <ol className="mt-5 space-y-2 rounded-xl border border-rule bg-paper p-4 text-[12.5px] leading-[1.65] text-ink-soft">
-              <li>
-                <span className="font-bold text-ink">1.</span> 在浏览器登录{' '}
+            {!waitingCallback ? (
+              <>
                 <button
                   type="button"
-                  onClick={() => void window.muicv.shell.openExternal(DASHBOARD_URL)}
-                  className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4"
+                  onClick={() => void onBeginConnect()}
+                  disabled={busy}
+                  className="press mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  muicv.com/dashboard
+                  {busy ? '准备中…' : '用 muicv 账号登录'}
+                  <ArrowOut />
                 </button>
-              </li>
-              <li>
-                <span className="font-bold text-ink">2.</span> 找到"API Keys"section → 点"生成新 key" → <strong>立刻复制</strong>（仅显示一次）
-              </li>
-              <li>
-                <span className="font-bold text-ink">3.</span> 回到这里粘贴并登录
-              </li>
-            </ol>
-
-            <div className="mt-5 space-y-2">
-              <input
-                type="password"
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !busy) void onLogin();
-                }}
-                disabled={busy}
-                placeholder="mui_…"
-                spellCheck={false}
-                autoComplete="off"
-                className="block w-full rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2.5 font-mono text-[13px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
-              />
-
-              {error && (
-                <div
-                  role="alert"
-                  className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] font-medium text-tongue"
-                >
-                  {error}
+                <p className="mt-3 text-center text-[12px] text-mute">会在浏览器里打开授权页 → 授权后自动回到这里</p>
+              </>
+            ) : (
+              <div className="mt-7 space-y-3 rounded-xl border-2 border-ink bg-fluff p-5 text-center">
+                <div className="inline-flex items-center gap-2.5 text-[14px] font-bold text-ink">
+                  <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-yellow-deep" />
+                  在浏览器里完成授权…
                 </div>
-              )}
+                <p className="text-[12.5px] leading-[1.6] text-ink-soft">
+                  授权完成后浏览器会自动唤起这个 app。如果一直没反应，
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWaitingCallback(false);
+                      setStep('paste');
+                    }}
+                    className="ml-0.5 font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
+                  >
+                    手动粘贴 API key
+                  </button>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setWaitingCallback(false)}
+                  className="text-[12px] text-mute hover:text-ink"
+                >
+                  取消
+                </button>
+              </div>
+            )}
 
+            {error && (
+              <div
+                role="alert"
+                className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] font-medium text-tongue"
+              >
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 flex items-center justify-between gap-3 text-[12px] text-mute">
+              <span>有 API key？</span>
               <button
                 type="button"
-                onClick={() => void onLogin()}
-                disabled={busy || !keyInput.trim()}
-                className="press inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => {
+                  setStep('paste');
+                  setError(null);
+                }}
+                className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
               >
-                {busy ? '验证中…' : '登录'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setStep('intro')}
-                className="block w-full text-center text-[12px] text-mute hover:text-ink"
-              >
-                ← 返回
+                手动粘贴登录
               </button>
             </div>
-
-            <p className="mt-5 text-center text-[11px] text-mute">
-              连接的 API: <code className="font-mono">{apiBase}</code>
-              <br />
-              想改？登录后去设置页调整。
-            </p>
           </div>
         )}
+
+        {step === 'paste' && <PasteFallback onBack={() => setStep('oauth')} onLogin={setSession} />}
       </div>
+    </div>
+  );
+}
+
+function PasteFallback({
+  onBack,
+  onLogin,
+}: {
+  onBack: () => void;
+  onLogin: (session: import('../../shared/types.ts').SessionInfo) => void;
+}) {
+  const apiBase = useAppStore((s) => s.config.muicvApiBase);
+  const [keyInput, setKeyInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onLoginClick() {
+    const candidate = keyInput.trim();
+    if (!candidate) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const result = await window.muicv.session.login(candidate);
+      if (result.status === 'ok') {
+        onLogin(result.session);
+      } else if (result.status === 'invalid-key') {
+        setError(result.message || 'API key 无效');
+      } else if (result.status === 'network-error') {
+        setError(`网络错：${result.message}`);
+      } else {
+        setError('未知状态');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '登录失败');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
+      <div className="flex items-start gap-3">
+        <CorgiMascot className="h-12 w-12 shrink-0" />
+        <div>
+          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">手动粘贴 API key</h1>
+          <p className="mt-1.5 text-[13px] leading-[1.65] text-ink-soft">
+            在 dashboard → "API Keys" 生成一个，复制 <code className="font-mono text-[12px]">mui_...</code>{' '}
+            粘到下面。一般情况推荐用上一步的浏览器授权。
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 space-y-2">
+        <input
+          type="password"
+          value={keyInput}
+          onChange={(e) => setKeyInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !busy) void onLoginClick();
+          }}
+          disabled={busy}
+          placeholder="mui_…"
+          spellCheck={false}
+          autoComplete="off"
+          className="block w-full rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2.5 font-mono text-[13px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
+        />
+
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] font-medium text-tongue"
+          >
+            {error}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void onLoginClick()}
+          disabled={busy || !keyInput.trim()}
+          className="press inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {busy ? '验证中…' : '登录'}
+        </button>
+
+        <button
+          type="button"
+          onClick={onBack}
+          className="block w-full text-center text-[12px] text-mute hover:text-ink"
+        >
+          ← 用浏览器登录
+        </button>
+      </div>
+
+      <p className="mt-5 text-center text-[11px] text-mute">
+        连接的 API: <code className="font-mono">{apiBase}</code>
+      </p>
     </div>
   );
 }

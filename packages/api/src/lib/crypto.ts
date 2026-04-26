@@ -36,10 +36,6 @@ function base64ToBuffer(s: string): ArrayBuffer {
 
 export async function decryptMuirouterKey(secret: string, cipher: string, iv: string): Promise<string> {
   const key = await getKey(secret);
-  const plain = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: base64ToBuffer(iv) },
-    key,
-    base64ToBuffer(cipher),
-  );
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: base64ToBuffer(iv) }, key, base64ToBuffer(cipher));
   return DECODER.decode(plain);
 }

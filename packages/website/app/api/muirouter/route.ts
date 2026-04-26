@@ -28,11 +28,7 @@ export async function GET(): Promise<Response> {
 
   const db = await getDb();
   const row = (
-    await db
-      .select()
-      .from(schema.muirouterLink)
-      .where(eq(schema.muirouterLink.userId, session.user.id))
-      .limit(1)
+    await db.select().from(schema.muirouterLink).where(eq(schema.muirouterLink.userId, session.user.id)).limit(1)
   )[0];
 
   const status: LinkStatus = row
@@ -153,4 +149,3 @@ export async function DELETE(): Promise<Response> {
   await db.delete(schema.muirouterLink).where(eq(schema.muirouterLink.userId, session.user.id));
   return Response.json({ ok: true });
 }
-

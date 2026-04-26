@@ -118,9 +118,7 @@ export function MuirouterSection() {
     <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">
-            — muirouter 余额
-          </p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter 余额</p>
           <h2 className="mt-2 text-[18px] font-extrabold text-ink">关联你的 muirouter 账号</h2>
           <p className="mt-1 text-[13px] text-ink-soft">
             把你在{' '}
@@ -132,8 +130,8 @@ export function MuirouterSection() {
             >
               muirouter.com
             </a>{' '}
-            的 API key（<code className="font-mono text-[12px]">sk-gw-…</code>）贴过来，dashboard 就能看到余额。Key 用 AES-GCM 加密存储，原文不明文留存。
-            余额查询走 muirouter 的{' '}
+            的 API key（<code className="font-mono text-[12px]">sk-gw-…</code>）贴过来，dashboard 就能看到余额。Key 用
+            AES-GCM 加密存储，原文不明文留存。 余额查询走 muirouter 的{' '}
             <a
               href="https://muirouter.com/mcp"
               target="_blank"
@@ -148,7 +146,10 @@ export function MuirouterSection() {
       </header>
 
       {error && (
-        <div role="alert" className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue">
+        <div
+          role="alert"
+          className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue"
+        >
           {error}
         </div>
       )}
@@ -267,9 +268,5 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function PlaceholderCard({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="rounded-2xl border-2 border-rule bg-paper p-6 text-[13px] text-mute">
-      {children}
-    </section>
-  );
+  return <section className="rounded-2xl border-2 border-rule bg-paper p-6 text-[13px] text-mute">{children}</section>;
 }

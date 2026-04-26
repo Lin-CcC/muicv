@@ -21,13 +21,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const result = await db
     .update(schema.apiKey)
     .set({ revokedAt: new Date() })
-    .where(
-      and(
-        eq(schema.apiKey.id, id),
-        eq(schema.apiKey.userId, session.user.id),
-        isNull(schema.apiKey.revokedAt),
-      ),
-    )
+    .where(and(eq(schema.apiKey.id, id), eq(schema.apiKey.userId, session.user.id), isNull(schema.apiKey.revokedAt)))
     .returning({ id: schema.apiKey.id });
 
   if (result.length === 0) {

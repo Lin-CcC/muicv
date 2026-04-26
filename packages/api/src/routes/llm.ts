@@ -29,9 +29,7 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   }
 
   // 拿 muirouter key
-  const link = await c.env.MUICV_API_DB.prepare(
-    'SELECT keyCipher, keyIv FROM muirouterLink WHERE userId = ? LIMIT 1',
-  )
+  const link = await c.env.MUICV_API_DB.prepare('SELECT keyCipher, keyIv FROM muirouterLink WHERE userId = ? LIMIT 1')
     .bind(userId)
     .first<{ keyCipher: string; keyIv: string } | null>();
 

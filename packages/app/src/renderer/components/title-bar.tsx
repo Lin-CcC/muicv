@@ -40,10 +40,7 @@ export function TitleBar() {
           >
             {PLAN_LABEL[session.plan] ?? session.plan}
             {session.hasBYOK && (
-              <span
-                className="inline-block h-1.5 w-1.5 rounded-full bg-yellow"
-                aria-label="BYOK 已绑定"
-              />
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow" aria-label="BYOK 已绑定" />
             )}
           </button>
         )}
@@ -81,15 +78,7 @@ export function TitleBar() {
   );
 }
 
-function NavTab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function NavTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"

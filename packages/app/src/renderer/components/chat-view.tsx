@@ -133,9 +133,7 @@ export function ChatView() {
           {messages.length === 0 ? (
             <Empty />
           ) : (
-            messages.map((m) => (
-              <MessageBubble key={m.id} role={m.role} content={m.content} toolCalls={m.toolCalls} />
-            ))
+            messages.map((m) => <MessageBubble key={m.id} role={m.role} content={m.content} toolCalls={m.toolCalls} />)
           )}
         </div>
       </div>
@@ -180,11 +178,7 @@ export function ChatView() {
           </div>
           {messages.length > 0 && !busy && (
             <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => resetMessages()}
-                className="text-[12px] text-mute hover:text-ink"
-              >
+              <button type="button" onClick={() => resetMessages()} className="text-[12px] text-mute hover:text-ink">
                 清空对话
               </button>
             </div>
@@ -223,7 +217,7 @@ function MessageBubble({
 }: {
   role: string;
   content: string;
-  toolCalls?: ToolCallRecord[];
+  toolCalls?: ToolCallRecord[] | undefined;
 }) {
   const isUser = role === 'user';
   return (
@@ -269,7 +263,9 @@ function ToolCallChip({ call }: { call: ToolCallRecord }) {
       <div className="border-t border-rule px-2.5 py-2 font-mono text-[11.5px] leading-snug text-ink-soft">
         <div>
           <span className="text-mute">input:</span>
-          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-ink">{JSON.stringify(call.input, null, 2)}</pre>
+          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-ink">
+            {JSON.stringify(call.input, null, 2)}
+          </pre>
         </div>
         {done && (
           <div className="mt-2">

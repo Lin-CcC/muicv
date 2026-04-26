@@ -74,11 +74,13 @@ const FAQ_ITEMS = [
             <strong>Max</strong>：不受限制
           </li>
           <li>
-            <strong>BYOK</strong>（覆盖任意档）：在 dashboard 绑定 muirouter，LLM 走你自己 muirouter 余额，
-            不消耗平台 token。功能权限按所在档（Free 即可启用）
+            <strong>BYOK</strong>（覆盖任意档）：在 dashboard 绑定 muirouter，LLM 走你自己 muirouter 余额， 不消耗平台
+            token。功能权限按所在档（Free 即可启用）
           </li>
         </ul>
-        Skill 本身永远免费——开发者用 <code className="rounded bg-fluff px-1 py-0.5 font-mono text-[12px]">npx skills add</code> 直接接入 Claude Code 等 agent。
+        Skill 本身永远免费——开发者用{' '}
+        <code className="rounded bg-fluff px-1 py-0.5 font-mono text-[12px]">npx skills add</code> 直接接入 Claude Code
+        等 agent。
       </>
     ),
   },
@@ -93,8 +95,8 @@ const FAQ_ITEMS = [
         >
           muirouter.com
         </a>{' '}
-        充一笔 LLM 余额，把 sk-gw key 绑到 muicv dashboard。所有 LLM 调用都走你自己的 muirouter 余额——
-        muirouter 是统一接入多家 LLM 的代理（OpenAI / Anthropic / Gemini 等都通），余额可以跨任何 BYOK 服务复用。
+        充一笔 LLM 余额，把 sk-gw key 绑到 muicv dashboard。所有 LLM 调用都走你自己的 muirouter 余额—— muirouter
+        是统一接入多家 LLM 的代理（OpenAI / Anthropic / Gemini 等都通），余额可以跨任何 BYOK 服务复用。
       </>
     ),
   },

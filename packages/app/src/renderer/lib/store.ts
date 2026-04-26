@@ -102,9 +102,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     })),
   attachToolCall: (id, call) =>
     set((s) => ({
-      messages: s.messages.map((m) =>
-        m.id === id ? { ...m, toolCalls: [...(m.toolCalls ?? []), call] } : m,
-      ),
+      messages: s.messages.map((m) => (m.id === id ? { ...m, toolCalls: [...(m.toolCalls ?? []), call] } : m)),
     })),
   updateToolOutput: (id, toolCallId, output) =>
     set((s) => ({
@@ -112,9 +110,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
         m.id === id
           ? {
               ...m,
-              toolCalls: (m.toolCalls ?? []).map((c) =>
-                c.id === toolCallId ? { ...c, output } : c,
-              ),
+              toolCalls: (m.toolCalls ?? []).map((c) => (c.id === toolCallId ? { ...c, output } : c)),
             }
           : m,
       ),
@@ -129,5 +125,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
 export async function bootstrap(): Promise<void> {
   const s = useAppStore.getState();
   await s.refreshSession();
+
+  // 订阅 OAuth 自动登录（main 进程从 muicv:// callback 拿到 key 后会推过来）
+  window.muicv.session.onAutoLogin(async (result) => {
+    if (result.status === 'ok') {
+      // loginWithKey 已经把 key 写到 store —— 重新拉一遍 config 确保同步
+      await useAppStore.getState().loadConfig();
+      useAppStore.getState().setSession(result.session);
+    } else if (result.status !== 'no-key') {
+      // 网页授权失败 / state 不匹配 —— 在 console 留痕，UI 在 LoginView 监听同事件给提示
+      console.warn('[auto-login] failed', result);
+    }
+  });
+
   useAppStore.setState({ bootstrapping: false });
 }

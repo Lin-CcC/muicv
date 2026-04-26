@@ -16,9 +16,7 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
   const userId = c.get('userId');
   if (!userId) return c.json({ error: 'unauthorized' }, 401);
 
-  const user = await c.env.MUICV_API_DB.prepare(
-    'SELECT id, email, name, image FROM user WHERE id = ? LIMIT 1',
-  )
+  const user = await c.env.MUICV_API_DB.prepare('SELECT id, email, name, image FROM user WHERE id = ? LIMIT 1')
     .bind(userId)
     .first<{ id: string; email: string; name: string | null; image: string | null } | null>();
 
@@ -27,9 +25,7 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
     return c.json({ error: 'user-not-found' }, 401);
   }
 
-  const link = await c.env.MUICV_API_DB.prepare(
-    'SELECT 1 FROM muirouterLink WHERE userId = ? LIMIT 1',
-  )
+  const link = await c.env.MUICV_API_DB.prepare('SELECT 1 FROM muirouterLink WHERE userId = ? LIMIT 1')
     .bind(userId)
     .first<{ '1': number } | null>();
 
