@@ -208,11 +208,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       // 把 cause 链全打到主进程 console + 一并传给 renderer，方便定位
       const cause = (error as { cause?: unknown })?.cause;
       const causeMsg =
-        cause instanceof Error
-          ? `${cause.name}: ${cause.message}`
-          : cause !== undefined
-            ? String(cause)
-            : '';
+        cause instanceof Error ? `${cause.name}: ${cause.message}` : cause !== undefined ? String(cause) : '';
       console.error('[agent runtime] error:', error);
       if (cause !== undefined) console.error('[agent runtime] error.cause:', cause);
       const baseMsg = error instanceof Error ? error.message : String(error);

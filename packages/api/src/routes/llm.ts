@@ -6,74 +6,78 @@ import type { AppEnv } from '../middleware/api-key.ts';
 /**
  * /llm/v1/* —— OpenAI 兼容反向代理。
  *
- * 流程：
- *   1. requireApiKey middleware 已验证 mui_ key，set userId 到 context
- *   2. 这里查 muirouterLink → 解密 sk-gw-... key
- *   3. 没绑定 muirouter → 402 / no-muirouter-link，引导用户去 dashboard 绑（BYOK）
- *      （未来 Pro/Max 档位可以用平台 muirouter，本期 v1 必须 BYOK）
- *   4. 转发请求到 muirouter，path 保持（/llm/v1/chat/completions →
- *      /v1/chat/completions），把 Authorization 替换成用户的 sk-gw-key
- *   5. 流式（SSE）响应透传
+ * 双路径分流：
+ *   1. **muicv 平台**（默认）：用户没绑 BYOK → 用 worker secret OPENAI_API_KEY
+ *      调 https://api.openai.com/v1。配额由 muicv 控制（M2 起加月度上限）。
+ *   2. **BYOK**：用户在 dashboard 绑了自己的 endpoint → 解密拿 key + base，
+ *      转发过去。当前 muirouterLink 表 schema 假定 muirouter，所以暂时硬编码
+ *      base = https://api.muirouter.com；M2 表加 baseUrl 字段后改成读用户配的。
+ *
+ * Path 映射统一：/llm/v1/chat/completions → <upstream>/v1/chat/completions。
  *
  * 这一层是 electron app 的核心代理：electron 用 mui_ key 当 OpenAI key、
- * baseURL 指 https://api.muicv.com/llm/v1/，对它来说就是个标准 OpenAI 端点。
+ * baseURL 指 https://api.muicv.com/llm/v1，对它来说就是个标准 OpenAI 端点。
  */
 
+const OPENAI_BASE = 'https://api.openai.com';
 const MUIROUTER_BASE = 'https://api.muirouter.com';
 
 export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   const userId = c.get('userId');
   if (!userId) {
-    // requireApiKey 应该已经设了，这里作为类型守卫
     return c.json({ error: 'unauthorized' }, 401);
   }
 
-  // 拿 muirouter key
+  // 1. 先看用户有没有绑 BYOK
   const link = await c.env.MUICV_API_DB.prepare('SELECT keyCipher, keyIv FROM muirouterLink WHERE userId = ? LIMIT 1')
     .bind(userId)
     .first<{ keyCipher: string; keyIv: string } | null>();
 
-  if (!link) {
-    return c.json(
-      {
-        error: 'no-muirouter-link',
-        message: '需要先在 https://muicv.com/dashboard 绑定 muirouter 账号才能用 LLM',
-        learnMore: 'https://muicv.com/dashboard',
-      },
-      402,
-    );
+  let upstreamBase: string;
+  let upstreamKey: string;
+
+  if (link) {
+    // BYOK 路径：解密用户的 key，转发到 muirouter
+    const secret = c.env.BETTER_AUTH_SECRET;
+    if (!secret) {
+      return c.json(
+        { error: 'misconfigured', message: '后端缺 BETTER_AUTH_SECRET（解密 BYOK key 用），请联系管理员' },
+        500,
+      );
+    }
+    try {
+      upstreamKey = await decryptMuirouterKey(secret, link.keyCipher, link.keyIv);
+    } catch {
+      return c.json(
+        { error: 'decrypt-failed', message: '加密 key 失效（可能因 secret 旋转），请回 dashboard 重新绑定' },
+        500,
+      );
+    }
+    upstreamBase = MUIROUTER_BASE;
+  } else {
+    // 平台路径：用 muicv 自家的 OpenAI key 给订阅用户（M1 不查 plan，所有人都能用；
+    // M2 起按 plan / 月度配额限流）
+    const platformKey = c.env.OPENAI_API_KEY;
+    if (!platformKey) {
+      return c.json(
+        {
+          error: 'platform-key-missing',
+          message:
+            '后端没配 OPENAI_API_KEY（部署人员需要 wrangler secret put OPENAI_API_KEY），或者你可以去 dashboard 绑定自己的 BYOK',
+        },
+        500,
+      );
+    }
+    upstreamBase = OPENAI_BASE;
+    upstreamKey = platformKey;
   }
 
-  const secret = c.env.BETTER_AUTH_SECRET;
-  if (!secret) {
-    return c.json(
-      {
-        error: 'misconfigured',
-        message: '后端缺 BETTER_AUTH_SECRET（解密 muirouter key 用），请联系管理员',
-      },
-      500,
-    );
-  }
-
-  let muirouterKey: string;
-  try {
-    muirouterKey = await decryptMuirouterKey(secret, link.keyCipher, link.keyIv);
-  } catch {
-    return c.json(
-      {
-        error: 'decrypt-failed',
-        message: '加密 key 失效（可能因 secret 旋转），请回 dashboard 重新绑定 muirouter',
-      },
-      500,
-    );
-  }
-
-  // 拼上游 URL：/llm/v1/chat/completions → https://api.muirouter.com/v1/chat/completions
+  // 2. 拼上游 URL：/llm/v1/chat/completions → <base>/v1/chat/completions
   const incoming = new URL(c.req.url);
   const upstreamPath = incoming.pathname.replace(/^\/llm\//, '/');
-  const upstreamUrl = `${MUIROUTER_BASE}${upstreamPath}${incoming.search}`;
+  const upstreamUrl = `${upstreamBase}${upstreamPath}${incoming.search}`;
 
-  // 构造 upstream request headers：去掉 hop-by-hop 和我们要替换的 Authorization
+  // 3. 构造上游 headers：去掉 hop-by-hop + Cloudflare 注入的 + 我们要替换的 Authorization
   const upstreamHeaders = new Headers();
   for (const [k, v] of c.req.raw.headers.entries()) {
     const lower = k.toLowerCase();
@@ -92,7 +96,7 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     }
     upstreamHeaders.set(k, v);
   }
-  upstreamHeaders.set('Authorization', `Bearer ${muirouterKey}`);
+  upstreamHeaders.set('Authorization', `Bearer ${upstreamKey}`);
 
   let upstreamRes: Response;
   try {
@@ -109,13 +113,14 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     return c.json(
       {
         error: 'upstream-network-error',
-        message: error instanceof Error ? error.message : 'muirouter 网络错误',
+        upstream: link ? 'muirouter' : 'openai',
+        message: error instanceof Error ? error.message : '上游网络错误',
       },
       502,
     );
   }
 
-  // 透传响应（保持流式）
+  // 4. 透传响应（保持流式）
   const responseHeaders = new Headers();
   for (const [k, v] of upstreamRes.headers.entries()) {
     const lower = k.toLowerCase();
