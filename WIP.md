@@ -1,60 +1,37 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-04-24
+最后更新：2026-04-26
 
-## 重大方向调整（2026-04-16）
+## 方向
 
-**原方向（2026-01-12）**：构建一个完整的 chatbot web 应用，用「AI 就业辅导对话 + 记忆库 + 按需生成简历」的模式替代传统简历表单。
+把核心业务能力封装成 **Claude Code Skills + 轻量 API + Electron 桌面端**，用户在自己熟悉的
+AI agent（Claude Code / Codex / Cursor 等）里直接调用；简历素材作为 **Markdown + YAML
+frontmatter** 存在 `.claude/muicv/`，由用户用 git 自己管理。完整背景见 README.md。
 
-**现方向**：把核心业务能力封装成 **Claude Code Skills + 轻量 API**，用户在自己熟悉的 AI agent（Claude Code / Codex / Cursor 等）里直接调用；简历素材作为 **Markdown + YAML frontmatter** 存在用户自己的项目目录里（`.claude/muicv/`），由用户用 git 自己管理。
+## 已完成
 
-调整原因：
-- Chatbot 要做的核心能力（对话、记忆、版本）Claude Code / Codex 这类 agent 框架已天然具备，自己再做一套是重复建设
-- Skill + 本地 markdown 的方式让用户数据主权更清晰、心智负担更低、渠道更广
-- 开发量预估能砍一半
+Phase 1～8 全部落地（commits `f5cab4d → 1372e96`，2026-01-12 ～ 2026-04-26）：
 
-完整方案见 `.claude/plans/joyful-waddling-floyd.md`（Phase 0～6 分阶段落地）。
+- **Phase 1～2** — Skill 骨架、素材管理、generate / critique
+- **Phase 3** — `packages/api` Cloudflare Container PDF 渲染
+- **Phase 4** — JD 抓取 + match + apply
+- **Phase 5** — 营销页 + plugin marketplace + walkthrough
+- **Phase 6** — Web 主体（OpenNext on Worker） + Better Auth + dashboard + muirouter BYOK
+- **Phase 7** — 电脑端三段式（登录 → onboarding → 对话）+ 账号控制台
+- **Phase 8** — `muicv://` deep link 自动登录
 
-## 当前进度
+技术性的「踩坑 / 决策依据」沉淀到 [DEV_NOTE.md](./DEV_NOTE.md)。
 
-**Phase 0 清理** ✅ — chatbot 遗留代码全部删除；旧 prompt 迁移到 skill references 后 .plan-staging 清理
+## 当前进行中
 
-**Phase 1 骨架** ✅ — `skills/muicv-core/SKILL.md` 自动检测初始化 + add-experience / add-project / update / organize；`packages/shared/src/schemas/resume-md.ts` 定义 frontmatter 类型；分发走 [`npx skills add meathill/muicv`](https://www.npmjs.com/package/skills)
+无（Phase 8 之后处于功能稳定期）。
 
-**Phase 2 生成/评审** ✅ — `muicv-generate`（针对 JD 从素材库生成 version md）+ `muicv-critique`（7 维度评审）+ `muicv-core` 的 organize reference
+## 下一步
 
-**Phase 3 服务端渲染** ✅ — 新建 `packages/api`（独立 Cloudflare Worker）：
-- `BrowserContainer` Durable Object（透明代理）暴露 Cloudflare Container
-- Container 内 Node 22 + Chromium + Puppeteer + Hono server
-- POST /render 接收 markdown → 返回 PDF
-- `muicv-render` skill 调 API 存 PDF 到 `versions/<name>.pdf`
+按 [TODO.md](./TODO.md)：
 
-**Phase 4 网络任务** ✅ — JD 抓取 + 匹配分析 + 投递辅助：
-- `packages/api` 加 POST /jobs/fetch：container 里 Puppeteer + Readability + Turndown，把 JD 页面清洗成 markdown + meta
-- `skills/muicv-jobs`：fetch（写 targets/）、match（本地素材 vs JD 关键词差距分析）、apply（本地生成 cover letter 到 applications/）
-- muicv-core 初始化骨架补上 `applications/` 目录
-- shared schema 加 `ApplicationFrontmatter`
+- 云同步 skill（muicv 平台 / GitHub 双通道）
+- 模拟面试 skill
+- 录音复盘 / 面试复盘 skill
 
-**Phase 5 分发 / 营销页 / 文档** ✅：
-- `.claude-plugin/plugin.json` + `marketplace.json`：用户通过 `/plugin marketplace add meathill/muicv` + `/plugin install muicv@meathill` 安装
-- 同时保留 `npx skills add meathill/muicv` 作为多 agent 通用分发方式
-- `packages/website` 文案重写：Hero + 为什么不做 chatbot + 端到端工作流 + 技术栈
-- `docs/walkthrough.md`：7 步演示，从空目录到投递简历的完整对话流
-- README 同步：安装说明双通道 + 仓库结构加 `.claude-plugin/` 和 `docs/`
-
-**Phase 6 M1（进行中）—— Web 产品起步**：
-- ✅ POST /waitlist 端点 + D1（`muicv` 库）+ CORS 白名单
-- ✅ `packages/website` Waitlist 表单组件
-- ✅ skill 默认 API URL 收敛到 `api.muicv.com`
-- ✅ **包合并**：`packages/website` 升级为 web app 主体（OpenNext on Cloudflare Worker），原 `packages/app` 删除，名字留给将来的 electron 端
-- 未做：实际部署 D1 migration / Worker / DNS（用户手动）
-
-**Phase 6 M2+（未做）**：
-- 接 Better Auth（已定方案）
-- 对接 muirouter.com 余额 / 充值
-- Dashboard UI（用量、API Key、订阅）
-- Electron 桌面端会进 `packages/app`（基于 OpenAI Agent SDK）
-
-## 历史计划（已废弃，保留做追溯）
-
-原本的 M0～M5 里程碑、Todo 清单等全部作废。核心的 prompt 资产（简历生成、记忆整理）已经从 `packages/app/src/server/ai/system-prompts.ts` 抽取到 `.plan-staging/`，后续迁移到各 skill 的 `references/` 目录。
+订阅档位 / Stripe 付款 / 真实 plan 切换属于产品下一波 milestone，启动前会先在这里展开。
