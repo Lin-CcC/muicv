@@ -60,21 +60,15 @@ function ProfileSection() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-3 py-3 text-left hover:bg-fluff/60"
+        title={activeProfile?.dir}
+        className="flex w-full min-w-0 items-center gap-2 px-3 py-3 text-left hover:bg-fluff/60"
       >
         <CorgiMascot className="h-7 w-7 shrink-0" />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-yellow-deep" />
-            <span className="truncate text-[13px] font-bold text-ink">{activeProfile?.name ?? 'Mui简历'}</span>
-          </span>
-          {activeProfile && (
-            <span className="block truncate font-mono text-[10.5px] text-mute" title={activeProfile.dir}>
-              {activeProfile.dir}
-            </span>
-          )}
+        <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-deep" />
+        <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+          {activeProfile?.name ?? 'Mui简历'}
         </span>
-        <span className="text-[11px] text-mute">▾</span>
+        <span className="shrink-0 text-[11px] text-mute">▾</span>
       </button>
 
       {open && (
@@ -161,16 +155,18 @@ function ProfileItem({
 
   return (
     <div
-      className={`group flex items-center gap-1 rounded-md px-2 py-1.5 ${isActive ? 'bg-fluff' : 'hover:bg-fluff/60'}`}
+      className={`group flex min-w-0 items-center gap-1 rounded-md px-2 py-1.5 ${
+        isActive ? 'bg-fluff' : 'hover:bg-fluff/60'
+      }`}
     >
-      <button type="button" onClick={onSwitch} className="flex min-w-0 flex-1 flex-col items-start text-left">
-        <div className="flex items-center gap-1.5">
-          {isActive && <span className="text-[10px] text-yellow-deep">●</span>}
-          <span className="truncate text-[13px] font-bold text-ink">{profile.name}</span>
-        </div>
-        <p className="truncate font-mono text-[10.5px] text-mute" title={profile.dir}>
-          {profile.dir}
-        </p>
+      <button
+        type="button"
+        onClick={onSwitch}
+        title={profile.dir}
+        className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+      >
+        {isActive && <span className="shrink-0 text-[10px] text-yellow-deep">●</span>}
+        <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">{profile.name}</span>
       </button>
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
         <IconBtn title="重命名" onClick={() => setRenaming(true)}>
@@ -247,7 +243,7 @@ function CreateInline({ onCreate }: { onCreate: (name: string) => Promise<void> 
         onClick={() => setEditing(true)}
         className="block w-full rounded-md px-2 py-1.5 text-left text-[12.5px] text-yellow-deep hover:bg-fluff"
       >
-        + 新建一份简历
+        + 新建职业档案
       </button>
     );
   }
@@ -266,7 +262,7 @@ function CreateInline({ onCreate }: { onCreate: (name: string) => Promise<void> 
             setName('');
           }
         }}
-        placeholder="例如：求职 2026 / 老婆的"
+        placeholder="例如：程序员 / 厨师 / 自由插画师"
         className="block w-full rounded-md border-2 border-rule-strong bg-cream px-2 py-1 text-[12.5px] text-ink placeholder:text-mute focus:border-ink focus:outline-none"
       />
       <div className="flex gap-1">

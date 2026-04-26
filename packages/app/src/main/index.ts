@@ -147,7 +147,7 @@ ipcMain.handle('profile:createInDocuments', async (_e, name: string) => {
 ipcMain.handle('profile:pickFolder', async (_e, name: string) => {
   if (!mainWindow) return { ok: false, message: '窗口未就绪' };
   const r = await dialog.showOpenDialog(mainWindow, {
-    title: `选一个目录给"${name || '新简历'}"`,
+    title: `选一个目录给"${name || '新档案'}"`,
     properties: ['openDirectory', 'createDirectory'],
   });
   if (r.canceled || r.filePaths.length === 0) return { ok: false };
@@ -157,7 +157,7 @@ ipcMain.handle('profile:pickFolder', async (_e, name: string) => {
     setActiveProfile(existing.id);
     return { ok: true, profile: existing };
   }
-  const profile = addProfile(name?.trim() || '新简历', dir);
+  const profile = addProfile(name?.trim() || '新档案', dir);
   return { ok: true, profile };
 });
 

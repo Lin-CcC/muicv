@@ -59,8 +59,8 @@ export function ChatView() {
   if (!session || !activeProfile) {
     return (
       <CenteredCard
-        title="先建一份简历"
-        body="在设置里新建一份就能开始啦。"
+        title="先建一份职业档案"
+        body="在左栏点 + 新建职业档案 就能开始啦。"
         ctaLabel="去设置 →"
         onCta={() => setView('settings')}
       />
