@@ -44,9 +44,10 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
       '把工作目录下的简历 markdown（通常是 .claude/muicv/versions/xxx.md）渲染成 A4 PDF，写到同名 .pdf 文件。返回 PDF 路径。',
     parameters: z.object({
       path: z.string().describe('source markdown 路径（含 frontmatter），相对工作目录'),
-      template: z.string().optional().default('default').describe('模板名，目前固定 default'),
+      template: z.string().nullable().describe('模板名，目前固定 default；null 时用 default'),
     }),
-    execute: async ({ path, template }) => {
+    execute: async ({ path, template: templateRaw }) => {
+      const template = templateRaw ?? 'default';
       if (!config.workspaceDir) return '工作目录未配置';
       const sourceAbs = resolveInWorkspace(config.workspaceDir, path);
       let markdown: string;
@@ -94,8 +95,8 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
       url: z.string().describe('招聘页面公开可访问 URL'),
       savePath: z
         .string()
-        .optional()
-        .describe('目标路径，相对工作目录。省略时按 company-title 自动 slug 到 .claude/muicv/targets/'),
+        .nullable()
+        .describe('目标路径，相对工作目录。null = 按 company-title 自动 slug 到 .claude/muicv/targets/'),
     }),
     execute: async ({ url, savePath }) => {
       if (!config.workspaceDir) return '工作目录未配置';

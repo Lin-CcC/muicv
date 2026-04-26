@@ -106,9 +106,10 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
       path: z.string(),
       oldString: z.string().describe('要被替换的字符串（要精确匹配，包括缩进）'),
       newString: z.string().describe('替换后的字符串'),
-      replaceAll: z.boolean().optional().default(false),
+      replaceAll: z.boolean().nullable().describe('是否全量替换；默认 false'),
     }),
-    execute: async ({ path, oldString, newString, replaceAll }) => {
+    execute: async ({ path, oldString, newString, replaceAll: replaceAllRaw }) => {
+      const replaceAll = replaceAllRaw ?? false;
       const abs = resolveInWorkspace(workspaceDir, path);
       try {
         const original = await readFile(abs, 'utf8');
@@ -160,11 +161,13 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
     description: '在工作目录下用正则在文件里搜命中行。可用 path 限定子树，pattern 是 JS regex（不带 //）。',
     parameters: z.object({
       pattern: z.string().describe('JS regex 字符串，例：targets.*google'),
-      path: z.string().optional().describe('限定子目录或单个文件；缺省整个工作目录'),
-      flags: z.string().optional().default('i').describe('regex flags，默认 i'),
-      maxResults: z.number().optional().default(60),
+      path: z.string().nullable().describe('限定子目录或单个文件；null = 整个工作目录'),
+      flags: z.string().nullable().describe('regex flags，null 时用 "i"'),
+      maxResults: z.number().nullable().describe('返回上限；null 时用 60'),
     }),
-    execute: async ({ pattern, path, flags, maxResults }) => {
+    execute: async ({ pattern, path, flags: flagsRaw, maxResults: maxResultsRaw }) => {
+      const flags = flagsRaw ?? 'i';
+      const maxResults = maxResultsRaw ?? 60;
       try {
         const re = new RegExp(pattern, flags);
         const startPath = path ? resolveInWorkspace(workspaceDir, path) : workspaceDir;
@@ -217,11 +220,11 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
     name: 'list_dir',
     description: '列出某目录下的文件 / 子目录（一层深）。',
     parameters: z.object({
-      path: z.string().optional().default('.'),
+      path: z.string().nullable().describe('相对路径，null = 工作目录根'),
     }),
     execute: async ({ path }) => {
       try {
-        const abs = resolveInWorkspace(workspaceDir, path);
+        const abs = resolveInWorkspace(workspaceDir, path ?? '.');
         const entries = await readdir(abs, { withFileTypes: true });
         if (entries.length === 0) return '(空目录)';
         return entries
