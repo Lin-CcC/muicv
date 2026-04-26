@@ -204,7 +204,19 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     if (aborted) {
       send({ type: 'finish', reason: 'aborted' });
     } else {
-      const msg = error instanceof Error ? error.message : String(error);
+      // OpenAI SDK 经常把 fetch 失败包成 "Connection error."，真实原因藏在 .cause
+      // 把 cause 链全打到主进程 console + 一并传给 renderer，方便定位
+      const cause = (error as { cause?: unknown })?.cause;
+      const causeMsg =
+        cause instanceof Error
+          ? `${cause.name}: ${cause.message}`
+          : cause !== undefined
+            ? String(cause)
+            : '';
+      console.error('[agent runtime] error:', error);
+      if (cause !== undefined) console.error('[agent runtime] error.cause:', cause);
+      const baseMsg = error instanceof Error ? error.message : String(error);
+      const msg = causeMsg ? `${baseMsg} (cause: ${causeMsg})` : baseMsg;
       send({ type: 'error', message: msg });
       send({ type: 'finish', reason: 'error' });
     }
