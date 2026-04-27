@@ -23,3 +23,6 @@ release
 .data
 *.sqlite
 *.sqlite3
+
+# Sandbox / agent runtime trash
+.postplus/

@@ -4,7 +4,7 @@
 
 ## 背景
 
-新用户在 `.claude/muicv/` 里收集素材时常见的问题：
+新用户在素材库里收集素材时常见的问题：
 
 - **同一事实被多次记录**：比如在 `experience/acme.md` 里写了"主导了新版 dashboard 的上线"，又在 `achievements.md` 里单独列了一遍
 - **碎片化不完整**：只有"开始接触 Vue"这种半句话，缺时间/上下文/结果
@@ -28,7 +28,7 @@
 
 ## 执行步骤（给 skill 调用时参考）
 
-1. **扫描**：`Glob .claude/muicv/**/*.md`，按 frontmatter `type` 分桶。
+1. **扫描**：在素材库根范围内 `Glob **/*.md`，按 frontmatter `type` 分桶。
 2. **找问题**：
    - 跨文件同义记录（比较 title / highlight 文本相似度）
    - 单条过短或缺时间（例如 highlight 只有一个动词短语）

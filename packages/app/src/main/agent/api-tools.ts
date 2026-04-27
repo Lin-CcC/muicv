@@ -41,7 +41,7 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
   const renderResumePdf = tool({
     name: 'render_resume_pdf',
     description:
-      '把工作目录下的简历 markdown（通常是 .claude/muicv/versions/xxx.md）渲染成 A4 PDF，写到同名 .pdf 文件。返回 PDF 路径。',
+      '把工作目录下的简历 markdown（通常是 versions/xxx.md）渲染成 A4 PDF，写到同名 .pdf 文件。返回 PDF 路径。',
     parameters: z.object({
       path: z.string().describe('source markdown 路径（含 frontmatter），相对工作目录'),
       template: z.string().nullable().describe('模板名，目前固定 default；null 时用 default'),
@@ -90,13 +90,13 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
   const fetchJd = tool({
     name: 'fetch_jd',
     description:
-      '抓取一个招聘页面 URL 的 JD 正文，清洗成 markdown 写到 .claude/muicv/targets/<slug>.md，含 frontmatter（company / title / source_url / fetched_at）。',
+      '抓取一个招聘页面 URL 的 JD 正文，清洗成 markdown 写到 targets/<slug>.md，含 frontmatter（company / title / source_url / fetched_at）。',
     parameters: z.object({
       url: z.string().describe('招聘页面公开可访问 URL'),
       savePath: z
         .string()
         .nullable()
-        .describe('目标路径，相对工作目录。null = 按 company-title 自动 slug 到 .claude/muicv/targets/'),
+        .describe('目标路径，相对工作目录。null = 按 company-title 自动 slug 到 targets/'),
     }),
     execute: async ({ url, savePath }) => {
       if (!config.workspaceDir) return '工作目录未配置';
@@ -144,7 +144,7 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
 
       const meta = body.meta ?? {};
       const slug = savePath ? null : slugify(`${meta.company ?? 'company'}-${meta.title ?? 'role'}`);
-      const targetRel = savePath ?? `.claude/muicv/targets/${slug}.md`;
+      const targetRel = savePath ?? `targets/${slug}.md`;
       const targetAbs = resolveInWorkspace(config.workspaceDir, targetRel);
 
       const frontmatter = [

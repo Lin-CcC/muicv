@@ -9,20 +9,21 @@ import type { ArtifactKind } from '../../shared/types.ts';
 
 /**
  * 路径模式 → 工件类型推断。
- * agent 调 read/write_file 落到 .claude/muicv/ 下约定子目录时，
- * 包装层 emit 一个 artifact chunk 给 renderer，左中右三栏可以做对应交互。
+ *
+ * 不绑前缀路径——只看路径里有没有约定的子目录名 / 文件名。这样素材库
+ * 无论位于 workspace 根、`.claude/muicv/`（老 CC+skills 数据）还是用户
+ * 自己挪到的位置，都能识别。
  */
 function inferArtifactKind(relPath: string): ArtifactKind | null {
   const norm = relPath.replace(/\\/g, '/');
-  if (!norm.includes('.claude/muicv/')) return null;
-  if (/\.claude\/muicv\/profile\.md$/.test(norm)) return 'profile';
-  if (/\.claude\/muicv\/experience\//.test(norm)) return 'experience';
-  if (/\.claude\/muicv\/projects\//.test(norm)) return 'project';
-  if (/\.claude\/muicv\/targets\//.test(norm)) return 'jd-target';
-  if (/\.claude\/muicv\/versions\//.test(norm) && norm.endsWith('.md')) return 'resume-version';
-  if (/\.claude\/muicv\/applications\//.test(norm)) return 'cover-letter';
-  // critique 报告通常没固定路径，让 agent 写 reports/ 时落 critique-report
-  if (/\.claude\/muicv\/(reports|critiques)\//.test(norm)) return 'critique-report';
+  // profile.md 是素材库唯一的"根锚点"文件，不嵌在子目录
+  if (/(^|\/)profile\.md$/.test(norm)) return 'profile';
+  if (/(^|\/)experience\//.test(norm)) return 'experience';
+  if (/(^|\/)projects\//.test(norm)) return 'project';
+  if (/(^|\/)targets\//.test(norm)) return 'jd-target';
+  if (/(^|\/)versions\//.test(norm) && norm.endsWith('.md')) return 'resume-version';
+  if (/(^|\/)applications\//.test(norm)) return 'cover-letter';
+  if (/(^|\/)(reports|critiques)\//.test(norm)) return 'critique-report';
   return null;
 }
 
@@ -62,9 +63,9 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
 
   const readFileTool = tool({
     name: 'read_file',
-    description: '读取工作目录下某个文件的全部文本内容。对 .claude/muicv/ 下的 markdown 等都可用。',
+    description: '读取工作目录下某个文件的全部文本内容（markdown / 文本任意）。',
     parameters: z.object({
-      path: z.string().describe('相对工作目录的路径，如 ".claude/muicv/profile.md"'),
+      path: z.string().describe('相对工作目录的路径，如 "profile.md" 或 "experience/acme-2023.md"'),
     }),
     execute: async ({ path }) => {
       const abs = resolveInWorkspace(workspaceDir, path);
@@ -137,7 +138,7 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
     name: 'glob_files',
     description: '按 glob pattern 匹配文件路径。支持 ** 多层通配。返回最多 200 条结果。',
     parameters: z.object({
-      pattern: z.string().describe('如 ".claude/muicv/**/*.md"'),
+      pattern: z.string().describe('如 "**/*.md" 或 "experience/*.md"'),
     }),
     execute: async ({ pattern }) => {
       try {
