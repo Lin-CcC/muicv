@@ -8,11 +8,12 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "build:icons": "node scripts/build-icons.ts",
     "typecheck": "tsc --noEmit",
-    "package": "electron-vite build && electron-builder --mac --publish never",
-    "package:mac": "electron-vite build && electron-builder --mac --publish never",
-    "package:mac:arm": "electron-vite build && electron-builder --mac --arm64 --publish never",
-    "package:mac:x64": "electron-vite build && electron-builder --mac --x64 --publish never",
+    "package": "pnpm run build:icons && electron-vite build && electron-builder --mac --publish never",
+    "package:mac": "pnpm run build:icons && electron-vite build && electron-builder --mac --publish never",
+    "package:mac:arm": "pnpm run build:icons && electron-vite build && electron-builder --mac --arm64 --publish never",
+    "package:mac:x64": "pnpm run build:icons && electron-vite build && electron-builder --mac --x64 --publish never",
     "preview": "electron-vite preview"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "postcss": "^8.5.10",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.2.4",
     "typescript": "^5.9.3",
     "vite": "^7.3.2",

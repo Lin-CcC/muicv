@@ -32,6 +32,10 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const isDev = !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 
+// dev: BrowserWindow icon 在 macOS 被忽略，下面 whenReady 还会调 dock.setIcon。
+// prod: macOS 走 .app bundle 的 icns，无需在这里设置。
+const devIconPath = join(__dirname, '../../build/icon.png');
+
 // -------------------- Single instance（Windows/Linux deep-link 必需） --------------------
 
 const gotLock = app.requestSingleInstanceLock();
@@ -64,6 +68,7 @@ function createWindow() {
     minHeight: 560,
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#fdfaf2',
+    ...(isDev ? { icon: devIconPath } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       nodeIntegration: false,
@@ -318,6 +323,10 @@ app.whenReady().then(() => {
   // 历史脏数据清理：早期版本因并发 ensureDefault 可能产生重复 profile，
   // 启动时按 dir 合并一次。
   dedupeProfiles();
+
+  if (isDev && process.platform === 'darwin') {
+    app.dock?.setIcon(devIconPath);
+  }
 
   createWindow();
 

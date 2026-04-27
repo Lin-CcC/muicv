@@ -26,3 +26,6 @@ release
 
 # Sandbox / agent runtime trash
 .postplus/
+
+# macOS Finder metadata
+.DS_Store
