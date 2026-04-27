@@ -93,10 +93,7 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
       '抓取一个招聘页面 URL 的 JD 正文，清洗成 markdown 写到 targets/<slug>.md，含 frontmatter（company / title / source_url / fetched_at）。',
     parameters: z.object({
       url: z.string().describe('招聘页面公开可访问 URL'),
-      savePath: z
-        .string()
-        .nullable()
-        .describe('目标路径，相对工作目录。null = 按 company-title 自动 slug 到 targets/'),
+      savePath: z.string().nullable().describe('目标路径，相对工作目录。null = 按 company-title 自动 slug 到 targets/'),
     }),
     execute: async ({ url, savePath }) => {
       if (!config.workspaceDir) return '工作目录未配置';
