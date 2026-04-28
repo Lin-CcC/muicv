@@ -166,6 +166,13 @@ export type ArtifactRef = {
   path: string;
   /** 显示用文件名（basename）。 */
   title: string;
+  /**
+   * 这次 artifact 是 agent 读出来的参考资料（read_file）还是写出来的产物
+   * （write_file / edit_file / render_resume_pdf / fetch_jd）。
+   * read 类是过程信息（折叠到工具调用组里），write 类是产物（显眼卡片
+   * + 自动打开右栏预览）。
+   */
+  source: 'read' | 'write';
 };
 
 /** 一份对话的元数据 + 消息历史。持久化到 <profile.dir>/.claude/muicv/conversations/<id>.json。 */
@@ -206,8 +213,9 @@ export type AgentChunk =
    * Agent 调 read/write_file 落到约定路径时（versions/* / targets/* / applications/*），
    * runtime 主动推一个 artifact chunk，renderer 在消息流里渲染卡片，
    * 点卡片或后续 agent 再访问该路径都会切右栏到这个文件。
+   * source: read（过程参考）/ write（最终产物，会自动开右栏）。
    */
-  | { type: 'artifact'; kind: ArtifactKind; path: string; title: string };
+  | { type: 'artifact'; kind: ArtifactKind; path: string; title: string; source: 'read' | 'write' };
 
 export type SessionCheckResult =
   | { status: 'ok'; session: SessionInfo }

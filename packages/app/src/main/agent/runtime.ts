@@ -96,8 +96,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   }
 
   // artifact 收集：tool 调用过程中累计 artifact，完成后塞进 assistant message
-  const collectedArtifacts: Array<{ kind: import('../../shared/types.ts').ArtifactKind; path: string; title: string }> =
-    [];
+  const collectedArtifacts: Array<import('../../shared/types.ts').ArtifactRef> = [];
   const emitArtifact: ArtifactEmitter = (a) => {
     collectedArtifacts.push(a);
     send({ type: 'artifact', ...a });

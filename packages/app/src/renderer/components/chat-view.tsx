@@ -4,6 +4,7 @@ import { type AgentChunk, type ArtifactRef, CONVERSATION_TYPE_META, type ToolCal
 import { useAppStore } from '../lib/store';
 import { ArtifactCard } from './artifact-card';
 import { CorgiMascot } from './corgi-mascot';
+import { MarkdownView } from './markdown-view';
 
 /**
  * 中栏：当前 activeConversation 的对话流 + 输入框。
@@ -138,9 +139,21 @@ export function ChatView() {
           case 'tool-output':
             updateToolOutput(assistantId, chunk.toolCallId, chunk.output);
             break;
-          case 'artifact':
-            attachArtifact(assistantId, { kind: chunk.kind, path: chunk.path, title: chunk.title });
+          case 'artifact': {
+            const artifact: ArtifactRef = {
+              kind: chunk.kind,
+              path: chunk.path,
+              title: chunk.title,
+              source: chunk.source,
+            };
+            attachArtifact(assistantId, artifact);
+            // 写盘类工件（用户的产物）自动开右栏预览，让用户立即看到结果
+            // 读取类（参考资料）只是过程信息，不打扰用户当前视图
+            if (chunk.source === 'write') {
+              openRightPanel(chunk.path);
+            }
             break;
+          }
           case 'error':
             handleErrorChunk(chunk.message, assistantId);
             break;
@@ -334,6 +347,12 @@ function MessageBubble({
   onOpenArtifact: (a: ArtifactRef) => void;
 }) {
   const isUser = role === 'user';
+  // 工件按 source 分两类：read = 过程参考资料（折叠到操作组里）/ write = 最终产物（显眼卡片）
+  const readRefs = artifacts?.filter((a) => a.source === 'read') ?? [];
+  const writeRefs = artifacts?.filter((a) => a.source === 'write') ?? [];
+  const hasOps = (toolCalls?.length ?? 0) > 0 || readRefs.length > 0;
+  const empty = !content && !hasOps && writeRefs.length === 0;
+
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -341,29 +360,77 @@ function MessageBubble({
           isUser ? 'border-2 border-ink bg-yellow text-ink' : 'border-2 border-rule bg-paper text-ink-soft'
         }`}
       >
-        {toolCalls && toolCalls.length > 0 && (
-          <div className="space-y-1">
-            {toolCalls.map((c) => (
-              <ToolCallChip key={c.id} call={c} />
-            ))}
-          </div>
-        )}
-        {content && <div className="whitespace-pre-wrap">{content}</div>}
-        {!content && (!toolCalls || toolCalls.length === 0) && (!artifacts || artifacts.length === 0) && (
+        {/* 操作组：所有 tool call + 读取的参考资料折成一张可展开卡片 */}
+        {!isUser && hasOps && <OpsGroup toolCalls={toolCalls ?? []} reads={readRefs} />}
+
+        {/* assistant 内容用 markdown 渲染；user 内容保持原样（保留换行） */}
+        {content &&
+          (isUser ? (
+            <div className="whitespace-pre-wrap">{content}</div>
+          ) : (
+            <MarkdownView source={content} className="text-ink-soft" />
+          ))}
+
+        {empty && (
           <span className="inline-flex items-center gap-2 text-mute">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow" />
             思考中…
           </span>
         )}
-        {artifacts && artifacts.length > 0 && (
+
+        {/* 写盘类工件：最终产物，显眼卡片，点击在右栏预览 */}
+        {writeRefs.length > 0 && (
           <div className="space-y-1.5 pt-1">
-            {artifacts.map((a, i) => (
+            {writeRefs.map((a, i) => (
               <ArtifactCard key={`${a.path}-${i}`} artifact={a} onOpen={() => onOpenArtifact(a)} />
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * 把 agent 的工具调用 + 读取过的参考资料聚合成一张折叠卡片，默认收起。
+ * Header 只显示"调用了 N 个工具 / 读了 M 个文件"，点开看每条详情。
+ * 减少噪音，让用户聚焦在最终输出 + 产物上。
+ */
+function OpsGroup({ toolCalls, reads }: { toolCalls: ToolCallRecord[]; reads: ArtifactRef[] }) {
+  const [open, setOpen] = useState(false);
+  // 进行中的最后一个工具：作为收起态的简要状态显示
+  const inflight = toolCalls.find((c) => c.output === undefined);
+  const summary = inflight ? `正在 ${inflight.name}…` : `调用了 ${toolCalls.length} 个工具`;
+
+  return (
+    <details
+      open={open}
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+      className="rounded-md border border-rule bg-fluff/50"
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 text-[12px] text-mute">
+        <span className={inflight ? 'animate-pulse text-yellow-deep' : 'text-yellow-deep'}>⚙</span>
+        <span className="flex-1 truncate font-mono">{summary}</span>
+        <span className="text-[10px]">{open ? '收起' : '展开'}</span>
+      </summary>
+      <div className="space-y-1 border-t border-rule px-2 py-2">
+        {toolCalls.map((c) => (
+          <ToolCallChip key={c.id} call={c} />
+        ))}
+        {reads.length > 0 && (
+          <div className="mt-2 border-t border-rule pt-2">
+            <p className="mb-1 px-1 text-[10.5px] text-mute">参考的素材：</p>
+            <ul className="space-y-0.5">
+              {reads.map((r, i) => (
+                <li key={`${r.path}-${i}`} className="px-1 font-mono text-[11px] text-ink-soft">
+                  📄 {r.title}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </details>
   );
 }
 

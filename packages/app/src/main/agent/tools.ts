@@ -50,15 +50,20 @@ function shortRel(workspaceDir: string, abs: string): string {
   return relative(workspaceDir, abs) || '.';
 }
 
-export type ArtifactEmitter = (artifact: { kind: ArtifactKind; path: string; title: string }) => void;
+export type ArtifactEmitter = (artifact: {
+  kind: ArtifactKind;
+  path: string;
+  title: string;
+  source: 'read' | 'write';
+}) => void;
 
 export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmitter) {
   /** 工具调用成功后调一次：如果路径命中约定，emit 一条 artifact chunk。 */
-  function maybeEmit(relPath: string, abs: string) {
+  function maybeEmit(relPath: string, abs: string, source: 'read' | 'write') {
     if (!emitArtifact) return;
     const kind = inferArtifactKind(relPath);
     if (!kind) return;
-    emitArtifact({ kind, path: abs, title: basename(abs) });
+    emitArtifact({ kind, path: abs, title: basename(abs), source });
   }
 
   const readFileTool = tool({
@@ -71,7 +76,7 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
       const abs = resolveInWorkspace(workspaceDir, path);
       try {
         const content = await readFile(abs, 'utf8');
-        maybeEmit(path, abs);
+        maybeEmit(path, abs, 'read');
         return content;
       } catch (err) {
         return `读取失败: ${err instanceof Error ? err.message : String(err)}`;
@@ -92,7 +97,7 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
       try {
         await mkdir(dirname(abs), { recursive: true });
         await writeFile(abs, content, 'utf8');
-        maybeEmit(path, abs);
+        maybeEmit(path, abs, 'write');
         return `已写入 ${shortRel(workspaceDir, abs)}（${content.length} 字符）`;
       } catch (err) {
         return `写入失败: ${err instanceof Error ? err.message : String(err)}`;
@@ -125,7 +130,7 @@ export function buildFileTools(workspaceDir: string, emitArtifact?: ArtifactEmit
         }
         const next = replaceAll ? original.split(oldString).join(newString) : original.replace(oldString, newString);
         await writeFile(abs, next, 'utf8');
-        maybeEmit(path, abs);
+        maybeEmit(path, abs, 'write');
         const delta = next.length - original.length;
         return `已编辑 ${shortRel(workspaceDir, abs)}（${delta >= 0 ? '+' : ''}${delta} 字符）`;
       } catch (err) {

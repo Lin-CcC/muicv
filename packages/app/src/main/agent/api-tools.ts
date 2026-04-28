@@ -82,7 +82,7 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
       const targetAbs = resolveInWorkspace(config.workspaceDir, targetRel);
       await mkdir(dirname(targetAbs), { recursive: true });
       await writeFile(targetAbs, pdfBytes);
-      emitArtifact?.({ kind: 'resume-version', path: targetAbs, title: basename(targetAbs) });
+      emitArtifact?.({ kind: 'resume-version', path: targetAbs, title: basename(targetAbs), source: 'write' });
       return `PDF 已生成：${shortRel(config.workspaceDir, targetAbs)}（${(pdfBytes.length / 1024).toFixed(1)} KB）`;
     },
   });
@@ -159,7 +159,7 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
       const content = `${frontmatter}\n\n## JD 正文\n\n${body.markdown.trim()}\n`;
       await mkdir(dirname(targetAbs), { recursive: true });
       await writeFile(targetAbs, content, 'utf8');
-      emitArtifact?.({ kind: 'jd-target', path: targetAbs, title: basename(targetAbs) });
+      emitArtifact?.({ kind: 'jd-target', path: targetAbs, title: basename(targetAbs), source: 'write' });
       return `JD 已保存到 ${shortRel(config.workspaceDir, targetAbs)}${
         meta.company ? `（${meta.company} / ${meta.title}）` : ''
       }`;
