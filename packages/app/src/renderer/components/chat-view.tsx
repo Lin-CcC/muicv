@@ -192,6 +192,7 @@ export function ChatView() {
                 toolCalls={m.toolCalls}
                 artifacts={m.artifacts}
                 onOpenArtifact={(a) => openRightPanel(a.path)}
+                onPathClick={(p) => openRightPanel(resolveWorkspacePath(activeProfile?.dir ?? null, p))}
               />
             ))
           )}
@@ -339,12 +340,14 @@ function MessageBubble({
   toolCalls,
   artifacts,
   onOpenArtifact,
+  onPathClick,
 }: {
   role: string;
   content: string;
   toolCalls?: ToolCallRecord[] | undefined;
   artifacts?: ArtifactRef[] | undefined;
   onOpenArtifact: (a: ArtifactRef) => void;
+  onPathClick?: (path: string) => void;
 }) {
   const isUser = role === 'user';
   // 工件按 source 分两类：read = 过程参考资料（折叠到操作组里）/ write = 最终产物（显眼卡片）
@@ -368,7 +371,7 @@ function MessageBubble({
           (isUser ? (
             <div className="whitespace-pre-wrap">{content}</div>
           ) : (
-            <MarkdownView source={content} className="text-ink-soft" />
+            <MarkdownView source={content} className="text-ink-soft" onPathClick={onPathClick} />
           ))}
 
         {empty && (
@@ -486,4 +489,16 @@ function safeParse(json: string): unknown {
 
 function cryptoRandomId(): string {
   return crypto.randomUUID();
+}
+
+/**
+ * 把 markdown 里出现的相对路径（如 "versions/xxx.md"）拼成绝对路径，
+ * 配合 openRightPanel 在右栏打开预览。已经是绝对路径就直接返回。
+ */
+function resolveWorkspacePath(workspaceDir: string | null, p: string): string {
+  if (!p) return p;
+  if (p.startsWith('/') || /^[A-Za-z]:[\\/]/.test(p)) return p;
+  if (!workspaceDir) return p;
+  const sep = workspaceDir.includes('\\') ? '\\' : '/';
+  return workspaceDir.replace(/[/\\]+$/, '') + sep + p.replace(/^[/\\]+/, '');
 }
