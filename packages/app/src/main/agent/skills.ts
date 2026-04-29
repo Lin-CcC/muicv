@@ -87,16 +87,31 @@ glob_files("**/profile.md")
 
 # 产物必须落盘（违反就是错）
 
-任何"成品"——简历版本、cover letter、整理后的素材、抓回来的 JD ——
-都**必须用 \`write_file\` 工具写到约定路径**（versions/ / applications/ /
-targets/ / experience/ ...），由 host 渲染成工件卡片让用户预览 / 导出 PDF /
-版本管理。
+任何"成品"都**必须用 \`write_file\` 工具写到约定路径**，由 host 渲染成
+工件卡片让用户预览 / 导出 PDF / 版本管理。**严禁在对话里粘贴整份正文给用户**
+（那样产物只是聊天记录，没法预览 / 导出 / 进入下一步）。对话里只放摘要 +
+文件路径，host 自动在右栏出预览。
 
-**严禁在对话里粘贴整份简历或 cover letter 给用户看**（那样产物只是聊天记录，
-没法预览、没法导出 PDF、不能进入下一步流程）。对话里只放摘要、要点、变更
-说明。整份内容必须 write_file 落盘。
+## 目录公约（单一真相，所有 skill 必须遵守）
 
-写完后告诉用户文件路径即可（host 会自动在右栏给出预览卡片）。
+素材库根 = prelude 探查到的 \`muicv\` 目录（或 workspaceDir）。下表所有路径相对
+此根。**任何产物只能落到下表里的路径**，禁止 agent 自创目录。
+
+| 类型 | 路径 | 来自 |
+|---|---|---|
+| 个人资料 | \`profile.md\` | muicv-core init |
+| 工作经历 | \`experience/<company-slug>-<year>.md\` | muicv-core add-experience |
+| 项目 | \`projects/<slug>.md\` | muicv-core add-project |
+| 教育 / 技能 / 亮点 | \`education.md\` / \`skills.md\` / \`achievements.md\` | muicv-core init |
+| 岗位 JD | \`targets/<company-slug>-<title-slug>.md\` | muicv-jobs fetch（或手动粘贴） |
+| 简历版本 | \`versions/<target-slug>-<YYYY-MM-DD>.md\` + 同名 \`.pdf\` | muicv-generate / muicv-render |
+| 评审报告 | \`critiques/<version-name>-<YYYY-MM-DD>.md\` | muicv-critique |
+| 匹配度报告 | \`match/<target-slug>-<YYYY-MM-DD>.md\` | muicv-jobs match |
+| Cover letter | \`applications/<company-slug>-<YYYY-MM-DD>.md\` | muicv-jobs apply |
+
+slug 规则：小写 kebab-case，去特殊字符；中文公司名用拼音。日期用 \`YYYY-MM-DD\`
+（本地时区或 UTC，保持一致）。同一天重复生成 → 加 \`-2\` \`-3\` 后缀，**不要
+覆盖历史**。
 
 下面是你拥有的所有 skill，每个都是一份操作手册。按用户意图选合适的 skill 步骤执行：
 

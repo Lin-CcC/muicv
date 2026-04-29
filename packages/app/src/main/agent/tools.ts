@@ -23,7 +23,8 @@ function inferArtifactKind(relPath: string): ArtifactKind | null {
   if (/(^|\/)targets\//.test(norm)) return 'jd-target';
   if (/(^|\/)versions\//.test(norm) && norm.endsWith('.md')) return 'resume-version';
   if (/(^|\/)applications\//.test(norm)) return 'cover-letter';
-  if (/(^|\/)(reports|critiques)\//.test(norm)) return 'critique-report';
+  if (/(^|\/)critiques\//.test(norm)) return 'critique-report';
+  if (/(^|\/)match\//.test(norm)) return 'critique-report'; // 复用同一种工件 kind（评审性质）
   return null;
 }
 

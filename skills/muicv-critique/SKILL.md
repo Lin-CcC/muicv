@@ -74,9 +74,24 @@ description: 对 `versions/` 下已生成的简历版本做质量评审，从 ST
 
 ## 输出格式
 
-用这个结构给用户：
+**必须用 `write_file` 工具**写到 `critiques/<version-name>-<YYYY-MM-DD>.md`
+（相对素材库根，公约见 prelude）。`<version-name>` 取被评审 version 文件的
+basename 不含扩展，例如评审 `versions/google-l5-2026-04-24.md` → 写到
+`critiques/google-l5-2026-04-24-2026-04-28.md`。
 
-```
+**不要在对话里粘整份评审报告**——只在对话里给一句结论 + 路径，详情让用户去
+右栏预览。
+
+文件内容用这个结构：
+
+```markdown
+---
+type: critique
+version: versions/<file>.md
+target: targets/<file>.md   # 如有
+generated_at: <ISO>
+---
+
 # 评审报告：versions/<file>.md
 
 **整体评估**：<🟢 良好 / 🟡 可改进 / 🔴 需要重做>（给出一句话理由）

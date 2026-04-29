@@ -55,9 +55,13 @@ description: 管理本地 Markdown 简历素材库。帮用户在工作目录下
 │   └── .gitkeep
 ├── targets/              # muicv-jobs:fetch 或手工粘贴的 JD
 │   └── .gitkeep
-├── versions/             # muicv-generate 产出的简历版本
+├── versions/             # muicv-generate 产出的简历版本（.md + 同名 .pdf）
 │   └── .gitkeep
 ├── applications/         # muicv-jobs:apply 产出的 cover letter
+│   └── .gitkeep
+├── critiques/            # muicv-critique 产出的评审报告
+│   └── .gitkeep
+├── match/                # muicv-jobs:match 产出的匹配度报告
 │   └── .gitkeep
 ├── education.md          # 带占位说明的骨架
 ├── skills.md             # 带占位说明的骨架
