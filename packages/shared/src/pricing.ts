@@ -21,15 +21,30 @@ export const PDF_RENDER_COST = 200;
 export const JD_FETCH_COST = 300;
 
 /**
- * 月卡订阅档位：每月自动续 monthlyTokens。Stripe price id 在 wrangler vars 里给。
- * priceIdToMonthlyTokens 反查靠下面 buildPriceMap（在 worker 里用 env 拼）。
+ * 订阅档位：每个 cycle（月付每月 / 年付每年）自动续 tokens。
+ * 年付 = Stripe 一年 invoice 一次，invoice.paid 时一次性发 yearly.tokens（标准 SaaS 做法）。
+ *
+ * 数据来源 / 维护：
+ *   - tokens / priceCnyDisplay：本文件硬编码，调价时改这里 + Stripe Dashboard 同步
+ *   - Stripe price ID：在 packages/website/wrangler.jsonc 的 vars 里给
+ *     （STRIPE_PRICE_<PLAN>_<INTERVAL>，详见 lib/stripe.ts 的 priceIdToCycleTokens）
+ *   - savingsLabel：年付的折扣展示文案，纯 UI 用
  */
 export const SUBSCRIPTION_PLANS = {
-  pro: { monthlyTokens: 100_000, label: 'Pro 月卡', priceCnyDisplay: '¥30 / 月' },
-  max: { monthlyTokens: 500_000, label: 'Max 月卡', priceCnyDisplay: '¥98 / 月' },
+  pro: {
+    label: 'Pro',
+    monthly: { tokens: 100_000, priceCnyDisplay: '¥30 / 月' },
+    yearly: { tokens: 1_200_000, priceCnyDisplay: '¥288 / 年', savingsLabel: '相当于 ¥24 / 月，省 20%' },
+  },
+  max: {
+    label: 'Max',
+    monthly: { tokens: 500_000, priceCnyDisplay: '¥98 / 月' },
+    yearly: { tokens: 6_000_000, priceCnyDisplay: '¥948 / 年', savingsLabel: '相当于 ¥79 / 月，省 19%' },
+  },
 } as const;
 
 export type SubscriptionPlanKey = keyof typeof SUBSCRIPTION_PLANS;
+export type BillingInterval = 'monthly' | 'yearly';
 
 /**
  * 一次性补充包：付完款 webhook 立刻 +tokens。

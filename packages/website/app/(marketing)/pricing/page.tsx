@@ -1,4 +1,4 @@
-import { SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
+import { type BillingInterval, SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
@@ -10,16 +10,15 @@ import { Header } from '../_sections/header';
 
 export const metadata: Metadata = {
   title: '定价',
-  description: '按 token 计费，永不过期。注册即送 10K tokens，月卡每月续，补充包随用随买。',
+  description: '按 token 计费，永不过期。注册即送 10K tokens；月付 / 年付 / 一次性补充包随你选。',
 };
 
 export const dynamic = 'force-dynamic';
 
 type SubTier = {
   key: keyof typeof SUBSCRIPTION_PLANS;
-  name: string;
   tagline: string;
-  features: string[];
+  features: (interval: BillingInterval) => string[];
   highlight?: boolean;
   badge?: string;
 };
@@ -27,10 +26,9 @@ type SubTier = {
 const SUB_TIERS: SubTier[] = [
   {
     key: 'pro',
-    name: 'Pro 月卡',
     tagline: '认真求职阶段。',
-    features: [
-      `每月 ${SUBSCRIPTION_PLANS.pro.monthlyTokens.toLocaleString()} tokens 自动到账`,
+    features: (interval) => [
+      `${interval === 'yearly' ? '一次性发整年' : '每月自动续'} ${SUBSCRIPTION_PLANS.pro[interval].tokens.toLocaleString()} tokens`,
       '所有功能（LLM / PDF / JD / 招聘库）按 token 自由分配',
       '取消订阅，已发 token 永不过期',
       '优先邮件支持',
@@ -40,10 +38,9 @@ const SUB_TIERS: SubTier[] = [
   },
   {
     key: 'max',
-    name: 'Max 月卡',
     tagline: '密集求职专用。',
-    features: [
-      `每月 ${SUBSCRIPTION_PLANS.max.monthlyTokens.toLocaleString()} tokens 自动到账`,
+    features: (interval) => [
+      `${interval === 'yearly' ? '一次性发整年' : '每月自动续'} ${SUBSCRIPTION_PLANS.max[interval].tokens.toLocaleString()} tokens`,
       '所有 Pro 功能',
       '抢先体验新模块',
       '专属支持渠道',
@@ -57,12 +54,20 @@ const PRICING_FAQ: { q: string; a: string }[] = [
     a: 'LLM 调用按上游 prompt + completion token × 1.1（覆盖第三方成本与少量利润）；PDF 渲染每次扣 200 tokens；JD 抓取每次扣 300 tokens。所有调用都会在 dashboard 流水里看到明细。',
   },
   {
-    q: '月卡和补充包能同时用吗？',
-    a: '可以。月卡是"每月自动续"，补充包是"用完手动加"。两边到账的 tokens 都进同一个余额，不分先后用。',
+    q: '月付和年付有什么区别？',
+    a: '价格上年付有约 20% 折扣；token 上年付一次性给你整年用量，付款当天就能集中用。取消订阅后已发的 token 全部保留，永不过期。月付适合先试一试，年付适合确定要长期用。',
+  },
+  {
+    q: '订阅和补充包能同时用吗？',
+    a: '可以。订阅是"按周期自动续"，补充包是"用完手动加"。两边到账的 tokens 都进同一个余额，不分先后用。',
   },
   {
     q: '可以随时升降档 / 取消吗？',
     a: '可以。在 dashboard 点"管理订阅"会跳到 Stripe Customer Portal，取消、切档、换支付方式都在那里。已发的 tokens 永不过期，取消之后接着用旧余额。',
+  },
+  {
+    q: 'Free 用户每月会自动续 token 吗？',
+    a: '不会。注册时一次性赠送 10,000 tokens，仅此一次。用完为止；之后要继续用，可以买补充包（最便宜 ¥10 = 10K tokens）、订阅月付 / 年付，或绑 BYOK 让 LLM 走自己的 muirouter（PDF / JD 仍按 muicv tokens 扣）。',
   },
   {
     q: '不满意能退款吗？',
@@ -78,10 +83,13 @@ const PRICING_FAQ: { q: string; a: string }[] = [
   },
 ];
 
-export default async function PricingPage() {
+export default async function PricingPage(props: { searchParams: Promise<{ interval?: string }> }) {
   const auth = await getAuth();
   const session = await auth.api.getSession({ headers: await headers() });
   const isLoggedIn = !!session?.user;
+
+  const params = await props.searchParams;
+  const interval: BillingInterval = params.interval === 'yearly' ? 'yearly' : 'monthly';
 
   return (
     <div className="relative">
@@ -99,12 +107,10 @@ export default async function PricingPage() {
               永不过期。
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.7] text-ink-soft">
-              注册即送 10,000 tokens；不够用了选月卡或补充包。Skill 始终免费，BYOK 始终可用。
+              注册即送 10,000 tokens（一次性）。不够用了选月付 / 年付订阅，或随时买补充包。Skill 始终免费，BYOK
+              始终可用。
             </p>
-            <div className="mx-auto mt-6 inline-flex items-center gap-2 rounded-full border-2 border-corgi/60 bg-fluff px-3.5 py-1 text-[12px] font-semibold text-yellow-deep">
-              <Sparkle />
-              一个余额，覆盖所有云端服务
-            </div>
+            <IntervalToggle current={interval} />
           </div>
         </div>
       </section>
@@ -114,13 +120,13 @@ export default async function PricingPage() {
           <div className="grid gap-5 md:grid-cols-3">
             <FreeCard isLoggedIn={isLoggedIn} />
             {SUB_TIERS.map((tier) => (
-              <SubscriptionCard key={tier.key} tier={tier} isLoggedIn={isLoggedIn} />
+              <SubscriptionCard key={tier.key} tier={tier} interval={interval} isLoggedIn={isLoggedIn} />
             ))}
           </div>
 
           <div className="mt-12">
             <h2 className="text-[20px] font-extrabold text-ink">补充包（一次性买，永不过期）</h2>
-            <p className="mt-2 max-w-2xl text-[14px] text-ink-soft">没准备订月卡，或者偶尔超用一次。任何时候都能买。</p>
+            <p className="mt-2 max-w-2xl text-[14px] text-ink-soft">没准备订阅，或者偶尔超用一次。任何时候都能买。</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-3">
               {(['small', 'medium', 'large'] as const).map((key) => {
                 const pack = TOPUP_PACKS[key];
@@ -179,6 +185,29 @@ export default async function PricingPage() {
   );
 }
 
+function IntervalToggle({ current }: { current: BillingInterval }) {
+  return (
+    <div className="mx-auto mt-6 inline-flex rounded-full border-2 border-ink bg-cream p-1 text-[13px] font-bold shadow-[0_3px_0_0_var(--color-yellow-deep)]">
+      <a
+        href="/pricing?interval=monthly"
+        className={`rounded-full px-4 py-1.5 transition-colors ${
+          current === 'monthly' ? 'bg-yellow text-ink' : 'text-ink-soft hover:text-ink'
+        }`}
+      >
+        月付
+      </a>
+      <a
+        href="/pricing?interval=yearly"
+        className={`rounded-full px-4 py-1.5 transition-colors ${
+          current === 'yearly' ? 'bg-yellow text-ink' : 'text-ink-soft hover:text-ink'
+        }`}
+      >
+        年付 <span className="ml-1 font-mono text-[10px] text-yellow-deep">省 ≈20%</span>
+      </a>
+    </div>
+  );
+}
+
 function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
   const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
   const ctaLabel = isLoggedIn ? '进入 Dashboard' : '免费注册领 10K tokens';
@@ -191,7 +220,7 @@ function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
           <span className="text-3xl font-extrabold text-ink tabular-nums">10,000</span>
           <span className="text-[14px] font-bold text-ink-soft">tokens</span>
         </div>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">注册即送 · 一次性</p>
+        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">注册赠送 · 仅一次</p>
       </div>
       <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">
         <li className="flex items-start gap-2 text-ink-soft">
@@ -204,7 +233,7 @@ function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
           <CheckBullet /> 接入 BYOK 即可"无限"用 LLM
         </li>
         <li className="flex items-start gap-2 text-ink-soft">
-          <CheckBullet /> 社区支持
+          <CheckBullet /> 用完后买补充包或订阅，余额永不过期
         </li>
       </ul>
       <a
@@ -218,8 +247,17 @@ function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 }
 
-function SubscriptionCard({ tier, isLoggedIn }: { tier: SubTier; isLoggedIn: boolean }) {
+function SubscriptionCard({
+  tier,
+  interval,
+  isLoggedIn,
+}: {
+  tier: SubTier;
+  interval: BillingInterval;
+  isLoggedIn: boolean;
+}) {
   const plan = SUBSCRIPTION_PLANS[tier.key];
+  const cycle = plan[interval];
   const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
   const ctaLabel = isLoggedIn ? '在 Dashboard 升级' : '注册后开通';
 
@@ -237,18 +275,21 @@ function SubscriptionCard({ tier, isLoggedIn }: { tier: SubTier; isLoggedIn: boo
           {tier.badge}
         </span>
       )}
-      <h3 className="text-[20px] font-extrabold text-ink">{tier.name}</h3>
+      <h3 className="text-[20px] font-extrabold text-ink">{plan.label}</h3>
       <p className="mt-1 text-[13px] leading-[1.6] text-ink-soft">{tier.tagline}</p>
       <div className="mt-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-ink tabular-nums">{plan.priceCnyDisplay}</span>
+          <span className="text-3xl font-extrabold text-ink tabular-nums">{cycle.priceCnyDisplay}</span>
         </div>
         <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">
-          每月 {plan.monthlyTokens.toLocaleString()} tokens
+          {interval === 'yearly' ? '每年' : '每月'} {cycle.tokens.toLocaleString()} tokens
         </p>
+        {interval === 'yearly' && 'savingsLabel' in cycle && (
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-yellow-deep">{cycle.savingsLabel}</p>
+        )}
       </div>
       <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">
-        {tier.features.map((f) => (
+        {tier.features(interval).map((f) => (
           <li key={f} className="flex items-start gap-2 text-ink-soft">
             <CheckBullet />
             <span>{f}</span>

@@ -2,13 +2,14 @@ import { eq } from 'drizzle-orm';
 
 import { getDb, schema } from '@/lib/db';
 import { getCurrentSession } from '@/lib/session';
+import { priceIdToPlanInterval } from '@/lib/stripe';
 import { ensureBalance, listLedger } from '@/lib/wallet';
 
 import { BillingActions } from './billing-actions';
 
 const LEDGER_TYPE_LABEL: Record<string, string> = {
   signup_bonus: '注册赠送',
-  subscription: '月卡续费',
+  subscription: '订阅续费',
   topup: '补充包',
   llm: 'LLM 调用',
   pdf_render: 'PDF 渲染',
@@ -59,6 +60,7 @@ export async function PlansSection() {
       currentPeriodEnd: schema.subscription.currentPeriodEnd,
       cancelAtPeriodEnd: schema.subscription.cancelAtPeriodEnd,
       stripeSubscriptionId: schema.subscription.stripeSubscriptionId,
+      stripePriceId: schema.subscription.stripePriceId,
     })
     .from(schema.subscription)
     .where(eq(schema.subscription.userId, userId))
@@ -66,6 +68,10 @@ export async function PlansSection() {
   const sub = subRows[0];
   const hasActive =
     !!sub?.stripeSubscriptionId && (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due');
+
+  // 反查月付 / 年付，给状态卡显示正确的 cycle 单位
+  const subMeta = sub?.stripePriceId ? await priceIdToPlanInterval(sub.stripePriceId) : null;
+  const cycleLabel = subMeta?.interval === 'yearly' ? '年' : '月';
 
   const ledger = await listLedger(userId, 15);
 
@@ -96,7 +102,9 @@ export async function PlansSection() {
             <p className="mt-1 text-ink-soft">
               下次{sub.cancelAtPeriodEnd ? '到期' : '续费'}时间：{formatTimestamp(sub.currentPeriodEnd.getTime())}
               {sub.monthlyTokens != null && (
-                <span className="ml-1">（+{sub.monthlyTokens.toLocaleString()} tokens / 月）</span>
+                <span className="ml-1">
+                  （续费时 +{sub.monthlyTokens.toLocaleString()} tokens / {cycleLabel}）
+                </span>
               )}
             </p>
           )}

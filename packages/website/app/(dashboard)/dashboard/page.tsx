@@ -33,8 +33,8 @@ export default async function DashboardPage() {
           欢迎回来{user.name ? `，${user.name}` : ''}。
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          所有 muicv 服务（云端 LLM、PDF 导出、JD 抓取）都按 token 计费，余额永不过期。 注册即送 10K
-          tokens，订阅月卡或买补充包都能续。
+          所有 muicv 服务（云端 LLM、PDF 导出、JD 抓取）都按 token 计费，余额永不过期。 注册一次性送 10K
+          tokens；用完后订阅（月付 / 年付）或买补充包都能续。
         </p>
       </header>
 
@@ -48,7 +48,7 @@ export default async function DashboardPage() {
         <Card label="账号 ID" value={user.id} mono />
         <Card label="API Keys" value="见下方管理 ↓" hint="桌面 app 唯一登录凭证" />
         <Card label="muirouter (BYOK)" value="见下方绑定 ↓" hint="LLM 走你自己余额" />
-        <Card label="订阅 / 充值" value="见下方 ↓" hint="月卡 + 补充包" />
+        <Card label="订阅 / 充值" value="见下方 ↓" hint="订阅 + 补充包" />
       </section>
 
       <ApiKeysSection />

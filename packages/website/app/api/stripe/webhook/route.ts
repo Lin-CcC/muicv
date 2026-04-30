@@ -3,7 +3,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type Stripe from 'stripe';
 
 import { getDb, schema } from '@/lib/db';
-import { getStripe, priceIdToMonthlyTokens, priceIdToTopupTokens } from '@/lib/stripe';
+import { getStripe, priceIdToCycleTokens, priceIdToTopupTokens } from '@/lib/stripe';
 import { credit } from '@/lib/wallet';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,8 @@ export const dynamic = 'force-dynamic';
  * 处理事件：
  *   - checkout.session.completed (mode=payment)：补充包付款成功 → +tokens
  *   - customer.subscription.created / updated / deleted：同步 subscription 表
- *   - invoice.paid (subscription)：月卡续费 → +monthlyTokens
+ *   - invoice.paid (subscription)：订阅续费 → +cycleTokens（月付每月一次，
+ *     年付每年一次性发整年用量）
  *   - invoice.payment_failed：不上账，仅更新 status（用户被提示修复支付方式）
  *
  * 双层幂等：
@@ -131,7 +132,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   );
 }
 
-/** 月卡订阅创建 / 更新 → 同步 subscription 表。token 入账走 invoice.paid。 */
+/** 订阅创建 / 更新 → 同步 subscription 表。token 入账走 invoice.paid。 */
 async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
   const userId = await resolveUserIdFromCustomer(customerId, sub);
@@ -139,7 +140,7 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
 
   const item = sub.items.data[0];
   const priceId = item?.price?.id ?? null;
-  const monthlyTokens = priceId ? await priceIdToMonthlyTokens(priceId) : null;
+  const cycleTokens = priceId ? await priceIdToCycleTokens(priceId) : null;
 
   // Stripe period 字段在 Subscription.items.data[0] 上（API 2026-04-22）
   const periodStart = item?.current_period_start ?? null;
@@ -152,7 +153,7 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
     .set({
       stripeSubscriptionId: sub.id,
       stripePriceId: priceId,
-      monthlyTokens,
+      monthlyTokens: cycleTokens, // 字段历史名 monthlyTokens，存"每个 cycle 上账数"（年付填整年）
       status: sub.status,
       currentPeriodStart: periodStart ? new Date(periodStart * 1000) : null,
       currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
@@ -180,7 +181,7 @@ async function handleSubscriptionDeleted(sub: Stripe.Subscription) {
 }
 
 /**
- * 月卡续费成功 → 给 user balance +monthlyTokens。
+ * 订阅续费成功 → 给 user balance += cycleTokens（月付每月，年付每年一次性整年）。
  * 用 invoice.id 做 ledgerId，Stripe 重发同一张 invoice 也不会重复入账。
  */
 async function handleInvoicePaid(invoice: Stripe.Invoice) {
@@ -194,10 +195,10 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const userId = await resolveUserIdFromCustomer(customerId, null);
   if (!userId) return;
 
-  // 从 invoice line items 反查 priceId → monthlyTokens
+  // 从 invoice line items 反查 priceId → cycleTokens
   const line = invoice.lines.data[0];
   const priceId = typeof line?.pricing?.price_details?.price === 'string' ? line.pricing.price_details.price : null;
-  const tokens = priceId ? await priceIdToMonthlyTokens(priceId) : null;
+  const tokens = priceId ? await priceIdToCycleTokens(priceId) : null;
   if (tokens == null) {
     throw new Error(`invoice.paid price ${priceId} not in subscription map (invoice=${invoice.id})`);
   }

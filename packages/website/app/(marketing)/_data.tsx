@@ -87,26 +87,25 @@ export const FAQ_ITEMS: { q: string; a: ReactNode }[] = [
     ),
   },
   {
-    q: '怎么收费？档位什么样？',
+    q: '怎么收费？',
     a: (
       <>
-        四档结构：
+        统一 token 钱包：
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
-            <strong>Free</strong>：每月免费额度试用，可输出 markdown 简历；不含 PDF 导出 / 招聘库 / 辅助投递
+            <strong>注册一次性赠送 10,000 tokens</strong>，永不过期，用完为止
           </li>
           <li>
-            <strong>Pro</strong>：更多额度 + PDF + 招聘库 + 辅助投递（数量受限）
+            <strong>订阅</strong>：Pro / Max 月付或年付，按周期自动续 token；年付一次发整年用量，约 8 折
           </li>
           <li>
-            <strong>Max</strong>：不受限，适合密集求职阶段
+            <strong>补充包</strong>：一次性买 10K / 35K / 130K tokens，随用随买
           </li>
           <li>
-            <strong>BYOK</strong>（覆盖任意档）：在 dashboard 绑定自己的 LLM
-            余额，使用费按你自己的用量计；功能权限按所在档位
+            <strong>BYOK</strong>：在 dashboard 绑你自己的 muirouter，LLM 走你余额；PDF / JD 仍按 muicv tokens 扣
           </li>
         </ul>
-        具体价格请看{' '}
+        所有云端服务（云端 LLM、PDF、JD）按 token 扣费。具体价格请看{' '}
         <a
           href="/pricing"
           className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"

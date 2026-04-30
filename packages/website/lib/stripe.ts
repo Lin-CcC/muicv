@@ -1,4 +1,10 @@
-import { type SubscriptionPlanKey, type TopupPackKey, SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
+import {
+  type BillingInterval,
+  type SubscriptionPlanKey,
+  type TopupPackKey,
+  SUBSCRIPTION_PLANS,
+  TOPUP_PACKS,
+} from '@muicv/shared';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
@@ -28,16 +34,16 @@ export async function getStripe(): Promise<Stripe> {
 }
 
 /**
- * 月卡 plan key → Stripe price id（从 wrangler vars 读）。
+ * 订阅 plan + interval → Stripe price id（从 wrangler vars 读）。
  * 切 live mode 时换 wrangler.jsonc vars 即可。
  */
-export async function planKeyToPriceId(plan: SubscriptionPlanKey): Promise<string> {
+export async function planKeyToPriceId(plan: SubscriptionPlanKey, interval: BillingInterval): Promise<string> {
   const { env } = await getCloudflareContext({ async: true });
-  const map: Record<SubscriptionPlanKey, string> = {
-    pro: env.STRIPE_PRICE_PRO_MONTHLY,
-    max: env.STRIPE_PRICE_MAX_MONTHLY,
+  const map: Record<SubscriptionPlanKey, Record<BillingInterval, string>> = {
+    pro: { monthly: env.STRIPE_PRICE_PRO_MONTHLY, yearly: env.STRIPE_PRICE_PRO_YEARLY },
+    max: { monthly: env.STRIPE_PRICE_MAX_MONTHLY, yearly: env.STRIPE_PRICE_MAX_YEARLY },
   };
-  return map[plan];
+  return map[plan][interval];
 }
 
 export async function topupPackToPriceId(pack: TopupPackKey): Promise<string> {
@@ -51,13 +57,28 @@ export async function topupPackToPriceId(pack: TopupPackKey): Promise<string> {
 }
 
 /**
- * Stripe price id → 月卡每月发放 token 数。webhook 处理 invoice.paid 时按这个上账。
+ * Stripe price id → 一个 cycle 上账的 token 数（月付每月，年付每年一次性）。
+ * webhook 处理 invoice.paid 时按这个上账。
  * priceId 不在表里就返 null（可能是被人在 Stripe 后台手动绑了未知 price，需告警）。
  */
-export async function priceIdToMonthlyTokens(priceId: string): Promise<number | null> {
+export async function priceIdToCycleTokens(priceId: string): Promise<number | null> {
   const { env } = await getCloudflareContext({ async: true });
-  if (priceId === env.STRIPE_PRICE_PRO_MONTHLY) return SUBSCRIPTION_PLANS.pro.monthlyTokens;
-  if (priceId === env.STRIPE_PRICE_MAX_MONTHLY) return SUBSCRIPTION_PLANS.max.monthlyTokens;
+  if (priceId === env.STRIPE_PRICE_PRO_MONTHLY) return SUBSCRIPTION_PLANS.pro.monthly.tokens;
+  if (priceId === env.STRIPE_PRICE_PRO_YEARLY) return SUBSCRIPTION_PLANS.pro.yearly.tokens;
+  if (priceId === env.STRIPE_PRICE_MAX_MONTHLY) return SUBSCRIPTION_PLANS.max.monthly.tokens;
+  if (priceId === env.STRIPE_PRICE_MAX_YEARLY) return SUBSCRIPTION_PLANS.max.yearly.tokens;
+  return null;
+}
+
+/** Stripe price id → ('pro'|'max', 'monthly'|'yearly')。订阅状态卡显示"年付/月付"用。 */
+export async function priceIdToPlanInterval(
+  priceId: string,
+): Promise<{ plan: SubscriptionPlanKey; interval: BillingInterval } | null> {
+  const { env } = await getCloudflareContext({ async: true });
+  if (priceId === env.STRIPE_PRICE_PRO_MONTHLY) return { plan: 'pro', interval: 'monthly' };
+  if (priceId === env.STRIPE_PRICE_PRO_YEARLY) return { plan: 'pro', interval: 'yearly' };
+  if (priceId === env.STRIPE_PRICE_MAX_MONTHLY) return { plan: 'max', interval: 'monthly' };
+  if (priceId === env.STRIPE_PRICE_MAX_YEARLY) return { plan: 'max', interval: 'yearly' };
   return null;
 }
 

@@ -31,7 +31,7 @@ export async function POST() {
   const customerId = rows[0]?.stripeCustomerId;
   if (!customerId) {
     return Response.json(
-      { error: 'no-customer', message: '还没买过任何东西，无需进入账单中心。先升级月卡或买补充包吧。' },
+      { error: 'no-customer', message: '还没买过任何东西，无需进入账单中心。先订阅或买补充包吧。' },
       { status: 400 },
     );
   }
