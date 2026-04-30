@@ -33,13 +33,13 @@ export const JD_FETCH_COST = 300;
 export const SUBSCRIPTION_PLANS = {
   pro: {
     label: 'Pro',
-    monthly: { tokens: 100_000, priceCnyDisplay: '¥30 / 月' },
-    yearly: { tokens: 1_200_000, priceCnyDisplay: '¥288 / 年', savingsLabel: '相当于 ¥24 / 月，省 20%' },
+    monthly: { tokens: 500_000, priceCnyDisplay: '$4.99 / 月' },
+    yearly: { tokens: 6_000_000, priceCnyDisplay: '$49.99 / 年', savingsLabel: '相当于 $4.16 / 月，省 17%' },
   },
   max: {
     label: 'Max',
-    monthly: { tokens: 500_000, priceCnyDisplay: '¥98 / 月' },
-    yearly: { tokens: 6_000_000, priceCnyDisplay: '¥948 / 年', savingsLabel: '相当于 ¥79 / 月，省 19%' },
+    monthly: { tokens: 2_500_000, priceCnyDisplay: '$15.88 / 月' },
+    yearly: { tokens: 48_000_000, priceCnyDisplay: '$158.88 / 年', savingsLabel: '相当于 $13.24 / 月，省 17%' },
   },
 } as const;
 
@@ -51,9 +51,9 @@ export type BillingInterval = 'monthly' | 'yearly';
  * priceCnyDisplay 仅展示用，真实价格在 Stripe price 上。
  */
 export const TOPUP_PACKS = {
-  small: { tokens: 10_000, priceCnyDisplay: '¥10' },
-  medium: { tokens: 35_000, priceCnyDisplay: '¥30' },
-  large: { tokens: 130_000, priceCnyDisplay: '¥100' },
+  small: { tokens: 100_000, priceCnyDisplay: '$1.98' },
+  medium: { tokens: 400_000, priceCnyDisplay: '$4.98' },
+  large: { tokens: 2_000_000, priceCnyDisplay: '$15.98' },
 } as const;
 
 export type TopupPackKey = keyof typeof TOPUP_PACKS;
