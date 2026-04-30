@@ -4,7 +4,7 @@
 
 - Node.js >= 24
 - pnpm（见根目录 `package.json` 的 `packageManager`）
-- Docker（可选，跑 `packages/api` 的 Container 时需要）
+- Cloudflare 账号（Workers Paid Plan + Browser Rendering 已启用，跑 `packages/api` dev / e2e 需要）
 
 ## 安装依赖
 
@@ -44,11 +44,14 @@ pnpm dev
 pnpm dev:cf
 ```
 
-API（PDF 渲染 + JD 抓取 + waitlist，需要 Docker）：
+API（PDF 渲染 + JD 抓取 + waitlist）：
 
 ```bash
-pnpm dev:api
+# Browser Rendering 跑在 Cloudflare 浏览器集群，本地 workerd 没有它，必须 --remote
+pnpm --filter @muicv/api dev
 ```
+
+详见 [DEPLOYMENT.md](./DEPLOYMENT.md#packagesapipdf-渲染-api) 的本地开发节。
 
 ## 验证 Cloudflare 部署
 
@@ -61,11 +64,12 @@ pnpm --filter @muicv/website cf-typegen
 # website：构建 Worker bundle（不部署）
 pnpm --filter @muicv/website cf:build
 
-# api：dry-run 含 Docker 镜像构建
+# api：dry-run 检查 wrangler bundle
 pnpm --filter @muicv/api build
 ```
 
 ## 说明
 
 - 端到端测试待补齐
-- `packages/api` 的 Container 在本地 dev 需要 Docker（OrbStack / Docker Desktop / Colima 任选）
+- `packages/api` 本地 dev 必须 `wrangler dev --remote`（Browser Rendering 不支持纯本地）
+- `puppeteer.goto` 必须能访问公网 URL，本地 localhost 够不到；dev 期间走的是已部署到 muicv.com 的 prod packages/website（改 website 必须先 deploy 才能在 puppeteer 里看到效果）

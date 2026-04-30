@@ -7,31 +7,36 @@
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
   // 生产域名：api.muicv.com。首次部署前确保 Cloudflare DNS 有 `api`
   // CNAME（任意 target，proxy 必须开），routes 把流量绑到本 Worker。
-  "routes": [{ "pattern": "api.muicv.com/*", "zone_name": "muicv.com" }],
-  // Cloudflare Container：Node + Chromium + Puppeteer，承载 /render、/jobs/fetch。
-  // 参见 https://developers.cloudflare.com/containers/
-  "containers": [
+  "routes": [
     {
-      "class_name": "BrowserContainer",
-      "image": "./container/Dockerfile",
-      // MVP 先设小一点，观察实际并发
-      "max_instances": 3
+      "pattern": "api.muicv.com/*",
+      "zone_name": "muicv.com"
     }
   ],
-  // Container 必须通过 Durable Object 暴露
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "BROWSER",
-        "class_name": "BrowserContainer"
-      }
-    ]
+  // Cloudflare Browser Rendering：跑托管 Chromium 给 puppeteer.goto / page.pdf 用。
+  // 替代了原本的 Container/DO 方案，详见 https://developers.cloudflare.com/browser-rendering/
+  "browser": {
+    "binding": "BROWSER"
   },
-  // Container 对应的 DO 必须用 new_sqlite_classes 迁移
+  // BrowserContainer 已彻底下线。上一次 deploy 完成「无 binding 引用」的过渡状态，
+  // 这次 deploy 加 v2 deleted_classes 真正把 class 从 Cloudflare 卸掉。
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["BrowserContainer"]
+    },
+    {
+      "tag": "v2",
+      "deleted_classes": ["BrowserContainer"]
+    }
+  ],
+  // 共享 KV：与 packages/website 用同一个 namespace。
+  // /render 写一次性 token（key 形如 `resume:<uuid>`，5min TTL），
+  // packages/website 的 /r/render/[token] 路由读取后渲染。
+  "kv_namespaces": [
+    {
+      "binding": "MUICV_KV",
+      "id": "3db8f70ff2494a798b06ba699adc6d5a"
     }
   ],
   // D1：和 packages/website 共用同一个名为 `muicv` 的数据库。本 worker 主要写
@@ -44,8 +49,21 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Wrangler 把这两个 .js 文件当文本资源 import（fetch-jd.ts 注入到 page 内跑）。
+  // fallthrough: true 让默认的 txt/html/sql Text 规则继续生效，否则它们会被本规则替代。
+  "rules": [
+    {
+      "type": "Text",
+      "globs": ["**/Readability.js", "**/turndown.js"],
+      "fallthrough": true
+    }
+  ],
+  "vars": {
+    // packages/website 的公网 base URL，puppeteer.goto 用它拼出 /r/render/[token]
+    "RENDER_BASE_URL": "https://muicv.com"
+  },
   "observability": {
-    "enabled": false
+    "enabled": true
   },
   "placement": {
     "mode": "smart"

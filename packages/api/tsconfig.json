@@ -2,11 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2024"],
-    "types": ["@cloudflare/workers-types"],
+    // 不再用 @cloudflare/workers-types：wrangler types 自动把 runtime types 写进
+    // worker-configuration.d.ts，已经覆盖所有 Workers / nodejs_compat 的全局类型。
+    "types": ["@types/node"],
     "jsx": "react-jsx",
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts", "worker-configuration.d.ts", "env.d.ts"],
-  "exclude": ["node_modules", "container", "dist"]
+  "exclude": ["node_modules", "dist"]
 }

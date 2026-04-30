@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
+import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
+import { renderPdf } from './lib/render-pdf.ts';
 import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
@@ -76,20 +78,13 @@ app.all('/llm/v1/*', requireApiKey, handleLlmProxy);
 app.post('/waitlist', handleWaitlist);
 
 /**
- * 小工具：把请求代理到共享的 BrowserContainer DO（singleton）。
- * 未来按租户隔离时可以改成 idFromName(userId) 之类。
- */
-function proxyToContainer(env: CloudflareBindings, path: string, init: RequestInit): Promise<Response> {
-  const id = env.BROWSER.idFromName('default');
-  const stub = env.BROWSER.get(id);
-  return stub.fetch(`http://do${path}`, init);
-}
-
-/**
  * POST /render
  *
  * Body: { markdown: string, template?: string }
  * 响应：200 application/pdf + PDF bytes
+ *
+ * 实现：写一次性 token 进 MUICV_KV，puppeteer.goto packages/website 的
+ * /r/render/[token]，等字体加载完，page.pdf 出 A4。详见 src/lib/render-pdf.ts。
  */
 app.post('/render', optionalApiKey, async (c) => {
   const contentType = c.req.header('content-type') ?? '';
@@ -109,18 +104,20 @@ app.post('/render', optionalApiKey, async (c) => {
   }
   const template = typeof payload.template === 'string' ? payload.template : 'default';
 
-  const containerResponse = await proxyToContainer(c.env, '/render', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ markdown: payload.markdown, template }),
-  });
-
-  if (!containerResponse.ok) {
-    const text = await containerResponse.text().catch(() => '');
-    return c.json({ error: 'container 渲染失败', status: containerResponse.status, detail: text.slice(0, 500) }, 502);
+  let pdf: Uint8Array;
+  try {
+    pdf = await renderPdf({ markdown: payload.markdown, template }, c.env);
+  } catch (error) {
+    return c.json(
+      {
+        error: 'PDF 渲染失败',
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      502,
+    );
   }
 
-  return new Response(containerResponse.body, {
+  return new Response(pdf, {
     status: 200,
     headers: {
       'content-type': 'application/pdf',
@@ -161,20 +158,24 @@ app.post('/jobs/fetch', optionalApiKey, async (c) => {
   if (typeof payload.url !== 'string' || !/^https?:\/\//i.test(payload.url)) {
     return c.json({ error: '字段 `url` 必须是合法 http/https URL' }, 400);
   }
+  const url = payload.url;
 
-  const containerResponse = await proxyToContainer(c.env, '/jobs/fetch', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ url: payload.url }),
-  });
-
-  // Container 侧无论成功失败都返回 JSON，这里透传即可
-  return new Response(containerResponse.body, {
-    status: containerResponse.status,
-    headers: {
-      'content-type': 'application/json',
-    },
-  });
+  try {
+    const result = await fetchJd({ url }, c.env);
+    return c.json(result);
+  } catch (error) {
+    if (error instanceof FetchJdError) {
+      return c.json(error.detail, error.status);
+    }
+    return c.json(
+      {
+        error: 'fetch 失败',
+        detail: error instanceof Error ? error.message : String(error),
+        url,
+      },
+      502,
+    );
+  }
 });
 
 export default app;

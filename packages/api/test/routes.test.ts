@@ -33,10 +33,15 @@ function mockEnv(opts: MockOptions = {}): unknown {
   };
   return {
     MUICV_API_DB: { prepare: () => stmt },
-    BROWSER: {
-      idFromName: () => ({}),
-      get: () => ({ fetch: async () => new Response('') }),
+    // BROWSER / MUICV_KV 这些只需要满足 type shape；当前测试只覆盖入口校验
+    // 路径，不会真的走 puppeteer 渲染 / KV 读写。
+    BROWSER: { fetch: async () => new Response('') },
+    MUICV_KV: {
+      put: async () => {},
+      get: async () => null,
+      delete: async () => {},
     },
+    RENDER_BASE_URL: 'https://muicv.com',
   };
 }
 

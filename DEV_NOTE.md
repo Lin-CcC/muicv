@@ -2,7 +2,7 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-04-26
+最后更新：2026-04-29
 
 ---
 
@@ -15,16 +15,41 @@
   跑 `pnpm --filter @muicv/website cf-typegen` 重新生成即可。
 - 本地开发两套：`pnpm dev` 是纯 Next.js，最快；`pnpm dev:cf` 走 Wrangler，更贴近生产 Worker 行为。
 
-## Cloudflare Container（packages/api）
+## Cloudflare Browser Rendering（packages/api）
 
-- **Container 通过单 DO singleton 暴露**：`env.BROWSER.idFromName('default')`。
-  当前所有用户共用一个 Puppeteer 实例，未来按用户分片时改成 `idFromName(userId)` 即可，
-  上层接口保持不变。
-- **本地 dev 必须 Docker**（OrbStack / Docker Desktop / Colima 任选其一）——
-  Cloudflare Container 在 wrangler dev 里实际上启动一个本地容器跑 `container/server.ts`。
-- `/jobs/fetch` 的明确边界：**不**绕登录墙、**不**对抗 Turnstile / Captcha、
-  **不**伪装 UA 规避 ToS；container 侧 20s 超时硬上限。要做反爬就改产品方向。
-- `/render` 用 Puppeteer + Chromium 把 markdown 渲染成 A4 PDF，模板系统在 container 里。
+> 历史：原本是 Cloudflare Container（Node + Chromium + Puppeteer）+ Durable Object 单
+> singleton。2026-04 切到 Browser Rendering（Workers Binding `@cloudflare/puppeteer`），
+> 拆掉 Dockerfile / Container / DO，模板从 setContent(html string) 升级到
+> `puppeteer.goto(URL)`，URL 指向 packages/website 的 React 组件 SSR 路由。
+
+- **`/render` 调用链**：写一次性 token 到 `MUICV_KV` → `puppeteer.goto(${RENDER_BASE_URL}/r/render/${token})` →
+  `await page.evaluateHandle('document.fonts.ready')` → `page.pdf({ format: 'A4' })` → 删 KV。
+  详见 `packages/api/src/lib/render-pdf.ts`。
+- **`/jobs/fetch`**：`puppeteer.goto(jdUrl)` → `addScriptTag` 注入 Readability + turndown
+  → `page.evaluate` 在浏览器上下文跑 `Readability.parse()` + `turndown()` 一气呵成。
+  Worker runtime 没有 DOM，所以**两个库都必须在 page 内跑**（原 container 是 turndown
+  在 Node 侧跑，迁移后必须搬进 page）。详见 `packages/api/src/lib/fetch-jd.ts`。
+  明确边界：**不**绕登录墙、**不**对抗 Turnstile / Captcha、**不**伪装 UA 规避 ToS。
+- **本地 dev 必须 `wrangler dev --remote`**：Browser Rendering 跑在 Cloudflare 浏览器集群，
+  本地 workerd 没有它，`wrangler dev` 默认 local 模式会报错。同理 `puppeteer.goto` 的目标
+  URL（`RENDER_BASE_URL`）必须公网可达，所以 dev 期间走的是已部署到 muicv.com 的 prod
+  packages/website。换句话说：本地改 packages/api 可以热重载联调；本地改 packages/website
+  必须先 deploy 到 muicv.com 才能在 puppeteer 里看到效果。
+- **字体策略**：`packages/website/app/r/render/[token]/templates/default.tsx` 通过 React
+  19 自动 hoist 的 `<link>` 加载 Google Fonts 的 Noto Sans SC（替代原 container 里
+  apt 装的 fonts-noto-cjk）。简历模板 CSS 颜色 / 字体全部绝对值，不依赖站点 globals.css 的
+  brand 变量，避免被父层污染。如果 Google Fonts 出向被墙，回退方案是改 R2 自托管子集化字体。
+- **KV token**：UUID v4，5 分钟 TTL，渲染完立即 delete。`MUICV_KV` namespace 由
+  packages/website 拥有，packages/api 用同一个 namespace id 绑定。两包 wrangler.jsonc
+  里 `kv_namespaces[0].id` 必须**完全一致**，否则 api 写的 token website 这边读不到。
+- **wrangler text rule**：`{ type: 'Text', globs: ['**/Readability.js', '**/turndown.js'] }`
+  让 fetch-jd.ts 能 `import readabilityJs from '@mozilla/readability/Readability.js'`
+  把 .js 源码当字符串拿到。`fallthrough: true` 保留默认 .txt/.html/.sql 规则。
+- **Workers / DOM lib 冲突**：page.evaluate 的回调跑在浏览器，需要 DOM 全局；Worker
+  tsconfig 不含 DOM lib。fetch-jd.ts 用 file-scoped `declare const document/window/Readability/...`
+  覆盖回调里实际用到的成员，避免在整个项目启用 DOM lib 污染 Worker 代码。
+- **DO 删除迁移**：原 `BrowserContainer` DO 通过 `migrations` 追加 v2 `deleted_classes:
+  ["BrowserContainer"]` 卸掉。Cloudflare 要求保留所有历史 migration，不能删 v1。
 
 ## packages/app（Electron）
 

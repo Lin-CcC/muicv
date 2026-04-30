@@ -1,0 +1,10 @@
+/* 简历渲染独立白底，覆盖 globals.css 的 cream 背景，
+ * 让 puppeteer 截到的页面是纯白的，浏览器直接打开调试时也是纯白。
+ */
+
+.surface {
+  background: #ffffff;
+  color: #111827;
+  min-height: 100vh;
+  width: 100%;
+}

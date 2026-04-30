@@ -5,12 +5,8 @@
   "compatibility_date": "2025-12-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
-  // 生产域名：muicv.com（landing + 未来的 dashboard）。首次部署前在 Cloudflare DNS
-  // 把 muicv.com 代理给本 Worker，然后取消注释下面 routes 即可生效。
-  // "routes": [
-  //   { "pattern": "muicv.com", "zone_name": "muicv.com", "custom_domain": true },
-  //   { "pattern": "www.muicv.com", "zone_name": "muicv.com", "custom_domain": true }
-  // ],
+  // 生产域名：muicv.com（landing + dashboard + /r/render/[token] 简历渲染 SSR）
+  "routes": [{ "pattern": "muicv.com", "zone_name": "muicv.com", "custom_domain": true }],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
@@ -25,9 +21,14 @@
       "migrations_dir": "migrations"
     }
   ],
+  // MUICV_KV 用于：(1) 简历预览渲染的短期 token（resume:* key，5min TTL，由 packages/api 写入，
+  // 本 worker 在 /r/render/[token] 路由读取）；(2) 未来 dashboard 自身需要的轻量缓存。
+  // ⚠️ id 必须和 packages/api/wrangler.jsonc 里 kv_namespaces[0].id 完全一致，否则
+  // api 写的 token website 这边读不到。
   "kv_namespaces": [
     {
-      "binding": "MUICV_KV"
+      "binding": "MUICV_KV",
+      "id": "3db8f70ff2494a798b06ba699adc6d5a"
     }
   ],
   "observability": {

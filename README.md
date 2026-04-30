@@ -84,7 +84,7 @@ Skills
 | [`muicv-core`](./skills/muicv-core/SKILL.md) | ✅ 已实现 | 初始化、添加 / 更新 / 整理素材 |
 | [`muicv-generate`](./skills/muicv-generate/SKILL.md) | ✅ 已实现 | 针对 JD 从素材库生成特定版本简历到 `versions/` |
 | [`muicv-critique`](./skills/muicv-critique/SKILL.md) | ✅ 已实现 | STAR / 量化 / 关键词对齐 / 长度 等维度评审 |
-| [`muicv-render`](./skills/muicv-render/SKILL.md) | ✅ 已实现 | 调 API 渲染 PDF（Cloudflare Container + Puppeteer） |
+| [`muicv-render`](./skills/muicv-render/SKILL.md) | ✅ 已实现 | 调 API 渲染 PDF（Cloudflare Browser Rendering + Next.js 模板） |
 | [`muicv-jobs`](./skills/muicv-jobs/SKILL.md) | ✅ 已实现 | `fetch` 抓 JD、`match` 匹配度分析、`apply` 生成 cover letter |
 
 ---
@@ -101,9 +101,8 @@ muicv/
 │   ├── website/           # Web app 本体（landing + 未来 dashboard），Next.js on OpenNext
 │   │   └── app/(marketing)/  # 营销页 route group
 │   ├── api/               # Skill 背后的 Cloudflare Worker（/render、/jobs/fetch、/waitlist）
-│   │   ├── src/           # Worker 代码
-│   │   ├── migrations/    # D1 schema
-│   │   └── container/     # Puppeteer + Chromium，跑在 Cloudflare Container 里
+│   │   ├── src/           # Worker 代码（Browser Rendering binding 调 puppeteer）
+│   │   └── migrations/    # D1 schema
 │   ├── shared/            # 领域类型（ResumeJson、frontmatter schema 等）
 │   ├── ui/                # UI 组件
 │   ├── cron/              # 定时任务骨架
@@ -118,7 +117,7 @@ muicv/
 
 - **Skills**：Markdown + frontmatter，符合 [Claude Skill 规范](https://code.claude.com/docs/en/skills)
 - **Web (`packages/website`)**：Next.js 16 on OpenNext / Cloudflare Workers — landing + dashboard
-- **API (`packages/api`)**：Cloudflare Worker + Hono；PDF 渲染用 Cloudflare Container（Chromium + Puppeteer）
+- **API (`packages/api`)**：Cloudflare Worker + Hono；PDF 渲染用 Cloudflare Browser Rendering（puppeteer.goto packages/website 的 SSR 模板路由）；JD 抓取走同一个 binding
 - **Electron app (`packages/app`)**：electron + React + OpenAI Agents SDK，
   可下载 .dmg 直接装。LLM 走 muirouter（OpenAI 兼容）；
   调 muicv API 做 PDF 渲染 + JD 抓取

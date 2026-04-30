@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Mui简历 skill 背后的 Cloudflare Worker：PDF 渲染（Container + Puppeteer）、后续 JD 抓取等。",
+  "description": "Mui简历 skill 背后的 Cloudflare Worker：PDF 渲染（Browser Rendering + Next.js 模板）、JD 抓取、waitlist。",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --remote",
     "test": "node --test test/**/*.test.ts",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
@@ -17,10 +17,15 @@
     "db:console": "wrangler d1 execute muicv --remote --command"
   },
   "dependencies": {
+    "@cloudflare/puppeteer": "^1.1.0",
+    "@mozilla/readability": "^0.6.0",
     "@muicv/shared": "workspace:*",
-    "hono": "^4.12.15"
+    "hono": "^4.12.15",
+    "turndown": "^7.2.4"
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/turndown": "^5.0.6",
     "typescript": "^5.9.3",
     "wrangler": "^4.85.0"
   }
