@@ -1,112 +1,136 @@
+import { eq } from 'drizzle-orm';
+
+import { getDb, schema } from '@/lib/db';
+import { getCurrentSession } from '@/lib/session';
+import { ensureBalance, listLedger } from '@/lib/wallet';
+
+import { BillingActions } from './billing-actions';
+
+const LEDGER_TYPE_LABEL: Record<string, string> = {
+  signup_bonus: '注册赠送',
+  subscription: '月卡续费',
+  topup: '补充包',
+  llm: 'LLM 调用',
+  pdf_render: 'PDF 渲染',
+  jd_fetch: 'JD 抓取',
+  admin_grant: '后台补发',
+  admin_deduct: '后台扣款',
+};
+
+const SUB_STATUS_LABEL: Record<string, string> = {
+  active: '生效中',
+  trialing: '试用中',
+  past_due: '续费失败（请修复支付方式）',
+  canceled: '已取消',
+  incomplete: '未完成',
+  incomplete_expired: '未完成已过期',
+  unpaid: '欠费',
+};
+
+function formatTimestamp(ms: number): string {
+  return new Date(ms).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /**
- * 订阅档位占位卡 —— M4 起激活实际计费 / 升级流程；这里先把档位规则讲清楚，
- * 让用户对未来怎么收费 / BYOK 与档位的关系有完整心智模型。
+ * 钱包 / 订阅 / 补充包 / 流水 一站式。
+ *
+ * 用户点击月卡 / 补充包 / 管理订阅按钮 → BillingActions (client) → /api/checkout
+ * | /api/topup | /api/billing/portal → 跳 Stripe hosted 页面 → 付款 → webhook
+ * 入账（balance + ledger）→ 这个页面下次刷新看到结果。
  */
+export async function PlansSection() {
+  const session = await getCurrentSession();
+  if (!session?.user) return null;
 
-const PLANS: Array<{
-  key: string;
-  label: string;
-  price: string;
-  highlight?: boolean;
-  features: { label: string; ok: boolean | 'limited' }[];
-}> = [
-  {
-    key: 'free',
-    label: 'Free',
-    price: '¥0',
-    features: [
-      { label: '每月免费 token 试用', ok: 'limited' },
-      { label: '所有 skill / 文件工具', ok: true },
-      { label: 'Markdown 简历输出', ok: true },
-      { label: '导出 PDF 简历', ok: false },
-      { label: '招聘信息库 + 自动抓 JD', ok: false },
-      { label: '辅助投递（半自动）', ok: false },
-    ],
-  },
-  {
-    key: 'pro',
-    label: 'Pro',
-    price: '待定',
-    highlight: true,
-    features: [
-      { label: '更多平台 token 配额', ok: 'limited' },
-      { label: '所有 skill / 文件工具', ok: true },
-      { label: 'Markdown 简历输出', ok: true },
-      { label: '导出 PDF 简历', ok: true },
-      { label: '招聘信息库 + 自动抓 JD', ok: true },
-      { label: '辅助投递（每月有限）', ok: 'limited' },
-    ],
-  },
-  {
-    key: 'max',
-    label: 'Max',
-    price: '待定',
-    features: [
-      { label: '不限平台 token', ok: true },
-      { label: '所有 skill / 文件工具', ok: true },
-      { label: 'Markdown 简历输出', ok: true },
-      { label: '导出 PDF 简历', ok: true },
-      { label: '招聘信息库 + 自动抓 JD', ok: true },
-      { label: '辅助投递（不限量）', ok: true },
-    ],
-  },
-];
+  const userId = session.user.id;
+  const wallet = await ensureBalance(userId);
 
-export function PlansSection() {
+  const db = await getDb();
+  const subRows = await db
+    .select({
+      status: schema.subscription.status,
+      monthlyTokens: schema.subscription.monthlyTokens,
+      currentPeriodEnd: schema.subscription.currentPeriodEnd,
+      cancelAtPeriodEnd: schema.subscription.cancelAtPeriodEnd,
+      stripeSubscriptionId: schema.subscription.stripeSubscriptionId,
+    })
+    .from(schema.subscription)
+    .where(eq(schema.subscription.userId, userId))
+    .limit(1);
+  const sub = subRows[0];
+  const hasActive =
+    !!sub?.stripeSubscriptionId && (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due');
+
+  const ledger = await listLedger(userId, 15);
+
   return (
     <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
       <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 订阅档位</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 余额与计费</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">
-          你现在是 <span className="rounded-md bg-fluff px-2 py-0.5">Free</span>
+          余额{' '}
+          <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">
+            {wallet.balance.toLocaleString()}
+          </span>{' '}
+          tokens
         </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          升级 Pro / Max（M4 起激活）解锁 PDF 导出、招聘信息库、辅助投递。 也可以走 <strong>BYOK</strong>
-          ：在上方"muirouter 余额"绑定你自己的 muirouter key， 所有 LLM 走你自己余额，功能权限同 Free。
+          所有云端服务（LLM 调用、PDF 渲染、JD 抓取）按 token 扣费；BYOK 用户的 LLM 走自己 muirouter 余额， PDF / JD
+          仍按本余额扣。token 永不过期。
         </p>
       </header>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {PLANS.map((p) => (
-          <div
-            key={p.key}
-            className={`rounded-xl border-2 p-5 ${
-              p.highlight
-                ? 'border-yellow-deep bg-fluff shadow-[0_3px_0_0_var(--color-yellow-deep)]'
-                : 'border-rule bg-paper'
-            }`}
-          >
-            <div className="flex items-baseline justify-between">
-              <h3 className="text-[16px] font-extrabold text-ink">{p.label}</h3>
-              <span className="font-mono text-[13px] font-bold tabular-nums text-yellow-deep">{p.price}</span>
-            </div>
-            <ul className="mt-4 space-y-1.5 text-[12.5px]">
-              {p.features.map((f) => (
-                <li key={f.label} className="flex items-start gap-2">
-                  <span
-                    className={`mt-0.5 inline-block w-3 shrink-0 text-center font-bold ${
-                      f.ok === true ? 'text-yellow-deep' : f.ok === 'limited' ? 'text-amber' : 'text-mute'
-                    }`}
-                  >
-                    {f.ok === true ? '✓' : f.ok === 'limited' ? '◔' : '×'}
-                  </span>
-                  <span className={f.ok === false ? 'text-mute line-through' : 'text-ink-soft'}>{f.label}</span>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 text-[11px] text-mute">
-              {p.key === 'free' && '✓ 你当前所在档位'}
-              {p.key === 'pro' && 'M4 起开放升级'}
-              {p.key === 'max' && '团队 / 高频投递推荐'}
-            </div>
-          </div>
-        ))}
+      {hasActive && sub && (
+        <div className="mt-5 rounded-xl border-2 border-yellow-deep bg-fluff p-4 text-[13px] leading-[1.7]">
+          <p className="font-bold text-ink">
+            订阅状态：{SUB_STATUS_LABEL[sub.status] ?? sub.status}
+            {sub.cancelAtPeriodEnd ? '（周期末取消）' : ''}
+          </p>
+          {sub.currentPeriodEnd && (
+            <p className="mt-1 text-ink-soft">
+              下次{sub.cancelAtPeriodEnd ? '到期' : '续费'}时间：{formatTimestamp(sub.currentPeriodEnd.getTime())}
+              {sub.monthlyTokens != null && (
+                <span className="ml-1">（+{sub.monthlyTokens.toLocaleString()} tokens / 月）</span>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="mt-6">
+        <BillingActions hasActiveSubscription={hasActive} />
       </div>
 
-      <div className="mt-6 rounded-xl border border-rule bg-paper p-4 text-[12.5px] leading-[1.65] text-ink-soft">
-        <strong className="text-ink">BYOK（Bring Your Own Key）</strong>： 在 muirouter.com 注册，把你的 sk-gw key
-        绑到上面"muirouter 余额"。所有 LLM 调用走你自己的余额， muicv 不收 token 费。功能权限同 Free（不含 PDF / 招聘库
-        / 自动投递）， 但 skill 全套可用，可以手动复制粘贴 JD 文本来分析、生成 markdown 简历。
+      <div className="mt-8 border-t border-rule pt-6">
+        <h3 className="text-[15px] font-extrabold text-ink">最近交易</h3>
+        {ledger.length === 0 ? (
+          <p className="mt-2 text-[12.5px] text-mute">还没有任何交易。</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-rule">
+            {ledger.map((row) => (
+              <li key={row.id} className="flex items-center justify-between gap-4 py-2 text-[13px]">
+                <div className="min-w-0">
+                  <p className="font-medium text-ink">{LEDGER_TYPE_LABEL[row.type] ?? row.type}</p>
+                  <p className="font-mono text-[11px] text-mute">{formatTimestamp(row.createdAt)}</p>
+                </div>
+                <span
+                  className={`font-mono text-[13px] font-bold tabular-nums ${
+                    row.delta > 0 ? 'text-yellow-deep' : 'text-ink-soft'
+                  }`}
+                >
+                  {row.delta > 0 ? '+' : ''}
+                  {row.delta.toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );
