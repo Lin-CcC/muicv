@@ -2,7 +2,7 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-04-29
+最后更新：2026-04-30
 
 ---
 
@@ -64,6 +64,41 @@
 - 电脑端通过 GitHub Releases 分发 .dmg / .zip，tag `v*` 自动触发
   `.github/workflows/release.yml`（electron-builder）。详见 DEPLOYMENT.md。
 
+## packages/app UI 架构（IDE 三栏 + 多 profile）
+
+- **三栏布局**：左 navigator（profile 切换 + 对话列表 + 用户菜单）/ 中对话流 /
+  右 artifact 区。三栏全部由 `useAppStore` (zustand) 单一真相源驱动；右栏
+  collapsible 且宽度可拖拽（localStorage key `muicv:rightPanelWidth`，
+  clamp 到 [320, 900] 像素）。
+- **多 profile**：一个 muicv 账号下用户可建多份 "职业档案"（求职 / 跳槽 / 家人共用），
+  每份对应硬盘上一个独立目录。**目录与 profile 强绑定，按 dir 去重**（`findByDir`），
+  避免历史脏数据产生重复 profile。`ensureDefault` 用 in-flight promise 序列化，
+  防止 bootstrap + onAutoLogin 并发竞争。
+- **右栏 tree / preview 两个独立通道**：tree 是文件树根，preview 是当前预览路径，
+  两者**不互斥** —— preview 以 overlay 形式盖在 tree 上面，关掉 preview 后
+  tree 状态（展开的目录）原样保留。
+- **artifact source 二分**：agent 工具调用 emit 的 artifact 分 `read`（参考资料）/
+  `write`（产物）。read 类折叠到操作组里不打扰，write 类显眼卡片**自动开右栏**
+  让用户看到结果。判断完全靠 `source` 字段，不靠 path 推断。
+
+## packages/app 内置 PDF 预览（muicv-pdf:// custom protocol）
+
+> 简历 PDF 走 Chromium 内置 viewer 在右栏 iframe 渲染，不外开系统阅读器。
+
+- **协议注册顺序**：`protocol.registerSchemesAsPrivileged([{ scheme: 'muicv-pdf',
+  privileges: { standard: true, secure: true, stream: true } }])` 必须在
+  `app.whenReady()` **之前**调用；handler 注册（`protocol.handle`）放在
+  whenReady 里。顺序反了协议会失效。
+- **plugins: true 必须开**：Chromium 内置 PDF viewer 是 plugin，BrowserWindow
+  默认 `plugins: false` 时 `<iframe src="muicv-pdf://...">` 会**静默白屏**
+  （响应 200、内容也对，但 viewer 不接管）。开 `plugins: true` 才能让 PDF
+  在 iframe 渲染（commit 8489411）。
+- **路径白名单**：handler 里强制校验 url.hostname === 'local'、文件路径
+  必须以当前 profile 的 workspaceDir 开头、后缀必须 .pdf —— 三层 gate
+  防止 renderer 通过协议读到工作目录之外的文件。
+- **Buffer → ArrayBuffer**：返回 `Response(buf.buffer.slice(...))` 而不是
+  `Response(buf)`，否则 Buffer 在某些环境下会被识别成 SharedArrayBuffer。
+
 ## API Key / 鉴权（packages/api）
 
 - `mui_xxx` 是桌面 app + skill 的统一凭据。在 web dashboard 创建/撤销，
@@ -93,6 +128,9 @@
 ## 测试
 
 - **node:test + 默认 ts 直接跑**（`node --test`）；不要引 vitest / jest，除非有强需求。
-- `packages/shared` 是基线参考；`packages/api` 用 Hono 的 `app.request()` 测路由，
-  不需要 wrangler / miniflare。
+- `packages/shared` 是基线参考（纯类型包，目前只有一个导入 smoke test）。
+- `packages/api` 用 Hono 的 `app.request()` 测路由，不需要 wrangler / miniflare；
+  覆盖入口校验、CORS 白名单、api-key middleware 各分支（共 21 个 case）。
+- `packages/app` 测纯逻辑 helper（chat-utils 等），不测 React 组件 / IPC —— 投入
+  比回报大，留给手测和 dogfood。
 - D1 binding 在测试里用极简 mock（`prepare/bind/run/first` 全部返回 stub）。

@@ -9,6 +9,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "build:icons": "node scripts/build-icons.ts",
+    "test": "node --test test/**/*.test.ts",
     "typecheck": "tsc --noEmit",
     "package": "pnpm run build:icons && electron-vite build && electron-builder --mac --publish never",
     "package:mac": "pnpm run build:icons && electron-vite build && electron-builder --mac --publish never",

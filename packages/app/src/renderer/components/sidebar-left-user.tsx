@@ -1,0 +1,83 @@
+import { useRef, useState } from 'react';
+
+import { useAppStore } from '../lib/store';
+import { useClickOutside } from '../lib/use-click-outside';
+
+const PLAN_LABEL: Record<string, string> = {
+  free: '免费版',
+  pro: 'Pro 会员',
+  max: 'Max 会员',
+};
+
+/**
+ * 底部用户菜单：头像 / 邮箱 / 档位 + 弹出去 settings / 退出登录。
+ * 未登录时不渲染（让出空间）。
+ */
+export function UserSection() {
+  const session = useAppStore((s) => s.session);
+  const setView = useAppStore((s) => s.setView);
+  const logout = useAppStore((s) => s.logout);
+
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useClickOutside(ref, open, () => setOpen(false));
+
+  if (!session) return null;
+  const planLabel = PLAN_LABEL[session.plan] ?? session.plan;
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-fluff/60"
+      >
+        <Avatar session={session} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[12px] font-bold text-ink">{session.email}</span>
+          <span className="block text-[10.5px] text-mute">{planLabel}</span>
+        </span>
+        <span className="text-[11px] text-mute">{open ? '▾' : '▴'}</span>
+      </button>
+
+      {open && (
+        <div className="absolute bottom-full left-2 right-2 mb-1 rounded-xl border-2 border-ink bg-cream p-1 shadow-[0_5px_0_0_var(--color-ink)]">
+          <button
+            type="button"
+            onClick={() => {
+              setView('settings');
+              setOpen(false);
+            }}
+            className="block w-full rounded-md px-3 py-2 text-left text-[12.5px] font-medium text-ink hover:bg-fluff"
+          >
+            ⚙ 设置
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              void logout();
+            }}
+            className="block w-full rounded-md px-3 py-2 text-left text-[12.5px] font-medium text-tongue hover:bg-tongue/10"
+          >
+            退出登录
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Avatar({ session }: { session: { name: string; image: string | null } }) {
+  if (session.image) {
+    return (
+      <img src={session.image} alt="" className="h-7 w-7 shrink-0 rounded-full border-2 border-ink object-cover" />
+    );
+  }
+  const initial = session.name?.[0]?.toUpperCase() || 'M';
+  return (
+    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-ink bg-yellow text-[12px] font-extrabold text-ink">
+      {initial}
+    </div>
+  );
+}

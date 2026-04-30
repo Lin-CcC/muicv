@@ -151,3 +151,143 @@ test('GET /me 缺 Authorization → 401', async () => {
   const res = await app.request('/me', undefined, mockEnv(), ctx);
   assert.equal(res.status, 401);
 });
+
+test('POST /render 请求体不是合法 JSON → 400', async () => {
+  const res = await app.request(
+    '/render',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{not-json',
+    },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.match(body.error, /JSON/);
+});
+
+test('POST /render markdown 是空字符串 → 400', async () => {
+  const res = await app.request(
+    '/render',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ markdown: '   ' }),
+    },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+});
+
+test('POST /jobs/fetch content-type 不是 JSON → 400', async () => {
+  const res = await app.request(
+    '/jobs/fetch',
+    { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'hi' },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+});
+
+test('POST /jobs/fetch url 缺失 → 400', async () => {
+  const res = await app.request(
+    '/jobs/fetch',
+    { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+});
+
+test('POST /jobs/fetch 请求体不是合法 JSON → 400', async () => {
+  const res = await app.request(
+    '/jobs/fetch',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{bad',
+    },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+});
+
+test('POST /waitlist 请求体不是合法 JSON → 400', async () => {
+  const res = await app.request(
+    '/waitlist',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: 'oops',
+    },
+    mockEnv(),
+    ctx,
+  );
+  // waitlist 路由当前对非法 JSON 走 email 缺失分支 → 400
+  assert.equal(res.status, 400);
+});
+
+test('GET /me Authorization 不是 Bearer → 401', async () => {
+  const res = await app.request('/me', { headers: { authorization: 'Basic abcd' } }, mockEnv(), ctx);
+  assert.equal(res.status, 401);
+  const body = (await res.json()) as { error: string };
+  assert.match(body.error, /Bearer/);
+});
+
+test('GET /me Bearer 后是非法 key 格式 → 401', async () => {
+  const res = await app.request('/me', { headers: { authorization: 'Bearer not-a-mui-key' } }, mockEnv(), ctx);
+  assert.equal(res.status, 401);
+});
+
+test('GET /me 合法格式但 DB 查不到 key → 401', async () => {
+  const res = await app.request(
+    '/me',
+    { headers: { authorization: `Bearer mui_${'a'.repeat(32)}` } },
+    mockEnv({ first: async () => null }),
+    ctx,
+  );
+  assert.equal(res.status, 401);
+});
+
+test('GET /llm/v1/models 缺 key → 401', async () => {
+  const res = await app.request('/llm/v1/models', undefined, mockEnv(), ctx);
+  assert.equal(res.status, 401);
+});
+
+test('CORS preflight from muicv.com 被允许', async () => {
+  const res = await app.request(
+    '/render',
+    {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://muicv.com',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
+    },
+    mockEnv(),
+    ctx,
+  );
+  // hono cors middleware: 命中白名单时回 access-control-allow-origin
+  assert.equal(res.headers.get('access-control-allow-origin'), 'https://muicv.com');
+});
+
+test('CORS preflight from 未授信 origin 不返回 allow-origin', async () => {
+  const res = await app.request(
+    '/render',
+    {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'https://evil.example.com',
+        'access-control-request-method': 'POST',
+      },
+    },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.headers.get('access-control-allow-origin'), null);
+});

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { CONVERSATION_TYPE_META, type ConversationType } from '../../shared/types.ts';
 import { useAppStore } from '../lib/store';
+import { useClickOutside } from '../lib/use-click-outside';
 import { ConfirmDialog } from './confirm-dialog';
 
 const ALL_TYPES: ConversationType[] = ['core', 'generate', 'critique', 'jobs', 'interview', 'coaching'];
@@ -19,18 +20,7 @@ export function ConversationList() {
 
   const [picking, setPicking] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
-
-  // 点外面关类型选择菜单
-  useEffect(() => {
-    if (!picking) return;
-    function onMouseDown(e: MouseEvent) {
-      const target = e.target as HTMLElement | null;
-      if (!target) return;
-      if (pickerRef.current && !pickerRef.current.contains(target)) setPicking(false);
-    }
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [picking]);
+  useClickOutside(pickerRef, picking, () => setPicking(false));
 
   async function pick(type: ConversationType) {
     setPicking(false);
