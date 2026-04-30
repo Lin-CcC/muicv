@@ -165,11 +165,14 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
           // muicv-pdf:// 协议在 main 进程注册（src/main/index.ts），把 path 当 host
           // 之外的 absolute pathname 传，main 端 decodeURIComponent 后做 workspace 越权校验。
           // encodeURI 保留 / 不被编码，但中文 / 空格会被转义。
+          // iframe 用绝对填充：父级 flex 容器在某些链路下 h-full 会塌成 0，inline style
+          // 强保 100% 最稳。
           <iframe
             key={path}
             title={fileName}
             src={`muicv-pdf://local${encodeURI(path)}`}
-            className="h-full w-full flex-1 border-0 bg-white"
+            className="border-0 bg-white"
+            style={{ width: '100%', height: '100%', flex: 1 }}
           />
         )}
       </div>

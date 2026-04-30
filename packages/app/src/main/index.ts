@@ -89,6 +89,10 @@ function createWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
+      // Chromium 内置 PDF viewer 是个 plugin，Electron 默认 plugins=false 时
+      // <iframe src="muicv-pdf://..."> 会静默白屏（response 200、内容也对，但
+      // viewer 不接管）。开 plugins:true 让 PDF 直接在 iframe 渲染。
+      plugins: true,
     },
   });
 
