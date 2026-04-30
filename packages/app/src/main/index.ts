@@ -1,9 +1,9 @@
-import { mkdir, readFile, readdir } from 'node:fs/promises';
+import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron';
+import { BrowserWindow, app, dialog, ipcMain, protocol, shell } from 'electron';
 
 import type { AppConfig, ChatMessage, ConversationType, Profile } from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
@@ -59,6 +59,21 @@ app.on('open-url', (event, url) => {
 
 registerScheme();
 setMainWindowGetter(() => mainWindow);
+
+// muicv-pdf:// —— renderer 用 <iframe> 给本地 PDF 走 Chromium 内置 viewer 渲染。
+// 必须在 app.ready 之前 registerSchemesAsPrivileged，handler 在 whenReady 里 register。
+// stream: true 让大 PDF 可流式返回；standard: true 让 URL parser 走标准 host/path 解析。
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'muicv-pdf',
+    privileges: {
+      standard: true,
+      secure: true,
+      stream: true,
+      supportFetchAPI: false,
+    },
+  },
+]);
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -323,6 +338,38 @@ app.whenReady().then(() => {
   // 历史脏数据清理：早期版本因并发 ensureDefault 可能产生重复 profile，
   // 启动时按 dir 合并一次。
   dedupeProfiles();
+
+  // muicv-pdf://local/<absolute-path> → 本地 PDF 文件。
+  // 安全：必须在当前激活 profile 的 workspaceDir 之内，且后缀 .pdf。
+  protocol.handle('muicv-pdf', async (request) => {
+    const url = new URL(request.url);
+    if (url.hostname !== 'local') {
+      return new Response('Bad host', { status: 400 });
+    }
+    const filePath = decodeURIComponent(url.pathname);
+    const cfg = getConfig();
+    if (!cfg.workspaceDir || !filePath.startsWith(cfg.workspaceDir)) {
+      return new Response('Forbidden: out of workspace', { status: 403 });
+    }
+    if (!/\.pdf$/i.test(filePath)) {
+      return new Response('Not a PDF', { status: 400 });
+    }
+    try {
+      const [buf, meta] = await Promise.all([readFile(filePath), stat(filePath)]);
+      // 转成普通 ArrayBuffer，避免 Buffer 在 Response 里被当 SharedArrayBuffer
+      const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+      return new Response(ab, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-length': String(meta.size),
+          'cache-control': 'no-store',
+        },
+      });
+    } catch {
+      return new Response('Not Found', { status: 404 });
+    }
+  });
 
   if (isDev && process.platform === 'darwin') {
     app.dock?.setIcon(devIconPath);

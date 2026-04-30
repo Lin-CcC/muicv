@@ -94,7 +94,18 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const fileName = path.split(/[/\\]/).pop() ?? path;
+  const isPdf = /\.pdf$/i.test(path);
+
   useEffect(() => {
+    // PDF 走 muicv-pdf:// 让 Chromium 内置 viewer 自己 fetch，
+    // 不需要在 renderer 这边 fs.read 二进制内容。
+    if (isPdf) {
+      setContent(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -108,10 +119,7 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
     return () => {
       cancelled = true;
     };
-  }, [path]);
-
-  const fileName = path.split(/[/\\]/).pop() ?? path;
-  const isPdf = /\.pdf$/i.test(path);
+  }, [path, isPdf]);
 
   return (
     <div className="flex h-full flex-col">
@@ -140,9 +148,9 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
-        {loading && <div className="text-[12px] text-mute">读取中…</div>}
-        {error && (
+      <div className={`flex-1 ${isPdf ? 'flex flex-col' : 'overflow-y-auto px-4 py-4'}`}>
+        {loading && !isPdf && <div className="text-[12px] text-mute">读取中…</div>}
+        {error && !isPdf && (
           <div className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] text-tongue">
             {error}
           </div>
@@ -154,16 +162,15 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
           </pre>
         )}
         {isPdf && (
-          <div className="space-y-3 text-[12.5px] text-ink-soft">
-            <p>PDF 预览暂时用系统默认 PDF 阅读器打开。</p>
-            <button
-              type="button"
-              onClick={() => void window.muicv.fs.showInFolder(path)}
-              className="press inline-flex items-center justify-center rounded-lg bg-yellow px-3 py-1.5 text-[12.5px] font-bold text-ink"
-            >
-              在文件管理器里打开
-            </button>
-          </div>
+          // muicv-pdf:// 协议在 main 进程注册（src/main/index.ts），把 path 当 host
+          // 之外的 absolute pathname 传，main 端 decodeURIComponent 后做 workspace 越权校验。
+          // encodeURI 保留 / 不被编码，但中文 / 空格会被转义。
+          <iframe
+            key={path}
+            title={fileName}
+            src={`muicv-pdf://local${encodeURI(path)}`}
+            className="h-full w-full flex-1 border-0 bg-white"
+          />
         )}
       </div>
 
