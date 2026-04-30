@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+
 import { useAppStore } from '../lib/store';
 import { ChatView } from './chat-view';
 import { SettingsView } from './settings-view';
@@ -17,6 +19,7 @@ export function AppShell() {
   const rightCollapsed = useAppStore((s) => s.rightCollapsed);
   const treeRoot = useAppStore((s) => s.rightPanelTreeRoot);
   const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
+  const rightWidth = useAppStore((s) => s.rightPanelWidth);
 
   const showRight = !rightCollapsed && (treeRoot !== null || previewPath !== null);
 
@@ -31,11 +34,60 @@ export function AppShell() {
         )}
         <main className="min-w-0 flex-1 overflow-hidden">{view === 'settings' ? <SettingsView /> : <ChatView />}</main>
         {showRight && (
-          <div className="w-[440px] shrink-0">
-            <SidebarRight />
-          </div>
+          <>
+            <RightResizeHandle />
+            <div style={{ width: rightWidth }} className="shrink-0">
+              <SidebarRight />
+            </div>
+          </>
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * 右栏左边的拖拽手柄。鼠标按下后全局监听 mousemove，按"窗口右边缘到鼠标 X"
+ * 的距离更新右栏宽度（store 自动 clamp + 持久化）。
+ *
+ * 拖动时挂一个 fixed overlay：因为右栏里的 PDF viewer 是 OOP iframe，
+ * 鼠标飘进去时 mousemove 不会冒泡到主进程窗口 → handle 收不到事件、
+ * 拖动假死。overlay 把整个窗口的 pointer 事件捕获回主上下文，绕开这个问题。
+ */
+function RightResizeHandle() {
+  const setWidth = useAppStore((s) => s.setRightPanelWidth);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (!dragging) return;
+    function onMove(ev: MouseEvent) {
+      setWidth(window.innerWidth - ev.clientX);
+    }
+    function onUp() {
+      setDragging(false);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [dragging, setWidth]);
+
+  return (
+    <>
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="拖动调整右栏宽度"
+        title="拖动调整右栏宽度"
+        className="w-1 shrink-0 cursor-col-resize bg-rule hover:bg-yellow active:bg-yellow"
+      />
+      {dragging && <div className="fixed inset-0 z-50 cursor-col-resize" />}
+    </>
   );
 }

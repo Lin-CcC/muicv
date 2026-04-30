@@ -85,6 +85,8 @@ type AppStore = {
    */
   rightPanelTreeRoot: string | null;
   rightPanelPreviewPath: string | null;
+  /** 右栏宽度（像素），可拖拽调整，localStorage 持久化。 */
+  rightPanelWidth: number;
   toggleLeft: () => void;
   toggleRight: () => void;
   /** 打开文件树（path 缺省时用当前 profile 的 workspaceDir）。 */
@@ -95,6 +97,8 @@ type AppStore = {
   closePreview: () => void;
   /** 关掉整个右栏（树 + preview 全清）。 */
   closeRightPanel: () => void;
+  /** 拖拽 resize handle 时调用，自动 clamp + 写 localStorage。 */
+  setRightPanelWidth: (w: number) => void;
 };
 
 /** 路由：未登录 → login；已登录 → chat（默认）/ settings（用户主动切）。 */
@@ -102,6 +106,25 @@ function routeFor(session: SessionInfo | null, current: View): View {
   if (!session) return 'login';
   if (current === 'login') return 'chat';
   return current;
+}
+
+// 右栏宽度持久化：localStorage 简单存数字，带边界 clamp。
+const RIGHT_WIDTH_KEY = 'muicv:rightPanelWidth';
+const RIGHT_WIDTH_MIN = 320;
+const RIGHT_WIDTH_MAX = 900;
+const RIGHT_WIDTH_DEFAULT = 440;
+
+function loadRightWidth(): number {
+  try {
+    const raw = localStorage.getItem(RIGHT_WIDTH_KEY);
+    const n = raw ? Number(raw) : Number.NaN;
+    if (Number.isFinite(n) && n >= RIGHT_WIDTH_MIN && n <= RIGHT_WIDTH_MAX) return n;
+  } catch {}
+  return RIGHT_WIDTH_DEFAULT;
+}
+
+function clampRightWidth(w: number): number {
+  return Math.max(RIGHT_WIDTH_MIN, Math.min(RIGHT_WIDTH_MAX, w));
 }
 
 function deriveActiveProfile(cfg: AppConfig): Profile | null {
@@ -313,6 +336,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   rightCollapsed: true,
   rightPanelTreeRoot: null,
   rightPanelPreviewPath: null,
+  rightPanelWidth: loadRightWidth(),
   toggleLeft: () => set((s) => ({ leftCollapsed: !s.leftCollapsed })),
   toggleRight: () => set((s) => ({ rightCollapsed: !s.rightCollapsed })),
   openFileTree: (path) => {
@@ -323,6 +347,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
   openRightPanel: (path) => set({ rightPanelPreviewPath: path, rightCollapsed: false }),
   closePreview: () => set({ rightPanelPreviewPath: null }),
   closeRightPanel: () => set({ rightPanelTreeRoot: null, rightPanelPreviewPath: null, rightCollapsed: true }),
+  setRightPanelWidth: (w) => {
+    const clamped = clampRightWidth(w);
+    set({ rightPanelWidth: clamped });
+    try {
+      localStorage.setItem(RIGHT_WIDTH_KEY, String(clamped));
+    } catch {}
+  },
 }));
 
 /**
