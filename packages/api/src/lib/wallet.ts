@@ -147,9 +147,7 @@ export async function credit(
   const now = Date.now();
 
   if (ledgerId) {
-    const dup = await env.MUICV_API_DB.prepare('SELECT 1 FROM tokenLedger WHERE id = ? LIMIT 1')
-      .bind(ledgerId)
-      .first();
+    const dup = await env.MUICV_API_DB.prepare('SELECT 1 FROM tokenLedger WHERE id = ? LIMIT 1').bind(ledgerId).first();
     if (dup) {
       const cur = await readBalance(env, userId);
       return { balance: cur?.balance ?? 0, deduped: true };
