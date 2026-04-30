@@ -23,16 +23,30 @@ type Stmt = {
 type MockOptions = {
   run?: () => Promise<unknown>;
   first?: <T = unknown>() => Promise<T | null>;
+  /** true 时 SELECT FROM apiKey 强制返 fake 行，让带 FAKE_API_KEY 的请求通过 requireApiKey */
+  authenticated?: boolean;
 };
 
+const FAKE_API_KEY = `mui_${'a'.repeat(32)}`;
+const FAKE_USER_ID = 'u_test';
+
 function mockEnv(opts: MockOptions = {}): unknown {
-  const stmt: Stmt = {
-    bind: () => stmt,
-    run: opts.run ?? (async () => ({ success: true })),
-    first: opts.first ?? (async () => null),
+  const makeStmt = (sql: string): Stmt => {
+    const stmt: Stmt = {
+      bind: () => stmt,
+      run: opts.run ?? (async () => ({ success: true })),
+      first: async <T = unknown>(): Promise<T | null> => {
+        if (opts.authenticated && /FROM apiKey/i.test(sql)) {
+          return { id: 'k_test', userId: FAKE_USER_ID, revokedAt: null } as T;
+        }
+        // 其余表走调用方 first override 或默认 null
+        return opts.first ? await opts.first<T>() : null;
+      },
+    };
+    return stmt;
   };
   return {
-    MUICV_API_DB: { prepare: () => stmt },
+    MUICV_API_DB: { prepare: (sql: string) => makeStmt(sql) },
     // BROWSER / MUICV_KV 这些只需要满足 type shape；当前测试只覆盖入口校验
     // 路径，不会真的走 puppeteer 渲染 / KV 读写。
     BROWSER: { fetch: async () => new Response('') },
@@ -44,6 +58,9 @@ function mockEnv(opts: MockOptions = {}): unknown {
     RENDER_BASE_URL: 'https://muicv.com',
   };
 }
+
+const AUTH = { authorization: `Bearer ${FAKE_API_KEY}` };
+const authedEnv = (opts: Omit<MockOptions, 'authenticated'> = {}) => mockEnv({ ...opts, authenticated: true });
 
 const ctx = { waitUntil: () => {}, passThroughOnException: () => {} } as unknown as ExecutionContext;
 
@@ -64,8 +81,8 @@ test('GET /health 返回 ok', async () => {
 test('POST /render content-type 不是 JSON → 400', async () => {
   const res = await app.request(
     '/render',
-    { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'hi' },
-    mockEnv(),
+    { method: 'POST', headers: { 'content-type': 'text/plain', ...AUTH }, body: 'hi' },
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);
@@ -74,8 +91,8 @@ test('POST /render content-type 不是 JSON → 400', async () => {
 test('POST /render markdown 缺失 → 400', async () => {
   const res = await app.request(
     '/render',
-    { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
-    mockEnv(),
+    { method: 'POST', headers: { 'content-type': 'application/json', ...AUTH }, body: '{}' },
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);
@@ -83,18 +100,64 @@ test('POST /render markdown 缺失 → 400', async () => {
   assert.match(body.error, /markdown/);
 });
 
+test('POST /render 缺 Authorization → 401', async () => {
+  const res = await app.request(
+    '/render',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ markdown: '# hi' }),
+    },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 401);
+});
+
+test('POST /render 余额不足 → 402', async () => {
+  const res = await app.request(
+    '/render',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ markdown: '# hi' }),
+    },
+    // ensureBalance 的 INSERT…ON CONFLICT…DO NOTHING RETURNING 在 mock 里返 null
+    // → 走 readBalance 兜底也返 null → 余额视作 0 < PDF_RENDER_COST → 402
+    authedEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 402);
+  const body = (await res.json()) as { error: { code: string } };
+  assert.equal(body.error.code, 'insufficient_balance');
+});
+
 test('POST /jobs/fetch url 不是 http(s) → 400', async () => {
   const res = await app.request(
     '/jobs/fetch',
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...AUTH },
       body: JSON.stringify({ url: 'ftp://example.com/jd' }),
+    },
+    authedEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+});
+
+test('POST /jobs/fetch 缺 Authorization → 401', async () => {
+  const res = await app.request(
+    '/jobs/fetch',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ url: 'https://example.com/jd' }),
     },
     mockEnv(),
     ctx,
   );
-  assert.equal(res.status, 400);
+  assert.equal(res.status, 401);
 });
 
 test('POST /waitlist email 非法 → 400', async () => {
@@ -157,10 +220,10 @@ test('POST /render 请求体不是合法 JSON → 400', async () => {
     '/render',
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...AUTH },
       body: '{not-json',
     },
-    mockEnv(),
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);
@@ -173,10 +236,10 @@ test('POST /render markdown 是空字符串 → 400', async () => {
     '/render',
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...AUTH },
       body: JSON.stringify({ markdown: '   ' }),
     },
-    mockEnv(),
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);
@@ -185,8 +248,8 @@ test('POST /render markdown 是空字符串 → 400', async () => {
 test('POST /jobs/fetch content-type 不是 JSON → 400', async () => {
   const res = await app.request(
     '/jobs/fetch',
-    { method: 'POST', headers: { 'content-type': 'text/plain' }, body: 'hi' },
-    mockEnv(),
+    { method: 'POST', headers: { 'content-type': 'text/plain', ...AUTH }, body: 'hi' },
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);
@@ -195,8 +258,8 @@ test('POST /jobs/fetch content-type 不是 JSON → 400', async () => {
 test('POST /jobs/fetch url 缺失 → 400', async () => {
   const res = await app.request(
     '/jobs/fetch',
-    { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
-    mockEnv(),
+    { method: 'POST', headers: { 'content-type': 'application/json', ...AUTH }, body: '{}' },
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);
@@ -207,10 +270,10 @@ test('POST /jobs/fetch 请求体不是合法 JSON → 400', async () => {
     '/jobs/fetch',
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...AUTH },
       body: '{bad',
     },
-    mockEnv(),
+    authedEnv(),
     ctx,
   );
   assert.equal(res.status, 400);

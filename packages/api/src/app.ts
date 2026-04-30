@@ -1,9 +1,11 @@
+import { JD_FETCH_COST, PDF_RENDER_COST, insufficientBalanceError } from '@muicv/shared';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
 import { renderPdf } from './lib/render-pdf.ts';
-import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
+import { charge, ensureBalance } from './lib/wallet.ts';
+import { requireApiKey } from './middleware/api-key.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
@@ -81,12 +83,14 @@ app.post('/waitlist', handleWaitlist);
  * POST /render
  *
  * Body: { markdown: string, template?: string }
- * 响应：200 application/pdf + PDF bytes
+ * 响应：200 application/pdf + PDF bytes / 402 余额不足
+ *
+ * 计费：成功才扣 PDF_RENDER_COST tokens；渲染失败 502 但不扣账（避免反复重试被反复扣）。
  *
  * 实现：写一次性 token 进 MUICV_KV，puppeteer.goto packages/website 的
  * /r/render/[token]，等字体加载完，page.pdf 出 A4。详见 src/lib/render-pdf.ts。
  */
-app.post('/render', optionalApiKey, async (c) => {
+app.post('/render', requireApiKey, async (c) => {
   const contentType = c.req.header('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
@@ -104,6 +108,12 @@ app.post('/render', optionalApiKey, async (c) => {
   }
   const template = typeof payload.template === 'string' ? payload.template : 'default';
 
+  const userId = c.get('userId') as string;
+  const wallet = await ensureBalance(c.env, userId);
+  if (wallet.balance < PDF_RENDER_COST) {
+    return c.json(insufficientBalanceError(wallet.balance), 402);
+  }
+
   let pdf: Uint8Array;
   try {
     pdf = await renderPdf({ markdown: payload.markdown, template }, c.env);
@@ -116,6 +126,9 @@ app.post('/render', optionalApiKey, async (c) => {
       502,
     );
   }
+
+  // 成功才扣账（异步，不阻塞 PDF 返回）
+  c.executionCtx.waitUntil(charge(c.env, userId, PDF_RENDER_COST, 'pdf_render', { template }).catch(() => {}));
 
   return new Response(pdf, {
     status: 200,
@@ -134,7 +147,10 @@ app.post('/render', optionalApiKey, async (c) => {
  * 响应：
  *   200 application/json —— { markdown, meta: { title, company, source_url, fetched_at, description } }
  *   400 —— 参数错误
+ *   402 —— 余额不足
  *   502 —— 抓取失败（登录墙 / 反爬 / 页面异常）
+ *
+ * 计费：成功才扣 JD_FETCH_COST tokens；抓取失败 502 但不扣账。
  *
  * 限制（MVP）：
  *   - 不绕过登录墙
@@ -142,7 +158,7 @@ app.post('/render', optionalApiKey, async (c) => {
  *   - 不伪装 UA 规避 ToS
  *   - 单次请求 20s 超时（在 container 侧）
  */
-app.post('/jobs/fetch', optionalApiKey, async (c) => {
+app.post('/jobs/fetch', requireApiKey, async (c) => {
   const contentType = c.req.header('content-type') ?? '';
   if (!contentType.includes('application/json')) {
     return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
@@ -160,8 +176,15 @@ app.post('/jobs/fetch', optionalApiKey, async (c) => {
   }
   const url = payload.url;
 
+  const userId = c.get('userId') as string;
+  const wallet = await ensureBalance(c.env, userId);
+  if (wallet.balance < JD_FETCH_COST) {
+    return c.json(insufficientBalanceError(wallet.balance), 402);
+  }
+
   try {
     const result = await fetchJd({ url }, c.env);
+    c.executionCtx.waitUntil(charge(c.env, userId, JD_FETCH_COST, 'jd_fetch', { url }).catch(() => {}));
     return c.json(result);
   } catch (error) {
     if (error instanceof FetchJdError) {
