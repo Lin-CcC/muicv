@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { hashApiKey } from '@/lib/api-key';
 import { getDb, schema } from '@/lib/db';
+import { ensureBalance } from '@/lib/wallet';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,8 @@ export const dynamic = 'force-dynamic';
  *   packages/api/src/routes/me.ts 是冗余但兼容的副本（早期版本桌面 app 直接
  *   打 api worker），后续可以下掉。
  *
- * Plan stub 'free'：M4 起接真实订阅档位时改读 plan 表 / Stripe 状态。
+ * 这里也是注册赠送 lazy init 的入口之一：第一次访问时建 tokenBalance 行 +
+ * 写一条 signup_bonus 流水。
  */
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');
@@ -65,11 +67,24 @@ export async function GET(request: Request) {
     return Response.json({ error: 'user-not-found' }, { status: 401 });
   }
 
-  const linkRows = await db
-    .select({ userId: schema.muirouterLink.userId })
-    .from(schema.muirouterLink)
-    .where(eq(schema.muirouterLink.userId, user.id))
-    .limit(1);
+  const [linkRows, wallet, subRows] = await Promise.all([
+    db
+      .select({ userId: schema.muirouterLink.userId })
+      .from(schema.muirouterLink)
+      .where(eq(schema.muirouterLink.userId, user.id))
+      .limit(1),
+    ensureBalance(user.id),
+    db
+      .select({
+        status: schema.subscription.status,
+        monthlyTokens: schema.subscription.monthlyTokens,
+        currentPeriodEnd: schema.subscription.currentPeriodEnd,
+        cancelAtPeriodEnd: schema.subscription.cancelAtPeriodEnd,
+      })
+      .from(schema.subscription)
+      .where(eq(schema.subscription.userId, user.id))
+      .limit(1),
+  ]);
 
   // 异步 update lastUsedAt（不 block 响应）
   void db
@@ -80,12 +95,21 @@ export async function GET(request: Request) {
       /* 更新失败不影响业务 */
     });
 
+  const sub = subRows[0];
   return Response.json({
     id: user.id,
     email: user.email,
     name: user.name || user.email.split('@')[0] || '朋友',
     image: user.image ?? null,
-    plan: 'free' as const,
     hasBYOK: linkRows.length > 0,
+    balance: wallet.balance,
+    subscription: sub
+      ? {
+          status: sub.status,
+          monthlyTokens: sub.monthlyTokens,
+          currentPeriodEnd: sub.currentPeriodEnd?.getTime() ?? null,
+          cancelAtPeriodEnd: !!sub.cancelAtPeriodEnd,
+        }
+      : null,
   });
 }

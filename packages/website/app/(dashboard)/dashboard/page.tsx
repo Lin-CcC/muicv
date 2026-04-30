@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 import { getAuth } from '@/lib/auth';
+import { ensureBalance } from '@/lib/wallet';
 
 import { ApiKeysSection } from './api-keys-section';
 import { MuirouterSection } from './muirouter-section';
@@ -20,6 +21,10 @@ export default async function DashboardPage() {
   const user = session?.user;
   if (!user) return null;
 
+  // 进 dashboard 也是 lazy init 入口（用户可能从未访问 /api/me），
+  // 第一次进来给写 signup_bonus + 余额行
+  const wallet = await ensureBalance(user.id);
+
   return (
     <div className="space-y-10">
       <header>
@@ -28,17 +33,22 @@ export default async function DashboardPage() {
           欢迎回来{user.name ? `，${user.name}` : ''}。
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          M2 阶段：账号系统先到岗，余额 / API key / 订阅档位等会陆续上线。有什么希望先做的， GitHub Issue 见。
+          所有 muicv 服务（云端 LLM、PDF 导出、JD 抓取）都按 token 计费，余额永不过期。 注册即送 10K
+          tokens，订阅月卡或买补充包都能续。
         </p>
       </header>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card label="邮箱" value={user.email} />
+        <Card
+          label="Token 余额"
+          value={wallet.balance.toLocaleString()}
+          hint={wallet.justInitialized ? '注册赠送已到账' : '永不过期'}
+        />
         <Card label="账号 ID" value={user.id} mono />
         <Card label="API Keys" value="见下方管理 ↓" hint="桌面 app 唯一登录凭证" />
         <Card label="muirouter (BYOK)" value="见下方绑定 ↓" hint="LLM 走你自己余额" />
-        <Card label="订阅档位" value="Free" hint="见下方升级（M4 起开放）" />
-        <Card label="本月用量" value="—" hint="M4 起统计" muted />
+        <Card label="订阅 / 充值" value="见下方 ↓" hint="月卡 + 补充包" />
       </section>
 
       <ApiKeysSection />
@@ -49,7 +59,7 @@ export default async function DashboardPage() {
 
       <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
         <h2 className="text-[18px] font-extrabold text-ink">下一步</h2>
-        <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">目前账号开通后还没有付费功能可用，但你已经能：</p>
+        <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">余额到位后，你已经能：</p>
         <ol className="mt-4 space-y-2 text-[14px] leading-[1.7] text-ink-soft">
           <li>
             🐾 在自己 terminal 里安装 skill：
@@ -58,7 +68,7 @@ export default async function DashboardPage() {
             </code>
           </li>
           <li>🐾 跟 Claude / Codex 说"帮我准备简历"，skill 会接管引导</li>
-          <li>🐾 等 muirouter 余额开通后，就能在桌面 app（开发中）里直接消费</li>
+          <li>🐾 用桌面 app 直接调云端 LLM、导出 PDF、抓 JD —— 全部从这个余额里扣</li>
         </ol>
       </section>
     </div>

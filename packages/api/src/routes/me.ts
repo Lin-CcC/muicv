@@ -1,5 +1,6 @@
 import type { Context } from 'hono';
 
+import { ensureBalance } from '../lib/wallet.ts';
 import type { AppEnv } from '../middleware/api-key.ts';
 
 /**
@@ -9,8 +10,10 @@ import type { AppEnv } from '../middleware/api-key.ts';
  *   - 桌面 app 启动时验证 key 是否有效（验证失败 → 跳到登录页）
  *   - 显示"已登录为 <email>"
  *   - 决定是否引导用户去 dashboard 绑 muirouter（hasBYOK=false）
+ *   - 余额信息（dashboard 卡片 + 桌面 app 状态栏）
  *
- * Phase 7 v1：plan 字段先 stub 'free'。M4 起接真实订阅档位时改读 D1。
+ * 此处 ensureBalance 是注册赠送的 lazy init 入口之一（另一处在 website /api/me）：
+ * 第一次任何客户端访问时建 tokenBalance 行 + 写一条 signup_bonus 流水。
  */
 export async function handleMe(c: Context<AppEnv>): Promise<Response> {
   const userId = c.get('userId');
@@ -25,16 +28,37 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
     return c.json({ error: 'user-not-found' }, 401);
   }
 
-  const link = await c.env.MUICV_API_DB.prepare('SELECT 1 FROM muirouterLink WHERE userId = ? LIMIT 1')
-    .bind(userId)
-    .first<{ '1': number } | null>();
+  const [link, wallet, sub] = await Promise.all([
+    c.env.MUICV_API_DB.prepare('SELECT 1 FROM muirouterLink WHERE userId = ? LIMIT 1')
+      .bind(userId)
+      .first<{ '1': number } | null>(),
+    ensureBalance(c.env, userId),
+    c.env.MUICV_API_DB.prepare(
+      'SELECT status, monthlyTokens, currentPeriodEnd, cancelAtPeriodEnd FROM subscription WHERE userId = ? LIMIT 1',
+    )
+      .bind(userId)
+      .first<{
+        status: string;
+        monthlyTokens: number | null;
+        currentPeriodEnd: number | null;
+        cancelAtPeriodEnd: number;
+      } | null>(),
+  ]);
 
   return c.json({
     id: user.id,
     email: user.email,
     name: user.name ?? user.email.split('@')[0] ?? '朋友',
     image: user.image ?? null,
-    plan: 'free' as const,
     hasBYOK: !!link,
+    balance: wallet.balance,
+    subscription: sub
+      ? {
+          status: sub.status,
+          monthlyTokens: sub.monthlyTokens,
+          currentPeriodEnd: sub.currentPeriodEnd,
+          cancelAtPeriodEnd: !!sub.cancelAtPeriodEnd,
+        }
+      : null,
   });
 }
