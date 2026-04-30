@@ -1,98 +1,80 @@
+import { SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 import { getAuth } from '@/lib/auth';
 
+import { ArrowUpRight, Highlight, Sparkle } from '../_icons';
 import { Footer } from '../_sections/footer';
 import { Header } from '../_sections/header';
-import { ArrowUpRight, Highlight, Sparkle } from '../_icons';
 
 export const metadata: Metadata = {
   title: '定价',
-  description: '按你的求职阶段选档；Skill 永远免费。Free / Pro / Max + BYOK 四档可选。',
+  description: '按 token 计费，永不过期。注册即送 10K tokens，月卡每月续，补充包随用随买。',
 };
 
 export const dynamic = 'force-dynamic';
 
-type Tier = {
+type SubTier = {
+  key: keyof typeof SUBSCRIPTION_PLANS;
   name: string;
-  price: string;
-  priceNote: string;
   tagline: string;
   features: string[];
-  cta: { label: string; href: string };
   highlight?: boolean;
   badge?: string;
 };
 
-const TIERS: Tier[] = [
+const SUB_TIERS: SubTier[] = [
   {
-    name: 'Free',
-    price: '￥0',
-    priceNote: '永久免费',
-    tagline: '想试一下，先从这开始。',
-    features: ['每月免费 LLM 额度', '输出 markdown 简历', '本地素材管理（无限）', '社区支持'],
-    cta: { label: '免费开始', href: '/sign-up' },
-  },
-  {
-    name: 'Pro',
-    price: 'TBD',
-    priceNote: '正式定价上线前公布',
+    key: 'pro',
+    name: 'Pro 月卡',
     tagline: '认真求职阶段。',
     features: [
-      '更多 LLM 额度',
-      'A4 PDF 导出（不限次）',
-      '岗位发现与匹配度评估',
-      '辅助投递（数量受限）',
+      `每月 ${SUBSCRIPTION_PLANS.pro.monthlyTokens.toLocaleString()} tokens 自动到账`,
+      '所有功能（LLM / PDF / JD / 招聘库）按 token 自由分配',
+      '取消订阅，已发 token 永不过期',
       '优先邮件支持',
     ],
-    cta: { label: '加入 Waitlist', href: '/#waitlist' },
     highlight: true,
     badge: '最受欢迎',
   },
   {
-    name: 'Max',
-    price: 'TBD',
-    priceNote: '密集求职专用',
-    tagline: '不留余地，不被限制。',
-    features: ['不受限 LLM 额度', '所有 Pro 功能', '辅助投递（不限）', '抢先体验新模块', '专属支持渠道'],
-    cta: { label: '加入 Waitlist', href: '/#waitlist' },
-  },
-  {
-    name: 'BYOK',
-    price: '按用量',
-    priceNote: '走你自己的 LLM 余额',
-    tagline: '已经有 LLM 服务的用户。',
+    key: 'max',
+    name: 'Max 月卡',
+    tagline: '密集求职专用。',
     features: [
-      '在 dashboard 绑定自己的 key',
-      'LLM 调用走你自己的账户',
-      '功能权限按所在档（Free 即可启用）',
-      '统一成本管理',
+      `每月 ${SUBSCRIPTION_PLANS.max.monthlyTokens.toLocaleString()} tokens 自动到账`,
+      '所有 Pro 功能',
+      '抢先体验新模块',
+      '专属支持渠道',
     ],
-    cta: { label: '了解 BYOK', href: '/dashboard' },
   },
 ];
 
 const PRICING_FAQ: { q: string; a: string }[] = [
   {
-    q: '可以随时升降档吗？',
-    a: '可以。在 dashboard 切换档位，按月计费按比例结算，不用走客服流程。',
+    q: 'Token 怎么用？',
+    a: 'LLM 调用按上游 prompt + completion token × 1.1（覆盖第三方成本与少量利润）；PDF 渲染每次扣 200 tokens；JD 抓取每次扣 300 tokens。所有调用都会在 dashboard 流水里看到明细。',
+  },
+  {
+    q: '月卡和补充包能同时用吗？',
+    a: '可以。月卡是"每月自动续"，补充包是"用完手动加"。两边到账的 tokens 都进同一个余额，不分先后用。',
+  },
+  {
+    q: '可以随时升降档 / 取消吗？',
+    a: '可以。在 dashboard 点"管理订阅"会跳到 Stripe Customer Portal，取消、切档、换支付方式都在那里。已发的 tokens 永不过期，取消之后接着用旧余额。',
   },
   {
     q: '不满意能退款吗？',
-    a: '正式付费档位上线后，新用户首次订阅 7 天内未消耗主要功能可全额退款；具体细则在条款中明确。',
+    a: '订阅 7 天内未消耗主要功能可全额退款，邮件联系。补充包付款立刻入账，原则上不退；如果是误购或重大问题，依然可邮件协商。',
   },
   {
-    q: '为什么 Pro 和 Max 的价格还是 TBD？',
-    a: '我们想在正式定价前再次校准成本结构与用量数据。现阶段加入 Waitlist 的用户，定价确定后会拿到一份首批友好价。',
-  },
-  {
-    q: '有企业版 / 团队版吗？',
-    a: '有规划，但还在打磨需求。如果你代表公司想批量采购，请直接邮件联系，我们一对一聊。',
+    q: '我有 BYOK，还要付费吗？',
+    a: '可以选只用 BYOK：把 muirouter key 绑到 dashboard，所有 LLM 调用走你自己的 muirouter 余额，不消耗 muicv tokens。但 PDF 渲染 / JD 抓取仍按 muicv tokens 扣（这两个是 Cloudflare Browser Rendering 的真实成本）。',
   },
   {
     q: 'Skill 套件本身收费吗？',
-    a: '不收费。开发者用 npx skills add 等方式直接接入 Claude Code、Codex 等 AI agent 完全免费——平台档位只对服务端能力（PDF 渲染 / 岗位抓取 / 招聘库等）和云端 LLM 额度计费。',
+    a: '不收费。npx skills add 装到 Claude Code / Codex / Cursor 等任意 AI agent 完全免费——平台计费只针对服务端能力（云端 LLM / PDF / JD）和你已购买的 tokens。',
   },
 ];
 
@@ -112,16 +94,16 @@ export default async function PricingPage() {
           <div className="mx-auto max-w-3xl text-center">
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 定价</p>
             <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
-              按你的求职阶段，
+              按 <Highlight>token</Highlight> 计费，
               <br />
-              <Highlight>选一档</Highlight>。
+              永不过期。
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-[16px] leading-[1.7] text-ink-soft">
-              Skill 永远免费；只对云端 LLM 额度和服务端能力计费。
+              注册即送 10,000 tokens；不够用了选月卡或补充包。Skill 始终免费，BYOK 始终可用。
             </p>
             <div className="mx-auto mt-6 inline-flex items-center gap-2 rounded-full border-2 border-corgi/60 bg-fluff px-3.5 py-1 text-[12px] font-semibold text-yellow-deep">
               <Sparkle />
-              当前为预发布定价，正式版上线前可能微调
+              一个余额，覆盖所有云端服务
             </div>
           </div>
         </div>
@@ -129,10 +111,31 @@ export default async function PricingPage() {
 
       <section className="border-b border-rule">
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-            {TIERS.map((tier) => (
-              <PricingCard key={tier.name} tier={tier} isLoggedIn={isLoggedIn} />
+          <div className="grid gap-5 md:grid-cols-3">
+            <FreeCard isLoggedIn={isLoggedIn} />
+            {SUB_TIERS.map((tier) => (
+              <SubscriptionCard key={tier.key} tier={tier} isLoggedIn={isLoggedIn} />
             ))}
+          </div>
+
+          <div className="mt-12">
+            <h2 className="text-[20px] font-extrabold text-ink">补充包（一次性买，永不过期）</h2>
+            <p className="mt-2 max-w-2xl text-[14px] text-ink-soft">没准备订月卡，或者偶尔超用一次。任何时候都能买。</p>
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              {(['small', 'medium', 'large'] as const).map((key) => {
+                const pack = TOPUP_PACKS[key];
+                return (
+                  <div key={key} className="rounded-2xl border-2 border-rule bg-cream p-5">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-mute">{key}</p>
+                    <p className="mt-2 text-[20px] font-extrabold text-ink tabular-nums">
+                      {pack.tokens.toLocaleString()} tokens
+                    </p>
+                    <p className="mt-1 font-mono text-[12px] tabular-nums text-yellow-deep">{pack.priceCnyDisplay}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-3 font-mono text-[11px] text-mute">在 dashboard 点"补充包"完成支付。</p>
           </div>
         </div>
       </section>
@@ -176,9 +179,49 @@ export default async function PricingPage() {
   );
 }
 
-function PricingCard({ tier, isLoggedIn }: { tier: Tier; isLoggedIn: boolean }) {
-  const ctaHref = tier.cta.href === '/sign-up' && isLoggedIn ? '/dashboard' : tier.cta.href;
-  const ctaLabel = tier.cta.href === '/sign-up' && isLoggedIn ? '进入 Dashboard' : tier.cta.label;
+function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
+  const ctaLabel = isLoggedIn ? '进入 Dashboard' : '免费注册领 10K tokens';
+  return (
+    <article className="relative flex flex-col rounded-2xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1">
+      <h3 className="text-[20px] font-extrabold text-ink">免费起步</h3>
+      <p className="mt-1 text-[13px] leading-[1.6] text-ink-soft">想试一下，先从这开始。</p>
+      <div className="mt-5">
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-extrabold text-ink tabular-nums">10,000</span>
+          <span className="text-[14px] font-bold text-ink-soft">tokens</span>
+        </div>
+        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">注册即送 · 一次性</p>
+      </div>
+      <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">
+        <li className="flex items-start gap-2 text-ink-soft">
+          <CheckBullet /> 所有云端服务（LLM / PDF / JD）都能用
+        </li>
+        <li className="flex items-start gap-2 text-ink-soft">
+          <CheckBullet /> 本地素材管理无限
+        </li>
+        <li className="flex items-start gap-2 text-ink-soft">
+          <CheckBullet /> 接入 BYOK 即可"无限"用 LLM
+        </li>
+        <li className="flex items-start gap-2 text-ink-soft">
+          <CheckBullet /> 社区支持
+        </li>
+      </ul>
+      <a
+        href={ctaHref}
+        className="press-ink mt-6 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-4 py-2.5 text-[14px] font-bold text-ink"
+      >
+        {ctaLabel}
+        <ArrowUpRight />
+      </a>
+    </article>
+  );
+}
+
+function SubscriptionCard({ tier, isLoggedIn }: { tier: SubTier; isLoggedIn: boolean }) {
+  const plan = SUBSCRIPTION_PLANS[tier.key];
+  const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
+  const ctaLabel = isLoggedIn ? '在 Dashboard 升级' : '注册后开通';
 
   return (
     <article
@@ -198,16 +241,16 @@ function PricingCard({ tier, isLoggedIn }: { tier: Tier; isLoggedIn: boolean }) 
       <p className="mt-1 text-[13px] leading-[1.6] text-ink-soft">{tier.tagline}</p>
       <div className="mt-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-ink tabular-nums">{tier.price}</span>
+          <span className="text-3xl font-extrabold text-ink tabular-nums">{plan.priceCnyDisplay}</span>
         </div>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">{tier.priceNote}</p>
+        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">
+          每月 {plan.monthlyTokens.toLocaleString()} tokens
+        </p>
       </div>
       <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">
         {tier.features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-ink-soft">
-            <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-fluff text-yellow-deep">
-              ✓
-            </span>
+            <CheckBullet />
             <span>{f}</span>
           </li>
         ))}
@@ -224,5 +267,13 @@ function PricingCard({ tier, isLoggedIn }: { tier: Tier; isLoggedIn: boolean }) 
         <ArrowUpRight />
       </a>
     </article>
+  );
+}
+
+function CheckBullet() {
+  return (
+    <span className="mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-fluff text-yellow-deep">
+      ✓
+    </span>
   );
 }
