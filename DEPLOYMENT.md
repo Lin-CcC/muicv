@@ -277,10 +277,87 @@ pnpm --filter @muicv/website cf:build
 pnpm --filter @muicv/website cf:deploy
 ```
 
-### Phase 6 待做
+### Stripe（M4：付费 token 钱包）
 
-- 接入 **Better Auth**（账号方案已定）
-- 设计 users / subscriptions / sessions 表 + migrations（和 `packages/api` 共用 `muicv` D1）
+我们用一个统一的 token 钱包（`tokenBalance` 表）+ Stripe 月卡订阅 + 一次性补充包付款。
+所有 Stripe 通信代码只放 `packages/website`（webhook / checkout / portal）。
+api worker 只读 token 余额、写流水，零 stripe 依赖。
+
+#### 一次性建好 Stripe 后台
+
+1. 注册 [Stripe](https://dashboard.stripe.com)（个人或企业，先用 **test mode**）
+2. **Products → 创建 4 个 product**：
+   - "Mui Pro 月卡"：recurring monthly，金额对齐 `SUBSCRIPTION_PLANS.pro.priceCnyDisplay`（默认 ¥30）
+   - "Mui Max 月卡"：recurring monthly，对齐 `SUBSCRIPTION_PLANS.max.priceCnyDisplay`（¥98）
+   - "Mui 补充包 small"：one-time，10K tokens（¥10）
+   - "Mui 补充包 medium"：one-time，35K tokens（¥30）
+   - "Mui 补充包 large"：one-time，130K tokens（¥100）
+3. 每个 product 各有一个 `price_xxx` 内部 ID，记下来
+4. **Customer Portal → Settings**：开启 cancel subscription / switch plan / update payment method / view invoices
+5. **Developers → API keys**：拿 `sk_test_...`
+6. **Developers → Webhooks → Add endpoint** `https://muicv.com/api/stripe/webhook`，选事件：
+   - `checkout.session.completed`
+   - `customer.subscription.created` / `updated` / `deleted`
+   - `invoice.paid` / `invoice.payment_failed`
+   - 创建后 **Reveal signing secret** 拿 `whsec_test_...`
+
+#### wrangler 配置（生产）
+
+```bash
+# Stripe secret key（test 阶段用 sk_test_，跑稳后切 sk_live_）
+echo -n "sk_test_xxxxxxxxxxxxxxxx" | pnpm --filter @muicv/website exec wrangler secret put STRIPE_SECRET_KEY
+
+# Stripe webhook secret（每次切 mode 都要重新拿 + 重发）
+echo -n "whsec_test_xxxxxxxxxxxxx" | pnpm --filter @muicv/website exec wrangler secret put STRIPE_WEBHOOK_SECRET
+```
+
+把 `packages/website/wrangler.jsonc` 的 `vars.STRIPE_PRICE_*` 全改成上面记下的 5 个 price ID（这些是公开标识符，可以入 git；切 live mode 时改成 live price ID）。
+
+#### 本地 dev
+
+```ini
+# packages/website/.dev.vars
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_test_local_...   # 由 stripe CLI listen 给出，见下
+```
+
+```bash
+# 一个 terminal：跑 wrangler dev
+pnpm --filter @muicv/website dev:cf
+
+# 另一个 terminal：转发 Stripe webhook 到本地
+stripe login
+stripe listen --forward-to http://localhost:8788/api/stripe/webhook
+# 输出会有 "Ready! ... whsec_xxx" —— 把这个 whsec 写到 .dev.vars 的 STRIPE_WEBHOOK_SECRET
+```
+
+#### 切到 live mode（test 跑稳后）
+
+1. Stripe Dashboard 右上切到 live mode
+2. 重建 4 个 product / 5 个 price（test 和 live 数据完全隔离）
+3. 改 `wrangler.jsonc` 的 5 个 `STRIPE_PRICE_*` 为 live price IDs
+4. live mode 重新 Add webhook endpoint，拿新 `whsec_live_...`
+5. `wrangler secret put STRIPE_SECRET_KEY` 替换为 `sk_live_...`
+6. `wrangler secret put STRIPE_WEBHOOK_SECRET` 替换为 `whsec_live_...`
+7. `pnpm --filter @muicv/website deploy` 重新部署
+8. 用真实银行卡走一遍最小金额验证（建议先创个 ¥1 的 small 补充包做 smoke test）
+
+**绝不要一上来就用 sk_live**：live mode 不能删 customer，初期数据脏一次就再也清不干净。
+
+#### 端到端手测脚本（test mode）
+
+跑过这套再切 live：
+
+1. 注册新用户 → `/api/me` 返回 `balance: 10000`，dashboard 流水有一条 `signup_bonus`
+2. 调用 `/render` 一次 → 余额 9800，流水 +1 (`pdf_render`, -200)
+3. SQL `UPDATE tokenBalance SET balance = 100 WHERE userId = ?` → 调用 `/render` → 402 `insufficient_balance`
+4. 跳 Pro 月卡 checkout，用 4242 4242 4242 4242 测试卡 → webhook `customer.subscription.created` + `invoice.paid`
+   → user.balance 多 100K，流水一条 `subscription`，subscription 表 status='active'
+5. dashboard 点"管理订阅" → Customer Portal → Cancel subscription → webhook `customer.subscription.updated` → subscription 表 cancelAtPeriodEnd=true
+6. 跳 medium 补充包 checkout → 付款 → webhook `checkout.session.completed (mode=payment)` → balance +35K，流水一条 `topup`
+7. `stripe trigger invoice.payment_failed` → status 进 past_due（余额不动）
+8. 同一个 webhook event 在 dashboard 重发一次 → 第二次返回 200 deduped，流水不重复入条
+
 - 对接 muirouter.com（类 openrouter 的 LLM 代理 + 付费余额）
 - Dashboard UI（用量、API Key、订阅状态）
 - 未来上 Stripe 做订阅或直接充值 muirouter 额度

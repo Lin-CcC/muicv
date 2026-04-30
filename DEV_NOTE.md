@@ -125,6 +125,59 @@
 - dashboard 路由分组 `(dashboard)`；marketing 路由分组 `(marketing)`。
 - 注意 Better Auth 的 trustedOrigins 要把生产域 + dev 域都写上，否则 OAuth 回跳被拒。
 
+## 付费 token 钱包（M4，packages/website + packages/api）
+
+> 我们没有"档位 + 月度配额"模型，是**统一 token 钱包**：注册送 10K，月卡每月续，
+> 补充包随用随买。所有云端服务（LLM 1.1×、PDF 200、JD 300）按 token 扣。BYOK
+> 用户的 LLM 走 muirouter 自己付，但 PDF / JD 仍扣 muicv tokens。
+
+- **D1 原子扣账：必须单 statement**。`UPDATE tokenBalance SET balance = balance - ?
+  WHERE userId = ? AND balance >= ? RETURNING balance` —— SQLite 内部 page-level mutex
+  保证原子，`first()` 返回 null 即余额不足。绝不允许"先 SELECT 再 UPDATE"两步走，
+  并发场景会双扣。
+- **D1 原子入账：INSERT…ON CONFLICT…DO UPDATE**。同语义；行不存在自动建。
+- **ledger 写失败不阻塞业务**：`charge` 在 UPDATE 成功后 `INSERT INTO tokenLedger`
+  写流水，失败 `.catch(() => {})` 吞掉。`lifetimeSpent` 字段是真值源，财务对账
+  看余额表而不是流水表。
+- **lazy init signup_bonus**：用 `INSERT OR IGNORE INTO tokenBalance ... RETURNING`，
+  RETURNING 仅对真新建的行返回，conflict 时返回 null —— 借此判断是否要写 signup_bonus
+  流水。三处入口（website /api/me、api worker /me、dashboard 首页）都调，并发安全。
+
+## OpenAI Chat Completions stream 注入 + 计费（packages/api）
+
+- **默认 stream 不返 usage**，必须在请求 body 里 `stream_options: { include_usage: true }`。
+  我们的代理在平台路径（无 BYOK）**强制注入**这个字段。
+- 转发响应时如果 client 自己没声明 include_usage，把"choices=[] + usage 非空"的
+  最后那个 SSE block 吞掉（`stripUsageChunkFromSse`），保持 OpenAI SDK 流契约。
+- **tee 上游 stream**：一份给 client，一份在 `waitUntil` 里聚合 usage 后扣账，
+  不阻塞响应。tee 是 Web 标准，Workers 原生支持。
+- **错误响应不扣账**：`upstream.status >= 400` 时 skip charge（可能 usage 字段都没有）。
+- **接受单次过冲**：pre-check 只比对 `balance > 0`，不估算本次成本（estimate 不准
+  会导致"差 100 token 被拒"客诉）。post-record 之后下次请求才会被 pre-check 拦下。
+
+## Stripe 在 Cloudflare Workers（packages/website）
+
+- **必须用 `Stripe.createFetchHttpClient()`**：默认 Node http 在 Workers 跑不了。
+  stripe-node 22 + apiVersion `2026-04-22.dahlia`。
+- **必须用 `webhooks.constructEventAsync`**（不是 `constructEvent`）：依赖 SubtleCrypto，
+  Workers 原生支持；同步版需要 Node crypto 跑不了。
+- **webhook 必须 `request.text()` 拿 raw body**，不能 `.json()` —— 签名校验基于
+  原始字节算。Next 16 App Router 不会自动 body-parse POST，所以不需要 `bodyParser=false`，
+  但**别在 middleware 里读这个 request 的 body**，否则下游拿不到。
+- **getOrCreateStripeCustomer 必须幂等**：先查自家 subscription 表 → 没有就
+  `customers.create({ metadata: { userId } })` → 立刻 INSERT 一条 status='incomplete'
+  的占位行。**不立刻 INSERT 的话**用户连续点两次升级会创出两个 customer，从此该
+  user 在 Stripe 那边永远是脏的。
+- **双层幂等**：(1) `stripeEvent` 表对 evt_id 去重（`onConflictDoNothing().returning()`，
+  affected rows=0 即已处理）；(2) `credit()` 用 `invoice_<id>` / `checkout_<sid>` 当
+  ledgerId，重复触发不重复入账。两层独立，缺一不可。
+- **price_id → token 映射放代码**：不查 Stripe API（每次 webhook 多一跳），直接
+  对比 `env.STRIPE_PRICE_*`。切 live mode 时改 wrangler.jsonc vars。
+- **Hosted Checkout + Customer Portal**：不嵌入 Stripe Elements（省 80KB bundle）。
+  取消 / 切档 / 看发票全交给 Stripe Portal，自己只写跳转。
+- **Stripe API 2026-04 起 period 字段在 `subscription.items.data[0].current_period_*`**，
+  不再在 subscription 顶层。webhook handler 取 period 时记得从 item 取。
+
 ## 测试
 
 - **node:test + 默认 ts 直接跑**（`node --test`）；不要引 vitest / jest，除非有强需求。
