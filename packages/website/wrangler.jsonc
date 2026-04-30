@@ -52,6 +52,14 @@
   ],
   "vars": {
     "BETTER_AUTH_URL": "https://muicv.com",
-    "GITHUB_CLIENT_ID": "3dbc98e657fc50a08577"
+    "GITHUB_CLIENT_ID": "3dbc98e657fc50a08577",
+    // Stripe price IDs（按档位）—— 部署前 wrangler vars 覆盖成真实 price_xxx。
+    // 月卡走 mode=subscription，补充包走 mode=payment。
+    // 切 live 时这些值从 sk_test 对应的 price 改成 sk_live 对应的 price。
+    "STRIPE_PRICE_PRO_MONTHLY": "price_test_pro_monthly_placeholder",
+    "STRIPE_PRICE_MAX_MONTHLY": "price_test_max_monthly_placeholder",
+    "STRIPE_PRICE_TOPUP_SMALL": "price_test_topup_small_placeholder",
+    "STRIPE_PRICE_TOPUP_MEDIUM": "price_test_topup_medium_placeholder",
+    "STRIPE_PRICE_TOPUP_LARGE": "price_test_topup_large_placeholder"
   }
 }

@@ -8,6 +8,12 @@ declare global {
     BETTER_AUTH_SECRET: string;
     /** GitHub OAuth client secret，`wrangler secret put GITHUB_CLIENT_SECRET` 设置。 */
     GITHUB_CLIENT_SECRET?: string;
+    /** Stripe secret key (sk_test_… / sk_live_…)，`wrangler secret put STRIPE_SECRET_KEY` */
+    STRIPE_SECRET_KEY: string;
+    /** Stripe webhook secret (whsec_…)，每次切 live mode 都要重发。 */
+    STRIPE_WEBHOOK_SECRET: string;
+    /** 注册赠送 token 数（覆盖 packages/shared/pricing.ts 里的默认 10000）。 */
+    SIGNUP_BONUS?: string;
   }
 }
 
