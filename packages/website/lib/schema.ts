@@ -103,3 +103,66 @@ export const muirouterLink = sqliteTable('muirouterLink', {
   lastError: text('lastError'),
   linkedAt: integer('linkedAt', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/**
+ * Token 钱包：每用户一行余额，永不过期。
+ * 注册赠送（10K）走 lazy init，第一次访问时 INSERT OR IGNORE。
+ * D1 原子扣账靠 `UPDATE ... WHERE balance >= :cost RETURNING balance`，
+ * `meta.changes === 0` 即余额不足。
+ */
+export const tokenBalance = sqliteTable('tokenBalance', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  balance: integer('balance').notNull().default(0),
+  lifetimeEarned: integer('lifetimeEarned').notNull().default(0),
+  lifetimeSpent: integer('lifetimeSpent').notNull().default(0),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
+ * Token 流水：所有 balance 变化的审计日志。
+ * delta 正负即入账 / 出账。invoice.paid 用 meta.invoiceId 做第二层幂等。
+ */
+export const tokenLedger = sqliteTable('tokenLedger', {
+  id: text('id').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  delta: integer('delta').notNull(),
+  type: text('type').notNull(),
+  meta: text('meta'),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
+ * Stripe 订阅状态承接表：每用户至多一条。stripeCustomerId UNIQUE 防同一 user 的脏数据。
+ * stripeSubscriptionId 允许 null：customer 可以早于 subscription 存在（点了升级但
+ * checkout 还没付款的中间态）。
+ */
+export const subscription = sqliteTable('subscription', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  stripeCustomerId: text('stripeCustomerId').notNull().unique(),
+  stripeSubscriptionId: text('stripeSubscriptionId').unique(),
+  stripePriceId: text('stripePriceId'),
+  monthlyTokens: integer('monthlyTokens'),
+  status: text('status').notNull(),
+  currentPeriodStart: integer('currentPeriodStart', { mode: 'timestamp_ms' }),
+  currentPeriodEnd: integer('currentPeriodEnd', { mode: 'timestamp_ms' }),
+  cancelAtPeriodEnd: integer('cancelAtPeriodEnd', { mode: 'boolean' }).notNull().default(false),
+  canceledAt: integer('canceledAt', { mode: 'timestamp_ms' }),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
+ * Stripe webhook 幂等表：Stripe at-least-once 重发，靠 evt_id 去重。
+ * handler 入口先 INSERT OR IGNORE，影响行数 = 0 说明已处理过，直接返回 200。
+ */
+export const stripeEvent = sqliteTable('stripeEvent', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull(),
+  receivedAt: integer('receivedAt', { mode: 'timestamp_ms' }).notNull(),
+});
