@@ -54,7 +54,7 @@ export default async function DashboardPage() {
           <li>
             🐾 在自己 terminal 里安装 skill：
             <code className="ml-1 rounded bg-fluff px-1.5 py-0.5 font-mono text-[12.5px] text-yellow-deep ring-1 ring-corgi/40">
-              npx skills add meathill/muicv -g
+              npx skills add muicv -g
             </code>
           </li>
           <li>🐾 跟 Claude / Codex 说"帮我准备简历"，skill 会接管引导</li>

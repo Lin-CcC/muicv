@@ -3,11 +3,11 @@ import { headers } from 'next/headers';
 import { getAuth } from '@/lib/auth';
 
 import { FaqAndWaitlist } from './_sections/faq';
+import { KeyFeatures } from './_sections/features';
 import { Footer } from './_sections/footer';
 import { Header } from './_sections/header';
 import { Hero } from './_sections/hero';
 import { Install } from './_sections/install';
-import { WhyNotChatbot } from './_sections/why';
 import { Workflow } from './_sections/workflow';
 
 // 顶部 nav 要根据登录态切显"登录"或"Dashboard"，所以页面跑 SSR（不要 SSG），
@@ -22,8 +22,8 @@ export default async function WebsiteHomePage() {
   return (
     <div className="relative">
       <Header isLoggedIn={isLoggedIn} />
-      <Hero />
-      <WhyNotChatbot />
+      <Hero isLoggedIn={isLoggedIn} />
+      <KeyFeatures />
       <Workflow />
       <Install />
       <FaqAndWaitlist />

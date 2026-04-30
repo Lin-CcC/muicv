@@ -2,14 +2,7 @@ import { CorgiMascot } from '@/components/corgi-mascot';
 
 import { WaitlistForm } from '../waitlist-form';
 import { FAQ_ITEMS } from '../_data';
-import { Highlight } from '../_icons';
-
-const TECH_STACK: [string, string][] = [
-  ['Skills', 'Markdown + YAML frontmatter（Claude skill 规范）'],
-  ['API', 'Cloudflare Worker + Hono'],
-  ['PDF / 抓取', 'Cloudflare Container · Chromium · Puppeteer'],
-  ['分发', 'Plugin Marketplace + npx skills + GitHub'],
-];
+import { ArrowUpRight, Highlight } from '../_icons';
 
 export function FaqAndWaitlist() {
   return (
@@ -48,8 +41,11 @@ export function FaqAndWaitlist() {
           </div>
         </div>
 
-        <aside className="space-y-10 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
-          <div className="relative overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)]">
+        <aside className="space-y-6 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
+          <div
+            id="waitlist"
+            className="relative overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)]"
+          >
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl" aria-hidden />
             <div className="absolute right-3 top-3">
               <CorgiMascot className="h-10 w-10" />
@@ -60,8 +56,7 @@ export function FaqAndWaitlist() {
                 桌面 app <span className="text-yellow-deep">开发中</span>。
               </h3>
               <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">
-                独立 desktop app，让不用 AI agent 的求职者也能用。支持 BYOK 或通过 muirouter 购买额度。
-                留个邮箱，发布时第一时间通知你。
+                独立 desktop app，让不用 AI agent 的求职者也能用。 留个邮箱，发布时第一时间通知你。
               </p>
               <div className="mt-5">
                 <WaitlistForm source="landing-hero" />
@@ -69,19 +64,19 @@ export function FaqAndWaitlist() {
             </div>
           </div>
 
-          <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 技术栈</p>
-            <ul className="mt-4 space-y-3 text-[14px] leading-[1.6]">
-              {TECH_STACK.map(([k, v]) => (
-                <li key={k} className="flex items-baseline gap-3">
-                  <span className="w-20 shrink-0 font-mono text-[11px] font-semibold uppercase tracking-wider text-yellow-deep">
-                    {k}
-                  </span>
-                  <span className="flex-1 text-ink-soft">{v}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <a
+            href="/pricing"
+            className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)] transition-transform hover:-translate-y-1"
+          >
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 定价</p>
+              <p className="mt-1.5 text-[15px] font-extrabold text-ink">查看价格方案</p>
+              <p className="mt-1 text-[12.5px] text-ink-soft">Free / Pro / Max + BYOK 四档可选</p>
+            </div>
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+              <ArrowUpRight />
+            </span>
+          </a>
         </aside>
       </div>
     </section>

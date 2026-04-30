@@ -4,9 +4,9 @@ import { Fraunces, JetBrains_Mono, Nunito } from 'next/font/google';
 import './globals.css';
 
 const SITE_URL = 'https://muicv.com';
-const TITLE = 'Mui简历 — 在你熟悉的 AI agent 里管理简历';
+const TITLE = 'Mui简历 — 找到更好工作的 AI 求职平台';
 const DESCRIPTION =
-  'Claude Code / Codex / Cursor 通用的简历 skill 套件：素材存本地 Markdown，配 Cloudflare API 做 PDF 渲染和 JD 抓取。';
+  '一站式 AI 求职平台：智能简历、岗位发现、模拟面试、就业辅导。素材存本地，数据由你掌控；可以接入你的 AI agent，也可以用我们的桌面 app。';
 
 // Display serif: Fraunces 是 variable font，opsz/SOFT 轴帮我们实现优雅 italic
 const fontDisplay = Fraunces({
@@ -41,20 +41,21 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   applicationName: 'Mui简历',
   keywords: [
+    '简历',
     'resume',
     'cv',
-    '简历',
-    'AI agent',
-    'Claude Code',
-    'Codex',
-    'Cursor',
-    'OpenAI',
-    'job search',
     '求职',
+    'job search',
+    '岗位匹配',
+    '模拟面试',
+    'mock interview',
+    '就业辅导',
     'cover letter',
+    'AI 求职',
+    'AI agent',
   ],
-  authors: [{ name: 'meathill', url: 'https://github.com/meathill' }],
-  creator: 'meathill',
+  authors: [{ name: 'Mui简历' }],
+  creator: 'Mui简历',
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
@@ -68,7 +69,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: TITLE,
     description: DESCRIPTION,
-    creator: '@meathill',
   },
   robots: {
     index: true,

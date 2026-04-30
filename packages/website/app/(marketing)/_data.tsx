@@ -1,42 +1,78 @@
 import type { ReactNode } from 'react';
 
-import { Code } from './_icons';
+export type KeyFeature = {
+  title: string;
+  desc: string;
+  status: 'live' | 'soon';
+  highlights: string[];
+};
 
-export const WORKFLOW_STEPS: { skill: string; title: string; desc: string }[] = [
+export const KEY_FEATURES: KeyFeature[] = [
   {
-    skill: 'muicv-core',
-    title: '收集素材',
-    desc: '首次说"帮我准备简历"，skill 自动建 .claude/muicv/，引导收集 profile / experience / projects 等。',
+    title: '智能简历',
+    desc: '不再一份简历投到死。针对每个岗位定向定制内容、调整侧重，导出一份真正"对得上"的 PDF。',
+    status: 'live',
+    highlights: ['STAR / 量化 / 关键词 7 维度评审', 'A4 PDF 导出', '版本化管理'],
   },
   {
-    skill: 'muicv-jobs:fetch',
-    title: '抓取 JD',
-    desc: '粘一个招聘 URL，skill 调 API 清洗成 markdown 写到 targets/。',
+    title: '岗位发现',
+    desc: '粘一条招聘 URL，自动抓取并清洗成结构化目标；按你的素材计算匹配度，告诉你哪些岗位值得投。',
+    status: 'live',
+    highlights: ['JD 自动抓取', '匹配度评估', '关键词覆盖分析'],
   },
   {
-    skill: 'muicv-jobs:match',
-    title: '匹配度分析',
-    desc: '对比 JD 和本地素材，告诉你覆盖了多少关键词、缺什么，避免盲投。',
+    title: '模拟面试',
+    desc: '基于目标岗位生成面试题，给出回答框架与示例；多轮演练，让你提前熟悉真正会被问到的问题。',
+    status: 'soon',
+    highlights: ['行为面 / 技术面分轨', '回答框架建议', '多轮演练'],
   },
   {
-    skill: 'muicv-generate',
-    title: '生成简历',
-    desc: '针对具体 JD 挑选、排序、改写素材到 versions/<slug>-<date>.md。',
+    title: '就业辅导',
+    desc: '求职信代写、投递 checklist、节奏建议——围绕你的真实素材，不是泛泛的鸡汤。',
+    status: 'soon',
+    highlights: ['Cover letter 代写', '投递 checklist', '节奏与策略建议'],
   },
   {
-    skill: 'muicv-critique',
-    title: '评审迭代',
-    desc: 'STAR / 量化 / 关键词对齐 / 长度 等 7 维度评分，P0/P1/P2 提建议。',
+    title: '持续进化',
+    desc: '求职追踪、薪酬谈判、内推网络……更多能力还在路上。订阅 waitlist，第一时间体验新模块。',
+    status: 'soon',
+    highlights: ['求职追踪看板', '薪酬谈判助手', '内推网络对接'],
+  },
+];
+
+export type WorkflowStep = {
+  title: string;
+  desc: string;
+};
+
+export const WORKFLOW_STEPS: WorkflowStep[] = [
+  {
+    title: '整理素材',
+    desc: '把过往的工作经历、项目、技能整理成结构化材料，全部存在你自己电脑或项目里。',
   },
   {
-    skill: 'muicv-render',
+    title: '发现岗位',
+    desc: '粘一条招聘链接，自动抓取并整理成目标岗位档案，方便后续比对。',
+  },
+  {
+    title: '匹配度评估',
+    desc: '对照目标岗位与你的素材，告诉你覆盖了多少关键词、缺什么，避免盲投。',
+  },
+  {
+    title: '定制简历',
+    desc: '针对具体岗位挑选、排序、改写素材，生成一份真正"对得上"的简历草稿。',
+  },
+  {
+    title: '多轮评审',
+    desc: 'STAR / 量化 / 关键词对齐 / 篇幅 等 7 维度打分，按 P0/P1/P2 给出修改建议。',
+  },
+  {
     title: '导出 PDF',
-    desc: '调服务端 API（Cloudflare Container + Puppeteer）渲染成 A4 PDF。',
+    desc: '一键导出 A4 排版的 PDF；版式跟着内容自适应，不用自己调字号边距。',
   },
   {
-    skill: 'muicv-jobs:apply',
-    title: '准备投递',
-    desc: '生成 cover letter + 投递 checklist 到 applications/。投递由你手动完成。',
+    title: '投递准备',
+    desc: '生成求职信和投递 checklist；按提交按钮的事还由你做，账号风险更可控。',
   },
 ];
 
@@ -45,9 +81,8 @@ export const FAQ_ITEMS: { q: string; a: ReactNode }[] = [
     q: '我的简历数据存在哪？谁能看到？',
     a: (
       <>
-        全部存在你当前项目目录下的 <Code>.claude/muicv/</Code> 文件夹里，纯 Markdown 文件。要不要入
-        git、要不要备份到云盘、要不要分享给别人——完全由你决定。 我们的服务器只在你主动调 API（PDF 渲染、JD
-        抓取）时短暂经手数据，不留存。
+        全部存在你自己的电脑上——以纯 Markdown 文件的形式，由你完全掌握。要不要备份、要不要分享给别人，都由你决定。
+        我们的服务器只在你主动调用导出 PDF / 抓取岗位等功能时短暂经手数据，处理完即丢弃，不留存任何简历内容。
       </>
     ),
   },
@@ -55,41 +90,39 @@ export const FAQ_ITEMS: { q: string; a: ReactNode }[] = [
     q: '怎么收费？档位什么样？',
     a: (
       <>
-        三档 + BYOK：
+        四档结构：
         <ul className="mt-2 list-disc space-y-1 pl-5">
           <li>
-            <strong>Free</strong>：每月免费 token 试用，可输出 markdown 简历；不含 PDF 导出 / 招聘库 / 自动投递
+            <strong>Free</strong>：每月免费额度试用，可输出 markdown 简历；不含 PDF 导出 / 招聘库 / 辅助投递
           </li>
           <li>
-            <strong>Pro</strong>（M4 起开放）：更多 token + PDF + 招聘库 + 辅助投递（数量有限）
+            <strong>Pro</strong>：更多额度 + PDF + 招聘库 + 辅助投递（数量受限）
           </li>
           <li>
-            <strong>Max</strong>：不受限制
+            <strong>Max</strong>：不受限，适合密集求职阶段
           </li>
           <li>
-            <strong>BYOK</strong>（覆盖任意档）：在 dashboard 绑定 muirouter，LLM 走你自己 muirouter 余额， 不消耗平台
-            token。功能权限按所在档（Free 即可启用）
+            <strong>BYOK</strong>（覆盖任意档）：在 dashboard 绑定自己的 LLM
+            余额，使用费按你自己的用量计；功能权限按所在档位
           </li>
         </ul>
-        Skill 本身永远免费——开发者用{' '}
-        <code className="rounded bg-fluff px-1 py-0.5 font-mono text-[12px]">npx skills add</code> 直接接入 Claude Code
-        等 agent。
+        具体价格请看{' '}
+        <a
+          href="/pricing"
+          className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
+        >
+          定价页
+        </a>
+        。
       </>
     ),
   },
   {
-    q: '什么是 BYOK？muirouter 是什么？',
+    q: '什么是 BYOK？',
     a: (
       <>
-        BYOK = Bring Your Own Key。在{' '}
-        <a
-          href="https://muirouter.com"
-          className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
-        >
-          muirouter.com
-        </a>{' '}
-        充一笔 LLM 余额，把 sk-gw key 绑到 muicv dashboard。所有 LLM 调用都走你自己的 muirouter 余额—— muirouter
-        是统一接入多家 LLM 的代理（OpenAI / Anthropic / Gemini 等都通），余额可以跨任何 BYOK 服务复用。
+        BYOK = Bring Your Own Key，自带 LLM 余额。绑定之后，所有 AI 调用走你自己的余额， 我们不再消耗平台
+        token——适合已经有 LLM 服务订阅、希望统一成本管理的用户。
       </>
     ),
   },
@@ -97,27 +130,22 @@ export const FAQ_ITEMS: { q: string; a: ReactNode }[] = [
     q: '桌面 app 什么时候发布？',
     a: (
       <>
-        基于 OpenAI Agent SDK 的 electron 桌面端正在规划，给不用 AI agent 的求职者用。 没有具体时间表，
-        <strong>留邮箱进 waitlist</strong>，发布会第一时间通知你。 在那之前，开发者可以直接用 skill
-        套件（上面有安装命令）。
+        基于 Agent SDK 的桌面端正在规划中，让不用 AI agent 的求职者也能用上同一套能力。 没有具体时间表，
+        <strong>留下邮箱进 waitlist</strong>，发布会第一时间通知你。 在那之前，已经在用 AI agent（Claude Code / Codex /
+        Cursor 等）的用户可以通过 skill 套件直接接入。
       </>
     ),
   },
   {
     q: '支持英文 / 双语简历吗？',
-    a: (
-      <>
-        Skill 不强制语言——你的素材是中文，简历就是中文；JD 是英文，simulate 出来的简历会按英文风格写。
-        双语版（中英对照）作为后续模板规划中。
-      </>
-    ),
+    a: <>支持。素材是中文，简历就是中文；目标岗位是英文，生成的简历会按英文风格写； 中英对照模板已在规划中。</>,
   },
   {
-    q: '能投递到 LinkedIn / Boss 直聘吗？',
+    q: '会自动投递到 LinkedIn / Boss 直聘吗？',
     a: (
       <>
-        不能自动投递。我们只帮你抓 JD、生成针对性简历、写 cover letter，
-        真正的"按提交按钮"由你手动完成——这是有意为之，避免账号风险和 ToS 违规。
+        不会。我们只帮你抓岗位、生成针对性简历、写求职信、整理 checklist——
+        真正的"按提交按钮"由你手动完成。这是有意为之，避免账号风险和 ToS 违规。
       </>
     ),
   },

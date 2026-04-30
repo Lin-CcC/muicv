@@ -2,6 +2,13 @@ import { CorgiMascot } from '@/components/corgi-mascot';
 
 import { ArrowUpRight } from '../_icons';
 
+const NAV_LINKS: { label: string; href: string }[] = [
+  { label: '重点特性', href: '/#features' },
+  { label: '价格', href: '/pricing' },
+  { label: '关于', href: '/about' },
+  { label: '下载', href: '/download' },
+];
+
 export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <header className="sticky top-0 z-30 border-b border-rule bg-cream/85 backdrop-blur-sm">
@@ -14,18 +21,15 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
           </span>
         </a>
         <nav className="flex items-center gap-1 text-sm text-ink-soft">
-          <a
-            href="/download"
-            className="hidden rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink sm:inline-block"
-          >
-            下载
-          </a>
-          <a
-            href="https://github.com/meathill/muicv"
-            className="rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink"
-          >
-            GitHub
-          </a>
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="hidden rounded px-2.5 py-1.5 transition hover:bg-fluff hover:text-ink sm:inline-block"
+            >
+              {link.label}
+            </a>
+          ))}
           {isLoggedIn ? (
             <a
               href="/dashboard"

@@ -1,4 +1,4 @@
-import { ArrowUpRight, Highlight } from '../_icons';
+import { Highlight } from '../_icons';
 import { InstallCard } from '../_install-card';
 
 export function Install() {
@@ -30,34 +30,27 @@ export function Install() {
               不需要等桌面 app。装了 Claude Code、Codex、Cursor、OpenCode 等任何一种支持 skill 协议的
               agent，下面任选一种安装方式，5 秒装完。
             </p>
-
-            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px]">
+            <p className="mt-4 max-w-md text-[13px] leading-[1.7] text-mute">
+              不熟悉 AI agent？等桌面 app 上线即可，
               <a
-                href="https://github.com/meathill/muicv/blob/master/docs/walkthrough.md"
-                className="inline-flex items-center gap-1.5 font-semibold text-ink underline decoration-yellow decoration-2 underline-offset-4 hover:decoration-yellow-deep"
+                href="/#waitlist"
+                className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
               >
-                7 步演示
-                <ArrowUpRight />
+                留下邮箱
               </a>
-              <a
-                href="https://github.com/meathill/muicv#使用"
-                className="inline-flex items-center gap-1.5 font-semibold text-ink underline decoration-yellow decoration-2 underline-offset-4 hover:decoration-yellow-deep"
-              >
-                完整文档
-                <ArrowUpRight />
-              </a>
-            </div>
+              第一时间收到通知。
+            </p>
           </div>
 
           <div className="grid gap-4 lg:col-span-7">
             <InstallCard
               title="Claude Code Plugin Marketplace"
               meta="官方机制 / /plugin 命令"
-              code={`/plugin marketplace add meathill/muicv
-/plugin install muicv@meathill`}
+              code={`/plugin marketplace add muicv
+/plugin install muicv`}
               preferred
             />
-            <InstallCard title="npx skills" meta="多 agent 通用 / 40+ 兼容" code={`npx skills add meathill/muicv -g`} />
+            <InstallCard title="npx skills" meta="多 agent 通用 / 40+ 兼容" code={`npx skills add muicv -g`} />
           </div>
         </div>
       </div>

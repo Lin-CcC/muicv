@@ -145,14 +145,6 @@ function ReleasePanel({ release }: { release: GhRelease }) {
       <div className="flex flex-wrap items-baseline gap-3 rounded-2xl border-2 border-ink bg-cream px-5 py-3 shadow-[0_4px_0_0_var(--color-ink)]">
         <span className="font-mono text-[12px] font-bold tabular-nums text-yellow-deep">{release.tag_name}</span>
         <span className="text-[12px] text-mute">发布于 {formatDate(release.published_at)}</span>
-        <a
-          href={release.html_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-auto text-[12px] underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep"
-        >
-          完整 release notes ↗
-        </a>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -161,13 +153,7 @@ function ReleasePanel({ release }: { release: GhRelease }) {
       </div>
 
       <div className="rounded-xl border border-rule bg-paper px-4 py-3 text-[12.5px] text-mute">
-        Linux / Windows 还在排期。先用 macOS 测着，开发者也可以直接用 skill：{' '}
-        <a
-          href="https://github.com/meathill/muicv#安装"
-          className="underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep"
-        >
-          npx skills add meathill/muicv
-        </a>
+        Linux / Windows 版本还在排期，先用 macOS 测着；其他平台发布会通过 Waitlist 通知。
       </div>
     </section>
   );
@@ -208,28 +194,19 @@ function Platform({ title, subtitle, assets }: { title: string; subtitle: string
 function NoRelease() {
   return (
     <section className="mt-12 rounded-2xl border-2 border-rule bg-paper p-6 text-[14px] text-ink-soft">
-      <p>🐾 还没有发布版本。第一波正式发布前，你可以：</p>
+      <p>🐾 桌面 app 还没有正式发布版本。在那之前你可以：</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px]">
         <li>
-          关注{' '}
-          <a
-            href={`https://github.com/${REPO}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          在首页{' '}
+          <Link
+            href="/#waitlist"
             className="underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep"
           >
-            GitHub
-          </a>{' '}
-          仓库 → Releases 接通知
+            留下邮箱
+          </Link>{' '}
+          加入 Waitlist，发布时第一时间通知你
         </li>
-        <li>
-          自己 clone 跑：
-          <code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px]">pnpm --filter @muicv/app dev</code>
-        </li>
-        <li>
-          或者直接用 skill：
-          <code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px]">npx skills add meathill/muicv</code>
-        </li>
+        <li>已经在用 Claude Code、Codex、Cursor 等 AI agent 的话，回首页看 skill 安装命令，5 秒就能接入</li>
       </ul>
     </section>
   );

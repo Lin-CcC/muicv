@@ -13,7 +13,7 @@ export function Footer() {
             <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
           </a>
           <p className="mt-4 max-w-xs text-[13px] leading-[1.65] text-ink-soft">
-            在你熟悉的 AI agent 里管理简历。Skills + 本地 Markdown + Cloudflare API。
+            一站式 AI 求职平台。简历、找岗位、模拟面试、就业辅导——帮你拿到更好的 offer。
           </p>
           <p className="mt-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-yellow-deep">
             <PawIcon className="h-3.5 w-3.5" />
@@ -25,35 +25,33 @@ export function Footer() {
           <FooterCol
             label="产品"
             links={[
-              ['下载桌面 app', '/download'],
-              ['Skill 安装', '#install'],
+              ['重点特性', '/#features'],
+              ['定价', '/pricing'],
+              ['桌面 app', '/download'],
               ['Dashboard', '/dashboard'],
             ]}
           />
           <FooterCol
-            label="文档"
+            label="公司"
             links={[
-              ['walkthrough', 'https://github.com/meathill/muicv/blob/master/docs/walkthrough.md'],
-              ['README', 'https://github.com/meathill/muicv#readme'],
-              ['DEPLOYMENT', 'https://github.com/meathill/muicv/blob/master/DEPLOYMENT.md'],
+              ['关于我们', '/about'],
+              ['联系我们', '/contact'],
+              ['Waitlist', '/#waitlist'],
             ]}
           />
           <FooterCol
-            label="社区"
+            label="法律"
             links={[
-              ['GitHub', 'https://github.com/meathill/muicv'],
-              ['Issues', 'https://github.com/meathill/muicv/issues'],
-              ['作者博客', 'https://meathill.com'],
+              ['服务条款', '/terms'],
+              ['隐私政策', '/privacy'],
             ]}
           />
         </div>
       </div>
       <div className="border-t border-rule">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-[12px] text-mute md:flex-row md:items-center md:justify-between md:px-8">
-          <span>© 2026 meathill · UNLICENSED（暂时）</span>
-          <span className="font-mono text-[11px] uppercase tracking-wider">
-            built with skills · cloudflare · puppeteer
-          </span>
+          <span>© 2026 Mui简历 · 保留所有权利</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider">Made with 🐾 in 中国</span>
         </div>
       </div>
     </footer>
