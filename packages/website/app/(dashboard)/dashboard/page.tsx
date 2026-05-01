@@ -4,10 +4,6 @@ import { headers } from 'next/headers';
 import { getAuth } from '@/lib/auth';
 import { ensureBalance } from '@/lib/wallet';
 
-import { ApiKeysSection } from './api-keys-section';
-import { MuirouterSection } from './muirouter-section';
-import { PlansSection } from './plans-section';
-
 export const metadata: Metadata = {
   title: 'Dashboard',
 };
@@ -38,24 +34,14 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2">
         <Card label="邮箱" value={user.email} />
         <Card
           label="Token 余额"
           value={wallet.balance.toLocaleString()}
           hint={wallet.justInitialized ? '注册赠送已到账' : '永不过期'}
         />
-        <Card label="账号 ID" value={user.id} mono />
-        <Card label="API Keys" value="见下方管理 ↓" hint="桌面 app 唯一登录凭证" />
-        <Card label="muirouter (BYOK)" value="见下方绑定 ↓" hint="LLM 走你自己余额" />
-        <Card label="订阅 / 充值" value="见下方 ↓" hint="订阅 + 补充包" />
       </section>
-
-      <ApiKeysSection />
-
-      <MuirouterSection />
-
-      <PlansSection />
 
       <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
         <h2 className="text-[18px] font-extrabold text-ink">下一步</h2>
@@ -75,33 +61,11 @@ export default async function DashboardPage() {
   );
 }
 
-function Card({
-  label,
-  value,
-  hint,
-  mono,
-  muted,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-  mono?: boolean;
-  muted?: boolean;
-}) {
+function Card({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div
-      className={`rounded-2xl border-2 p-5 ${
-        muted ? 'border-rule bg-paper' : 'border-ink bg-cream shadow-[0_4px_0_0_oklch(0.24_0.04_65)]'
-      }`}
-    >
+    <div className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-yellow-deep">{label}</p>
-      <p
-        className={`mt-2 break-words text-[16px] font-bold text-ink ${mono ? 'font-mono text-[13px]' : ''} ${
-          muted ? 'text-mute' : ''
-        }`}
-      >
-        {value}
-      </p>
+      <p className="mt-2 break-words text-[16px] font-bold text-ink">{value}</p>
       {hint && <p className="mt-2 text-[11px] text-mute">{hint}</p>}
     </div>
   );

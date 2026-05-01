@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { CorgiMascot } from '@/components/corgi-mascot';
 import { getAuth } from '@/lib/auth';
 
+import { DashboardNav } from './_components/dashboard-nav';
 import { SignOutButton } from './sign-out-button';
 
 // 整个 dashboard 段是 per-user 的，强制 SSR
@@ -29,7 +30,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-cream">
       <header className="sticky top-0 z-30 border-b border-rule bg-cream/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 md:px-8">
           <Link href="/dashboard" className="flex items-center gap-2.5 text-ink no-underline">
             <CorgiMascot className="h-8 w-8" />
             <span className="text-[17px] font-bold tracking-tight">Mui简历</span>
@@ -46,7 +47,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-5 py-10 md:px-8 md:py-14">{children}</main>
+      <div className="mx-auto max-w-7xl px-5 md:px-8">
+        <DashboardNav variant="tabs" />
+        <div className="flex gap-10 py-8 md:py-12">
+          <DashboardNav variant="sidebar" />
+          <main className="min-w-0 flex-1">{children}</main>
+        </div>
+      </div>
     </div>
   );
 }
