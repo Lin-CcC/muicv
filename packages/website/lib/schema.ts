@@ -166,3 +166,37 @@ export const stripeEvent = sqliteTable('stripeEvent', {
   type: text('type').notNull(),
   receivedAt: integer('receivedAt', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/**
+ * 简历素材云同步——活动版（每用户 1 行）。
+ * 用户在 muicv-core skill 里主动 push 整个本地工作目录的 .md 文件，
+ * files 列存 JSON 字符串 `{ "<相对路径>": "<文本内容>" }`。
+ * 推送前由业务逻辑把当前活动版搬到 resumeSnapshotHistory（FIFO 5 份）。
+ */
+export const resumeSnapshot = sqliteTable('resumeSnapshot', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  files: text('files').notNull(),
+  hash: text('hash').notNull(),
+  sizeBytes: integer('sizeBytes').notNull(),
+  fileCount: integer('fileCount').notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
+ * 简历素材云同步——历史快照（最近 N 份）。
+ * 每次 push 前把活动版搬过来；后台用 archivedAt DESC 取前 5 份，多余的删掉。
+ * dashboard 上能看到列表 + 单个恢复。
+ */
+export const resumeSnapshotHistory = sqliteTable('resumeSnapshotHistory', {
+  id: text('id').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  files: text('files').notNull(),
+  hash: text('hash').notNull(),
+  sizeBytes: integer('sizeBytes').notNull(),
+  fileCount: integer('fileCount').notNull(),
+  archivedAt: integer('archivedAt', { mode: 'timestamp_ms' }).notNull(),
+});

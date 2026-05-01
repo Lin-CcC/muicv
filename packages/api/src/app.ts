@@ -8,6 +8,13 @@ import { charge, ensureBalance } from './lib/wallet.ts';
 import { requireApiKey } from './middleware/api-key.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
+import {
+  handleResumeHistoryGet,
+  handleResumeHistoryList,
+  handleResumeSnapshotDelete,
+  handleResumeSnapshotGet,
+  handleResumeSync,
+} from './routes/resume-sync.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
 
 type AppBindings = {
@@ -53,6 +60,11 @@ app.get('/', (c) =>
       'POST /waitlist',
       'GET /me（拿当前登录用户信息）',
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
+      'POST /resume/sync（push 整个素材库快照）',
+      'GET /resume/snapshot（pull 活动版）',
+      'GET /resume/snapshot/history（列历史快照 metadata）',
+      'GET /resume/snapshot/history/:id（pull 某历史版本）',
+      'DELETE /resume/snapshot（清空云端）',
     ],
   }),
 );
@@ -200,5 +212,15 @@ app.post('/jobs/fetch', requireApiKey, async (c) => {
     );
   }
 });
+
+/**
+ * /resume/* —— 简历素材云同步（skill 用 Bearer key 调用）。详见 src/routes/resume-sync.ts。
+ * 不扣 token，单库 1MB / 500 文件上限；推送前自动归档活动版到 history（最近 5 份）。
+ */
+app.post('/resume/sync', requireApiKey, handleResumeSync);
+app.get('/resume/snapshot', requireApiKey, handleResumeSnapshotGet);
+app.get('/resume/snapshot/history', requireApiKey, handleResumeHistoryList);
+app.get('/resume/snapshot/history/:id', requireApiKey, handleResumeHistoryGet);
+app.delete('/resume/snapshot', requireApiKey, handleResumeSnapshotDelete);
 
 export default app;

@@ -1,6 +1,6 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-04-30
+最后更新：2026-05-01
 
 ## 方向
 
@@ -30,13 +30,59 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
 ## 当前进行中
 
-无（Phase 9 落地后处于功能稳定期，等 Stripe test mode 真实跑一段时间再切 live）。
+### Phase 10：MuiCV 云同步（server + dashboard 已落地，skill 端待对接）
+
+用户在 muicv-core skill 里主动触发「同步到云端」/「从云端恢复」，把本地工作目录的所有 .md
+文件整体作为一份完整快照 push/pull。云端只保留一份活动版 + 最近 5 份历史。Dashboard
+提供管理页（看大小、最后同步时间、历史列表、恢复历史、清空云端）。
+
+**已落地**
+
+- DB：`resumeSnapshot`（活动版，每用户 1 行）+ `resumeSnapshotHistory`（最近 5 份），
+  见 [migrations/0009_resume_snapshot.sql](packages/website/migrations/0009_resume_snapshot.sql) 和
+  [lib/schema.ts](packages/website/lib/schema.ts)
+- 共用校验：[packages/shared/src/resume-sync.ts](packages/shared/src/resume-sync.ts)，含限制
+  常量（1MB / 500 文件 / 5 份历史）+ 路径校验 + 稳定 hash
+- skill API（Bearer key，挂在 `api.muicv.com`）：
+  [packages/api/src/routes/resume-sync.ts](packages/api/src/routes/resume-sync.ts)
+  - `POST /resume/sync`：push 一份新活动版（自动归档旧版到 history）
+  - `GET /resume/snapshot`：pull 活动版（含 files）
+  - `GET /resume/snapshot/history`：列历史 metadata
+  - `GET /resume/snapshot/history/:id`：pull 某历史版本
+  - `DELETE /resume/snapshot`：清空全部
+- dashboard API（cookie session，挂在 `muicv.com/api`）：
+  - `GET /api/resume/sync`、`DELETE /api/resume/sync`
+  - `DELETE /api/resume/sync/history/[id]`
+  - `POST /api/resume/sync/history/[id]/restore`
+- dashboard UI：[/dashboard/sync](packages/website/app/(dashboard)/dashboard/sync/page.tsx)
+  + sidebar 加第 4 项「云同步」
+
+**计费**：完全免费（不扣 token）。靠大小上限（1MB/库）和历史份数（5 份）兜边界。
+
+**冲突策略**：last-write-wins。每次 push 自动把活动版归档；用户能在 dashboard 一键恢复历史。
+
+**待办（下一阶段）**
+
+- [ ] muicv-core skill 文档加「同步到云端」「从云端恢复」两个 action 步骤；让 skill 知道
+      读 `MUICV_API_BASE` + `MUICV_API_KEY`，调 `POST /resume/sync` / `GET /resume/snapshot`
+- [ ] D1 远端 migration：`pnpm --filter @muicv/website db:migrate`
+- [ ] 部署后端到端验证：
+  - 在 dashboard 创建一个 mui_ key
+  - 用 curl 模拟 skill push 一份 markdown，验证 `/dashboard/sync` 状态卡更新
+  - 多次 push 看历史滚动到 5 份就停
+  - 点恢复 / 删除 / 清空，刷新看效果
+
+## 历史
+
+Phase 1～9 全部落地（commits `f5cab4d → ……`，2026-01-12 ～ 2026-04-30）。本次（2026-05-01）
+追加 dashboard 改造：左 sidebar + 4 个子页面（commit `6203ed5`），随后落地云同步 server +
+dashboard 主干。
 
 ## 下一步
 
 按 [TODO.md](./TODO.md)：
 
-- 云同步 skill（muicv 平台 / GitHub 双通道）
+- 云同步 skill（muicv 平台 / GitHub 双通道）— **本期做了 muicv 平台 server 端，skill 端下一轮**
 - 模拟面试 skill
 - 录音复盘 / 面试复盘 skill
 - 桌面 app 余额耗尽提示 UI（Stripe 跳转 / 充值入口）
