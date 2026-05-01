@@ -4,7 +4,7 @@
 
 ### 内容同步
 
-- ~~云同步 skill（muicv 平台）：把全部职业内容上传到 muicv 平台~~ — server + dashboard 已落地（Phase 10），skill 端待 muicv-core 加 push/pull 步骤
+- ~~云同步 skill（muicv 平台）：把全部职业内容上传到 muicv 平台~~ — Phase 10 完整落地（DB / API / dashboard / muicv-sync skill），见 WIP.md
 - 云同步 skill（GitHub）：把全部职业内容上传到 GitHub
 
 ### 面试相关

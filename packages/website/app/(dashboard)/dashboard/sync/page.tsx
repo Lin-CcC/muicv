@@ -27,9 +27,8 @@ export default async function ResumeSyncPage() {
           MuiCV 平台云同步
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          在 muicv-core skill 里主动 push 当前工作目录的所有 .md 文件到云端；新机器可以从这里 pull
-          回来。云端只保留一份活动版 + 最近 {RESUME_SYNC_HISTORY_KEEP} 份历史快照，单库上限{' '}
-          {(RESUME_SYNC_MAX_SIZE_BYTES / 1024).toLocaleString()} KB。
+          用 muicv-sync skill push 当前工作目录的所有 .md 文件到云端；新机器可以 pull 回来。云端只保留一份活动版 + 最近{' '}
+          {RESUME_SYNC_HISTORY_KEEP} 份历史快照，单库上限 {(RESUME_SYNC_MAX_SIZE_BYTES / 1024).toLocaleString()} KB。
         </p>
       </header>
 
@@ -53,8 +52,8 @@ function ActiveCard({
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 当前活动版</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">云端还没有任何快照</h2>
         <p className="mt-2 text-[13.5px] text-ink-soft">
-          还没在 skill 里 push 过素材。先在 muicv-core 的工作目录里编辑好 profile / experience 等文件，再让 skill
-          帮你"同步到云端"。
+          还没在 skill 里 push 过素材。先用 muicv-core 在工作目录里编辑好 profile / experience 等文件，再跟 muicv-sync
+          说"同步到云端"。
         </p>
       </section>
     );
@@ -80,17 +79,18 @@ function ActiveCard({
 function SkillHints() {
   return (
     <section className="rounded-2xl border-2 border-ink bg-paper p-6">
-      <h2 className="text-[16px] font-extrabold text-ink">在 muicv-core skill 里怎么用</h2>
+      <h2 className="text-[16px] font-extrabold text-ink">在 muicv-sync skill 里怎么用</h2>
       <ol className="mt-3 space-y-2 text-[13.5px] leading-[1.7] text-ink-soft">
         <li>
-          🐾 <span className="font-bold text-ink">推送到云端</span>：跟 skill 说"
-          <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">同步到云端</span>"，
-          skill 会读取工作目录的 .md 文件，调用 <code className="font-mono">POST /resume/sync</code> 上传。
+          🐾 <span className="font-bold text-ink">推送到云端</span>：跟 muicv-sync 说"
+          <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">同步到云端</span>
+          "，它会 Glob 工作目录的所有 .md，调用 <code className="font-mono">POST /resume/sync</code> 上传。
         </li>
         <li>
-          🐾 <span className="font-bold text-ink">从云端拉取</span>：换一台新机器，告诉 skill"
+          🐾 <span className="font-bold text-ink">从云端拉取</span>：换一台新机器，告诉 muicv-sync"
           <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">从云端恢复素材</span>
-          "，skill 会调用 <code className="font-mono">GET /resume/snapshot</code> 把内容写回本地。
+          "，它会调 <code className="font-mono">GET /resume/snapshot</code>，本地有冲突的文件先备份到{' '}
+          <code className="font-mono">.muicv-pull-backup-*</code>，再写入云端版本。
         </li>
         <li>
           🐾 <span className="font-bold text-ink">前提</span>：本地要配好{' '}

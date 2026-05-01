@@ -169,7 +169,7 @@ export const stripeEvent = sqliteTable('stripeEvent', {
 
 /**
  * 简历素材云同步——活动版（每用户 1 行）。
- * 用户在 muicv-core skill 里主动 push 整个本地工作目录的 .md 文件，
+ * 用户在 muicv-sync skill 里主动 push 整个本地工作目录的 .md 文件，
  * files 列存 JSON 字符串 `{ "<相对路径>": "<文本内容>" }`。
  * 推送前由业务逻辑把当前活动版搬到 resumeSnapshotHistory（FIFO 5 份）。
  */

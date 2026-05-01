@@ -30,9 +30,9 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
 ## 当前进行中
 
-### Phase 10：MuiCV 云同步（server + dashboard 已落地，skill 端待对接）
+### Phase 10：MuiCV 云同步（已全部落地）
 
-用户在 muicv-core skill 里主动触发「同步到云端」/「从云端恢复」，把本地工作目录的所有 .md
+用户在 muicv-sync skill 里主动触发「同步到云端」/「从云端恢复」，把本地工作目录的所有 .md
 文件整体作为一份完整快照 push/pull。云端只保留一份活动版 + 最近 5 份历史。Dashboard
 提供管理页（看大小、最后同步时间、历史列表、恢复历史、清空云端）。
 
@@ -61,16 +61,22 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
 **冲突策略**：last-write-wins。每次 push 自动把活动版归档；用户能在 dashboard 一键恢复历史。
 
-**待办（下一阶段）**
+**新增 skill**：[skills/muicv-sync/SKILL.md](skills/muicv-sync/SKILL.md)
+- `push`：Glob `**/*.md`（过滤隐藏目录 + node_modules）→ 组装 JSON → POST /resume/sync
+- `pull`：GET /resume/snapshot → 冲突文件备份到 `.muicv-pull-backup-<ts>/` → 写入云端版
+- `status`：引导去 dashboard 看
+- 单库 1MB / 500 文件，超限 client 端先报错；触发词覆盖"同步/上传/备份/恢复/拉远程/换机器"等
 
-- [ ] muicv-core skill 文档加「同步到云端」「从云端恢复」两个 action 步骤；让 skill 知道
-      读 `MUICV_API_BASE` + `MUICV_API_KEY`，调 `POST /resume/sync` / `GET /resume/snapshot`
-- [ ] D1 远端 migration：`pnpm --filter @muicv/website db:migrate`
-- [ ] 部署后端到端验证：
-  - 在 dashboard 创建一个 mui_ key
-  - 用 curl 模拟 skill push 一份 markdown，验证 `/dashboard/sync` 状态卡更新
+**待办（端到端验证）**
+
+- [x] D1 远端 migration（用户 2026-05-01 已跑）
+- [ ] 部署后真机串一遍：
+  - dashboard 创建 mui_ key + export 到 shell
+  - 在素材库目录跟 muicv-sync 说"同步到云端" → /dashboard/sync 看到状态卡
   - 多次 push 看历史滚动到 5 份就停
-  - 点恢复 / 删除 / 清空，刷新看效果
+  - 找新目录跟 muicv-sync 说"从云端恢复" → 文件落到本地
+  - 改一个文件再 pull → 看到 .muicv-pull-backup-* 目录
+  - dashboard 点恢复 / 删除 / 清空，刷新看效果
 
 ## 历史
 
