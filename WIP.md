@@ -110,15 +110,33 @@ P0 范围（这次做）：
 - 打字模式（Claude Code / Codex 等 terminal）：降级反馈（只评内容），第一步显式
   推荐用户切到桌面 app
 
-**P1 待办（独立 phase，下次写 plan）**：
+**P1a：题库迭代（已落地）**
 
-- 后端 `/audio/transcribe` 端点（whisper），按音频时长扣 token
-- 桌面 app interview 模式集成 STT（MediaRecorder 录音 → 调端点 → 拿 transcript +
+每轮总评后让用户对每道题打 👍 / 👎 + 可选评论，写到 `interviews/<company>-<round>-<date>.md`：
+
+- SKILL.md 第四步 LOOP 加 `d2` 子步（题目质量打分），用户跳过则不写文件
+- frontmatter type=`interview_feedback`，含 company / title / round / level / category / date / mode（voice/typing）/ target / version
+- packages/shared/src/schemas/resume-md.ts 加 `InterviewFeedbackFrontmatter` 类型
+- muicv-core 目录骨架加 `interviews/`，数据契约表加新行
+- **当前阶段只收集，不复用**——等数据积累后再决定怎么把高分题反哺到出题逻辑
+- 跟 muicv-debrief 的 `debriefs/` 平行不混（debriefs 是真实面试，interviews 是模拟历史 + 题目打分）
+
+**P1b 待办（独立 phase，下次写 plan）—— STT 集成**：
+
+- 默认 app **不**带 whisper 模型，第一次进 interview 模式时让用户选：
+  - A：下载本地 whisper 模型（base ~75MB / small ~244MB），免费 / 隐私 / 离线
+  - B：用云端 whisper（按音频时长扣 token），即时可用
+- 后端 `/audio/transcribe` 端点（whisper），按音频时长扣 token —— 给 B 路径用
+- 桌面 app interview 模式集成 STT（MediaRecorder 录音 → 本地 whisper.cpp 或调云端 → 拿 transcript +
   duration_ms + filler_count）
 - 录像可选（默认关，desktopCapturer + 本地 webm）
-- agent tool `record_and_transcribe_response`，把 `{transcript, durationMs, fillerCount}`
-  喂给 interview agent
-- SKILL.md 不需要再改——P0 已经预留了接口约定
+- agent tool `record_and_transcribe_response`，把 `{transcript, durationMs, fillerCount}` 喂给 interview agent
+- SKILL.md 不需要再改——P0 已经预留接口约定
+
+**P1c 待办（视用户量再决定）—— 云端题库共享**：
+
+- 把 `interviews/*.md` 里的高分题（脱敏后）汇总成众包题库
+- 出题时优先复用同维度（round × category × level）的高分种子，仍按 JD/简历微调
 
 ### Phase 12：muicv-debrief skill（面试复盘，已落地）
 

@@ -90,6 +90,27 @@ export type DebriefFrontmatter = {
   duration_min?: number;
 };
 
+/**
+ * interviews/*.md —— 模拟面试题目反馈，由 muicv-interview 在每轮总评后让用户
+ * 对题目打 👍/👎 + 可选评论后产出。跟 debriefs/ 平行（debriefs 是真实面试复盘，
+ * interviews 是模拟面试历史 + 题目质量打分），两个目录不混。
+ *
+ * 当前阶段（P1a）只收集打分数据，不复用——等积累一段时间再设计反哺出题逻辑的算法。
+ */
+export type InterviewFeedbackFrontmatter = {
+  type: 'interview_feedback';
+  company: string;
+  title: string;
+  round: string; // 跟 DebriefFrontmatter 的 round 字段对齐
+  round_label?: string;
+  level: string; // junior / mid / senior / staff / principal / em-... 等
+  category: string; // frontend / backend / mobile / em / ... 见 references/level-category-heuristics.md
+  date: string; // YYYY-MM-DD
+  mode: 'voice' | 'typing'; // 语音 = client；打字 = skill
+  target?: string; // 指向 targets/*.md 的相对路径
+  version?: string; // 指向 versions/*.md 的相对路径
+};
+
 export type MuiCvFrontmatter =
   | ProfileFrontmatter
   | ExperienceFrontmatter
@@ -97,4 +118,5 @@ export type MuiCvFrontmatter =
   | TargetFrontmatter
   | VersionFrontmatter
   | ApplicationFrontmatter
-  | DebriefFrontmatter;
+  | DebriefFrontmatter
+  | InterviewFeedbackFrontmatter;

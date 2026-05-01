@@ -118,10 +118,69 @@ LOOP（用户没说"结束"前一直循环）:
        - **明确不评时长 / 流利度**（"按打字状态我不评时长，仅供参考——你实际面试时这题应该控制在 60-90s"）
        - 可选示范改写
 
-  d. 本轮总评（对话内，**不写文件**）
+  d. 本轮总评（对话内，**不写到 interviews/feedback 之外的任何文件**）
      - 整体水平 vs 该 level 期望（达标 / 边缘 / 偏弱）
      - 重点改进 1-2 个方向
      - 引用本轮"信号"（参考 round-recipes.md：tech-screen 看基础够不够 / hiring-manager 看能不能干活+是不是麻烦 / ...）
+
+  d2. ★ 题目质量打分（题库迭代——只收集，不复用）
+     总评后跟用户说一段话，邀请他对**本轮每道题**打 👍 / 👎 + 可选评论（不强制；
+     用户跳过整步也行）。措辞示例：
+
+     > 这一轮 5 道题，挨个给我个 👍 或 👎 让我做题目优化——👍 = 出得好（切中弱点 /
+     > 跟 JD 对得上 / 让你想问下一题）；👎 = 烂题（太常规 / 跟你不相关 / 太刁钻 /
+     > 已经被前面的轮次问过）。可以加一句简短评论。或者说"跳过"直接进下一步。
+
+     用户给打分后，**写到 `interviews/<company-slug>-<round>-<YYYY-MM-DD>.md`**：
+
+       ```markdown
+       ---
+       type: interview_feedback
+       company: Google
+       title: Senior Frontend Engineer
+       round: hiring-manager           # 跟 muicv-debrief frontmatter round 字段对齐
+       round_label: 直接领导面（60 min 6 题）
+       level: senior
+              category: frontend                 # 按 references/level-category-heuristics.md
+       date: 2026-05-01
+       mode: typing                    # voice / typing
+       target: targets/google-senior-fe-2026-04-23.md
+       version: versions/google-senior-fe-2026-04-23.md
+       ---
+
+       ## 题目反馈
+
+       ### Q1：[题面]
+
+       - 来源：JD Required Skills 第 3 条
+       - 考核点：分布式系统设计
+       - 评分：👍
+       - 评论：切中我的弱点
+
+       ### Q2：[题面]
+
+       - 来源：简历 experience/acme-2023.md
+       - 考核点：技术决策 BQ
+       - 评分：👎
+       - 评论：太常规了
+
+       ## 整体评论（可选）
+
+       <用户对本轮整体出题质量的额外感想，可空>
+       ```
+
+     文件命名 `interviews/<company-slug>-<round>-<YYYY-MM-DD>.md`：
+       - company-slug 从 target 拿（小写 kebab-case）
+       - round 用 round-recipes.md 的预设值（tech-screen / hiring-manager / ...）
+       - 同一天同一公司同一轮 → 加 `-r2` `-r3` 后缀避免覆盖
+     例：`interviews/google-hiring-manager-2026-05-01.md`
+
+     **不存到 debriefs/**——那是真实面试的目录，模拟数据不能污染（跟 muicv-debrief 的设计一致）。
+
+     用户跳过 → 不写文件，直接进 e。
+     用户至少打了一题 → 写文件，告诉用户路径，再进 e。
+
+     **当前阶段（P1a）只收集，不复用**——等数据积累一段时间再决定怎么把高分题反哺到出题逻辑。
 
   e. 即时分支（让用户选一个）：
      - "这题怎么改进 / 标准答案是什么" → 进 review 子模式（参考 question-design-framework.md 的范围限制）
@@ -131,11 +190,12 @@ LOOP（用户没说"结束"前一直循环）:
 
 LOOP 结束后：
    - 跑了 ≥2 轮 → 给整场总评（哪轮发挥最好 / 哪些改进点反复出现 / 整体准备度判断）
+   - 列一下本场写过的 feedback 文件路径（`interviews/*.md`），让用户能 git 看到
    - 建议下一步：
-     · 真实面试完了 → muicv-debrief 把那场记下
+     · 真实面试完了 → muicv-debrief 把那场记下（写 debriefs/，不是 interviews/）
      · 简历明显有问题 → muicv-critique 改简历
      · 想聊职业方向 → muicv-coaching
-   - **不写 debriefs/ 文件** —— 模拟数据不污染真实面试历史
+   - **不写 debriefs/ 文件** —— 模拟数据写 interviews/，真实面试写 debriefs/，两边不混
 ```
 
 ### 第五步：跨轮原则
@@ -165,13 +225,13 @@ LOOP 结束后：
 
 ## 边界 / 不做
 
-- **不写文件**——所有反馈在对话里
+- **唯一会写的文件是 `interviews/<company>-<round>-<date>.md`**——本轮总评后用户给题目打 👍/👎 才写；其他所有反馈、总评、review 都在对话里
 - **不替用户改简历**（→ `muicv-critique` 或 `muicv-generate`）
 - **不教知识**——review 子模式只讲"这道题面试官想听什么"，不讲"什么是 CAP"。给我讲讲分布式一致性 → 拒绝
 - **不下"过 / 挂"结论**——结果由公司决定
 - **不假装知道公司决策**——不说"我听说 Google 终面通过率 X%"
 - **不调外部 API**——题目设计纯本地推理，不调 muicv-render / muicv-jobs:fetch
-- **不写 debriefs/ 文件**——模拟数据不污染真实面试历史；用户主动想存档 → 提示新开 muicv-debrief 手工记
+- **不写 debriefs/ 文件**——模拟数据不污染真实面试历史；用户主动想存档真实场 → 提示新开 muicv-debrief 手工记
 - **打字模式不假评时长 / 流利度**——明确告知反馈维度受限
 
 ---
