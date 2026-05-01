@@ -61,11 +61,15 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
 
 **冲突策略**：last-write-wins。每次 push 自动把活动版归档；用户能在 dashboard 一键恢复历史。
 
-**新增 skill**：[skills/muicv-sync/SKILL.md](skills/muicv-sync/SKILL.md)
-- `push`：Glob `**/*.md`（过滤隐藏目录 + node_modules）→ 组装 JSON → POST /resume/sync
-- `pull`：GET /resume/snapshot → 冲突文件备份到 `.muicv-pull-backup-<ts>/` → 写入云端版
-- `status`：引导去 dashboard 看
-- 单库 1MB / 500 文件，超限 client 端先报错；触发词覆盖"同步/上传/备份/恢复/拉远程/换机器"等
+**两类用户两条路径**
+
+- **client 用户**（无感）：登录后 deep link 已自动注入 `muicvApiKey`，`packages/app` 的 agent 多了
+  `sync_resume_to_cloud` / `pull_resume_from_cloud` 两个 tool（见
+  [api-tools-sync.ts](packages/app/src/main/agent/api-tools-sync.ts)），用户跟 agent 说"同步"就走完整流程
+- **skill 用户**（自配 key）：[muicv-sync SKILL.md](skills/muicv-sync/SKILL.md) 把 key 教育做扎实——
+  `MUICV_API_KEY` 没设时 skill 必须先把五步获取 key 流程完整发给用户，不试探性跑请求；错误话术针对
+  401 / 格式错 / 超限 / 网络分别给"用户能直接行动"的回复
+- 两端共用 `packages/shared/src/resume-sync.ts` 的预校验（1MB / 500 文件 / 路径合法）
 
 **待办（端到端验证）**
 

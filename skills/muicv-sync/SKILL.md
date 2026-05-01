@@ -16,18 +16,40 @@ description: MuiCV 平台云同步——把本地素材库整体推到云端（p
 
 ## 前置检查
 
-1. 素材库根是否存在（prelude 已探查 `**/profile.md`）？
-   - **push** 必须有根，否则报错让用户先 `muicv-core` 初始化或编辑素材
-   - **pull** 没有根也行——会把云端内容下载到当前工作目录，相当于在新机器恢复
-2. API 地址 + key（同 muicv-render / muicv-jobs 的优先级）：
-   1. 用户对话明确指定的 URL（"同步到 localhost:8787"）
-   2. 环境变量 `MUICV_API_BASE`
-   3. 默认 `https://api.muicv.com`
-3. 必须有 `MUICV_API_KEY`（这俩端点都强制 Bearer 鉴权）。没设 → 引导用户去 https://muicv.com/dashboard/api-keys 生成，写入 shell rc：
-   ```bash
-   export MUICV_API_KEY="mui_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-   ```
-   然后 `source ~/.zshrc`（或 `.bashrc`）再回来。
+> ⚠️ **教育用户优先**：如果发现 `MUICV_API_KEY` 没设，**先把下面"如何拿到 key"的步骤完整告诉用户**，不要执行任何 push/pull。这是 skill 用户和 client 用户的关键差异——skill 里 key 是用户自己 export 的，client 里登录后是自动注入的。第一次配 key 是一次性投入，但绝大多数用户没做过这件事。
+
+### 1. 素材库根
+
+prelude 已探查 `**/profile.md`：
+- **push** 必须有根，否则报错让用户先 `muicv-core` 初始化或编辑素材
+- **pull** 没有根也行——会把云端内容下载到当前工作目录，相当于在新机器恢复
+
+### 2. API 地址（同 muicv-render / muicv-jobs 的优先级）
+
+1. 用户对话明确指定的 URL（"同步到 localhost:8787"）
+2. 环境变量 `MUICV_API_BASE`
+3. 默认 `https://api.muicv.com`
+
+### 3. API key 教育流程（关键）
+
+云同步两个端点都强制 Bearer 鉴权。读 `MUICV_API_KEY` 环境变量；**没设或为空** → 别开始 push/pull，把下面整套发给用户：
+
+> 还没看到你配置 muicv API key。云同步需要 key 来识别身份。一次性配好就行，以后 skill 自己读：
+>
+> 1. 浏览器打开 **https://muicv.com/dashboard/api-keys**（如果还没注册，先去 muicv.com 注册——注册赠 10K token，云同步本身不扣 token）
+> 2. 点「创建 key」，给它起个名（比如"我的 mac"），复制弹出来的 **`mui_xxxxxxxx...`**（只显示一次，错过就只能撤销重发）
+> 3. 写到 shell rc 里：
+>    ```bash
+>    echo 'export MUICV_API_KEY="mui_刚才复制的那串"' >> ~/.zshrc
+>    source ~/.zshrc
+>    # bash 用户把 .zshrc 换成 .bashrc / .bash_profile
+>    ```
+> 4. 验证：`echo $MUICV_API_KEY` 看到 `mui_` 开头 36 字符 → 配好了
+> 5. 回来跟我说"重试同步"
+
+**已设但格式异常**（不是 `mui_` 开头 36 字符）→ 提示用户可能复制时漏了字符或多带了引号空格，让他去 dashboard 再生成一次。
+
+**已设格式正确** → 继续 push/pull 流程。第一次跑流程前可以选择性调一次 `GET ${MUICV_API_BASE}/me` 验证 key 有效（200 = 通过；401 = key 已被撤销/过期，让用户重新生成）。如果用户性子急可省略这一步。
 
 ---
 
@@ -139,14 +161,16 @@ description: MuiCV 平台云同步——把本地素材库整体推到云端（p
 
 ## 错误处理小抄
 
-| 现象 | 原因 | 给用户怎么说 |
-|---|---|---|
-| `MUICV_API_KEY` 没 export | 用户从没配过 | 引导去 dashboard 创建 key + 写 shell rc |
-| 401 unauthorized | key 错 / 被撤销 | 让用户检查 key，或重新生成 |
-| 400 路径校验失败 | 文件名含特殊字符 / 路径太长 | 转告 server 给的具体 error 字段 |
-| 400 超限 | 单库 > 1MB 或 > 500 文件 | 让用户清掉旧 versions/critiques |
-| 404 no-snapshot（pull 时）| 云端没数据 | 提示先在另一台机器 push |
-| 网络超时 | API 在 worker 上一般 <1s；超时多半是网络 | 让用户检查网络再重试一次 |
+每条响应都尽量翻译成"用户能直接行动"的话，不要原样抛 HTTP 状态码。
+
+| 现象 | 给用户怎么说 |
+|---|---|
+| `MUICV_API_KEY` 没 export | 走前置检查里的「API key 教育流程」，五步详细发给用户 |
+| `MUICV_API_KEY` 格式异常（不是 `mui_` + 32 字符）| "你这个 key 看起来不像 muicv 发的。可能复制的时候漏了或多了空格、引号；去 https://muicv.com/dashboard/api-keys 重新发一份再 export 试试" |
+| 401 unauthorized | "muicv 拒了这个 key（可能你在 dashboard 撤销过、或者过期）。去 https://muicv.com/dashboard/api-keys 重新发一份，更新 shell rc 后 `source` 一下再来" |
+| 400 路径/超限 | 把 server 的 error 字段原话转给用户（例如「only .md files are supported: foo.txt」「total size exceeds 1048576 bytes」）；超限就建议清 versions/ critiques/ 旧文件 |
+| 404 no-snapshot（pull）| "云端还没有这个账号的快照——先在另一台机器或本机说'同步到云端'才能 pull" |
+| 网络错 / 超时 | API 一般 <1s；超时多半是网络。"试一次没通常就别再硬试，先看看 https://status.muicv.com 或检查本地网络（/dashboard 能正常打开吗？）" |
 
 ---
 
