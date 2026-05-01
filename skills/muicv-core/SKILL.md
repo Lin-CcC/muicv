@@ -14,7 +14,8 @@ description: 管理本地 Markdown 简历素材库。帮用户在工作目录下
 - `muicv-critique` — 对已生成的版本做 STAR / 关键词 / 长度评审
 - `muicv-render` — 调服务端 API 把 markdown 渲染成 PDF
 - `muicv-jobs` — 抓 JD、匹配、辅助投递
-- `muicv-sync` — 把整个素材库同步到 muicv 云端 / 从云端拉回来
+- `muicv-sync` — 把整个素材库同步到 muicv 云端 / 从云端拉回来（黑盒、自动化）
+- `muicv-git` — 把素材库放进自己的 git repo（GitHub / GitLab / 自建），白盒版本管理；可以和 muicv-sync 并用
 
 ---
 
@@ -131,7 +132,7 @@ type: achievements
 - 「我做过一个项目叫 Z」— 我会创建 `projects/z.md`
 - 「整理一下我的素材」— 我会去重、合并、让描述更具体（但不会编造）
 - 素材差不多了之后，可以说「抓这个岗位」（`muicv-jobs`）、「针对这个 JD 生成简历」（`muicv-generate`）
-- 想换机器或备份时，说「同步到云端」/「从云端恢复」（`muicv-sync`）
+- 想换机器或备份时，说「同步到云端」/「从云端恢复」（`muicv-sync`，黑盒）；或「推到 GitHub」/「git clone 我的简历」（`muicv-git`，白盒）
 
 或者你也可以直接打开工作目录里的 `profile.md` 自己编辑，我会读最新内容。"
 

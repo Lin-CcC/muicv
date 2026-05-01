@@ -82,6 +82,28 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
   - 改一个文件再 pull → 看到 .muicv-pull-backup-* 目录
   - dashboard 点恢复 / 删除 / 清空，刷新看效果
 
+### Phase 11：muicv-git skill（白盒版本管理，已落地）
+
+跟 muicv-sync 形成「黑/白盒」配对——muicv-sync 是平台 D1 自动化备份，muicv-git
+是用户自己掌控的 git repo（GitHub / GitLab / 自建）。两者可以同时用：日常以
+git 为准，muicv-sync 当二级备份。
+
+**新增 skill**：[skills/muicv-git/SKILL.md](skills/muicv-git/SKILL.md)
+- `init`：git init + 写 .gitignore（默认排除 `.DS_Store` / `.muicv-pull-backup-*/`，
+  不排除 PDF）+ 用 `gh repo create` 一步关联远程，没装 gh 走"GitHub.com 手动
+  建仓 + git remote add"备选路径
+- `sync`：git status 列改动 → 让用户给具体 commit message（不默认填 "update"）
+  → add . / commit / push；rejected 失败教用户 `pull --rebase` 自己合并，**不**
+  force push
+- `clone`：换机器场景，`gh repo clone <user>/<repo>` 拉下来
+- `status`：fetch + status + log -5 综合看一眼
+- 错误处理覆盖：git/gh 没装、push rejected、permission denied、repo 已存在
+
+**职责边界**：
+- skill 不替用户隐式 commit（除非用户明说 sync）
+- 不强推 / 不重写历史
+- 教用户 git，让用户能离开 skill 也会用
+
 ## 历史
 
 Phase 1～9 全部落地（commits `f5cab4d → ……`，2026-01-12 ～ 2026-04-30）。本次（2026-05-01）
