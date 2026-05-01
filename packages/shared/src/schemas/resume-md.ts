@@ -77,10 +77,24 @@ export type ApplicationFrontmatter = {
   prepared_at: string; // ISO-8601
 };
 
+/** debriefs/*.md —— 真实面试复盘，由 muicv-debrief 产出。 */
+export type DebriefFrontmatter = {
+  type: 'debrief';
+  company: string;
+  title: string;
+  date: string; // ISO 日期 YYYY-MM-DD
+  round?: string; // round-1 / round-2 / hr / final 等
+  round_label?: string; // 自由文本标签：技术二面（2/4）等
+  interviewer?: string; // 角色描述（"Staff 工程师"），不要记真名
+  outcome?: 'pending' | 'passed' | 'rejected' | 'withdrawn' | 'unknown';
+  duration_min?: number;
+};
+
 export type MuiCvFrontmatter =
   | ProfileFrontmatter
   | ExperienceFrontmatter
   | ProjectFrontmatter
   | TargetFrontmatter
   | VersionFrontmatter
-  | ApplicationFrontmatter;
+  | ApplicationFrontmatter
+  | DebriefFrontmatter;

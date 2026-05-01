@@ -82,6 +82,21 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
   - 改一个文件再 pull → 看到 .muicv-pull-backup-* 目录
   - dashboard 点恢复 / 删除 / 清空，刷新看效果
 
+### Phase 12：muicv-debrief skill（面试复盘，已落地）
+
+跟 muicv-interview 配对——前者面**前**练，后者面**后**复盘。**写文件**类型 skill：
+把用户讲述的题目 / 回答 / 面试官反应整理成 `debriefs/<company>-<title>-<date>.md`，
+可 git 管，未来可被 muicv-core 整理成"面试进步轨迹"。
+
+新文件：
+- [skills/muicv-debrief/SKILL.md](skills/muicv-debrief/SKILL.md)：4 步流程（收背景 → 逐题收 →
+  落盘 → 口头分析），中立分析者人设，明确不下"过/挂"结论
+- [packages/shared/src/schemas/resume-md.ts](packages/shared/src/schemas/resume-md.ts) 加
+  `DebriefFrontmatter` 类型
+
+muicv-core SKILL.md 同步更新：目录骨架加 `debriefs/`、数据契约表格加 debrief 行、
+配套 skill 列表加 muicv-interview / muicv-debrief / muicv-coaching 指向。
+
 ### Phase 11：muicv-git skill（白盒版本管理，已落地）
 
 跟 muicv-sync 形成「黑/白盒」配对——muicv-sync 是平台 D1 自动化备份，muicv-git

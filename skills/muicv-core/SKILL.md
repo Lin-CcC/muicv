@@ -16,6 +16,9 @@ description: 管理本地 Markdown 简历素材库。帮用户在工作目录下
 - `muicv-jobs` — 抓 JD、匹配、辅助投递
 - `muicv-sync` — 把整个素材库同步到 muicv 云端 / 从云端拉回来（黑盒、自动化）
 - `muicv-git` — 把素材库放进自己的 git repo（GitHub / GitLab / 自建），白盒版本管理；可以和 muicv-sync 并用
+- `muicv-interview` — 模拟面试（面试**前**练习，纯对话）
+- `muicv-debrief` — 真实面试复盘（面试**后**回顾，写到 `debriefs/<company>-<date>.md`）
+- `muicv-coaching` — 就业辅导：跳槽 / offer / 转方向 / 薪资谈判等开放式咨询
 
 ---
 
@@ -62,6 +65,8 @@ description: 管理本地 Markdown 简历素材库。帮用户在工作目录下
 ├── applications/         # muicv-jobs:apply 产出的 cover letter
 │   └── .gitkeep
 ├── critiques/            # muicv-critique 产出的评审报告
+│   └── .gitkeep
+├── debriefs/             # muicv-debrief 产出的真实面试复盘
 │   └── .gitkeep
 ├── match/                # muicv-jobs:match 产出的匹配度报告
 │   └── .gitkeep
@@ -248,6 +253,7 @@ url: https://example.com
 | `targets/*.md` | `target` | `company`, `title` | `source_url`, `fetched_at` |
 | `versions/*.md` | `version` | `generated_at` | `target` |
 | `applications/*.md` | `application` | `target`, `company`, `title`, `prepared_at` | — |
+| `debriefs/*.md` | `debrief` | `company`, `title`, `date` | `round`, `round_label`, `interviewer`, `outcome`, `duration_min` |
 
 日期格式：`start` / `end` 用 `YYYY-MM`，`end` 也可以是 `'present'`。其他时间戳用 ISO-8601。
 

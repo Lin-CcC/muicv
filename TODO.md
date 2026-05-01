@@ -9,10 +9,10 @@
 
 ### 面试相关
 
-- 模拟面试 skill
-- 录音复盘 skill：上传录音文件 → 提取文本 → 复盘
-- 面试复盘 skill（可能与录音复盘 skill 共用部分能力）
-- 成为面试官 skill
+- ~~模拟面试 skill~~ — 已落地为 [muicv-interview](skills/muicv-interview/SKILL.md)（behavioral / technical / coding / mixed 四种类型）
+- 录音复盘 skill：上传录音文件 → 提取文本 → 复盘（要新加 /audio/transcribe 端点，中等工程）
+- ~~面试复盘 skill（真实面试后回放分析，跟 muicv-interview 配对）~~ — 落地为 [muicv-debrief](skills/muicv-debrief/SKILL.md)，写到 `debriefs/<company>-<date>.md`
+- 成为面试官 skill（角色互换，让用户练习当面试官）
 
 ### 职场辅导
 
