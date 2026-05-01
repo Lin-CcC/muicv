@@ -65,6 +65,9 @@ function classifyAsset(asset: GhAsset): ParsedAsset {
   if (/arm64|aarch64|apple-silicon/.test(n)) arch = 'arm64';
   else if (/x64|intel|amd64/.test(n)) arch = 'x64';
   else if (/universal/.test(n)) arch = 'universal';
+  // electron-builder 默认命名约定：mac 同时打 arm64+x64 时，arm64 带 -arm64 后缀，
+  // x64 默认无 arch 后缀。所以 mac + 未识别 arch 兜底成 x64，不要丢弃。
+  else if (platform === 'mac') arch = 'x64';
 
   let format: ParsedAsset['format'] = 'other';
   if (n.endsWith('.dmg')) format = 'dmg';

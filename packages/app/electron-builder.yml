@@ -25,6 +25,9 @@ mac:
   identity: null
   hardenedRuntime: false
   gatekeeperAssess: false
+  # 强制 arch 后缀，让 x64 也带显式 arch（默认 x64 不带后缀，会让 landing page
+  # 解析时分不清架构，v0.1.0 已踩过这个坑）。
+  artifactName: "${productName}-${version}-${arch}.${ext}"
   target:
     - target: dmg
       arch: [arm64, x64]
