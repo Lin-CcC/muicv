@@ -8,14 +8,22 @@
 
 declare namespace Cloudflare {
   interface Env {
-    /** 与 packages/website 共用同一个值，用来 HKDF 派生 key 解密 muirouterLink.keyCipher。 */
+    /** 与 packages/website 共用同一个值，HKDF 派生 key 加解密 muirouterLink 上的 OAuth token。 */
     BETTER_AUTH_SECRET: string;
     /**
-     * muicv 平台自家的 OpenAI API key（sk-...）。订阅用户没绑 BYOK 时走这把，
+     * muicv 平台自家的 OpenAI API key（sk-...）。muicv 余额 > 0 时走这把，
      * 配额由 muicv 后端控制（M2 起做月度上限）。
      * 部署：`wrangler secret put OPENAI_API_KEY`。
      */
     OPENAI_API_KEY: string;
+    /**
+     * muirouter OAuth client secret——余额耗尽 fallback 到 muirouter 时，token 过期需要 refresh。
+     * 与 packages/website 共用同一个值。`wrangler secret put MUIROUTER_OAUTH_CLIENT_SECRET`。
+     */
+    MUIROUTER_OAUTH_CLIENT_SECRET: string;
+    MUIROUTER_OAUTH_TOKEN_URL?: string;
+    MUIROUTER_OAUTH_REVOKE_URL?: string;
+    MUIROUTER_OAUTH_CLIENT_ID?: string;
   }
 }
 

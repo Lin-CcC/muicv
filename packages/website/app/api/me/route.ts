@@ -69,7 +69,14 @@ export async function GET(request: Request) {
 
   const [linkRows, wallet, subRows] = await Promise.all([
     db
-      .select({ userId: schema.muirouterLink.userId })
+      .select({
+        userId: schema.muirouterLink.userId,
+        muirouterEmail: schema.muirouterLink.muirouterEmail,
+        defaultModel: schema.muirouterLink.defaultModel,
+        currency: schema.muirouterLink.currency,
+        balanceCents: schema.muirouterLink.balanceCents,
+        balanceUpdatedAt: schema.muirouterLink.balanceUpdatedAt,
+      })
       .from(schema.muirouterLink)
       .where(eq(schema.muirouterLink.userId, user.id))
       .limit(1),
@@ -96,12 +103,22 @@ export async function GET(request: Request) {
     });
 
   const sub = subRows[0];
+  const link = linkRows[0];
   return Response.json({
     id: user.id,
     email: user.email,
     name: user.name || user.email.split('@')[0] || '朋友',
     image: user.image ?? null,
-    hasBYOK: linkRows.length > 0,
+    hasBYOK: !!link,
+    muirouter: link
+      ? {
+          email: link.muirouterEmail,
+          defaultModel: link.defaultModel,
+          currency: link.currency,
+          balanceCents: link.balanceCents,
+          balanceUpdatedAt: link.balanceUpdatedAt?.getTime() ?? null,
+        }
+      : null,
     balance: wallet.balance,
     subscription: sub
       ? {

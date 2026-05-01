@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 
 type Status = {
   linked: boolean;
-  preview?: string;
+  email?: string | null;
   linkedAt?: string;
+  defaultModel?: string;
+  scope?: string | null;
   currency?: string;
   balanceCents?: number;
   lifetimeToppedUpCents?: number | null;
@@ -13,6 +15,8 @@ type Status = {
   balanceUpdatedAt?: string;
   lastError?: string;
 };
+
+type Model = { id: string; label: string; hint?: string };
 
 function formatCents(cents: number | null | undefined, currency = 'CNY'): string {
   if (typeof cents !== 'number') return '—';
@@ -32,51 +36,66 @@ function formatDate(input: string | undefined): string {
   return `${y}-${m}-${day} ${hh}:${mm}`;
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  access_denied: '你在 muirouter 取消了授权，未关联。',
+  'state-expired-or-invalid': '授权链接已过期，请重新点关联。',
+  'state-malformed': '授权数据异常，请重新点关联。',
+  'session-mismatch': '登录态变了，请重新登录后再关联 muirouter。',
+  'token-exchange-failed': '与 muirouter 换 token 失败，稍后再试。',
+  network: 'muirouter 网络异常，请稍后再试。',
+  'missing-code-or-state': '回调缺少必要参数。',
+};
+
+function readUrlFlag(): { linked: boolean; error: string | null } {
+  if (typeof window === 'undefined') return { linked: false, error: null };
+  const params = new URLSearchParams(window.location.search);
+  return {
+    linked: params.get('linked') === '1',
+    error: params.get('error'),
+  };
+}
+
+function clearUrlFlag() {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete('linked');
+  url.searchParams.delete('error');
+  window.history.replaceState(null, '', url.toString());
+}
+
 export function MuirouterSection() {
   const [status, setStatus] = useState<Status | null>(null);
+  const [models, setModels] = useState<Model[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [keyInput, setKeyInput] = useState('');
-  const [showInput, setShowInput] = useState(false);
 
   async function load() {
     try {
-      const res = await fetch('/api/muirouter');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = (await res.json()) as Status;
+      const [linkRes, modelRes] = await Promise.all([fetch('/api/muirouter'), fetch('/api/muirouter/model')]);
+      if (!linkRes.ok) throw new Error(`HTTP ${linkRes.status}`);
+      const data = (await linkRes.json()) as Status;
       setStatus(data);
+      if (modelRes.ok) {
+        const modelData = (await modelRes.json()) as { models: Model[] };
+        setModels(modelData.models ?? []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     }
   }
 
   useEffect(() => {
+    const flag = readUrlFlag();
+    if (flag.linked) {
+      setInfo('已成功关联 muirouter。');
+      clearUrlFlag();
+    } else if (flag.error) {
+      setError(ERROR_MESSAGES[flag.error] ?? `关联失败：${flag.error}`);
+      clearUrlFlag();
+    }
     load();
   }, []);
-
-  async function onLink(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setBusy(true);
-    try {
-      const res = await fetch('/api/muirouter', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ key: keyInput.trim() }),
-      });
-      const body = (await res.json()) as { error?: string; message?: string; balanceStatus?: string };
-      if (!res.ok) {
-        throw new Error(body.message ?? body.error ?? `HTTP ${res.status}`);
-      }
-      setKeyInput('');
-      setShowInput(false);
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '绑定失败');
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function onRefresh() {
     setError(null);
@@ -84,9 +103,7 @@ export function MuirouterSection() {
     try {
       const res = await fetch('/api/muirouter/refresh', { method: 'POST' });
       const body = (await res.json()) as { status?: string; message?: string };
-      if (!res.ok) {
-        throw new Error(body.message ?? `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error(body.message ?? `HTTP ${res.status}`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : '刷新失败');
@@ -96,7 +113,7 @@ export function MuirouterSection() {
   }
 
   async function onUnlink() {
-    if (!confirm('确定解绑 muirouter？skill / 桌面 app 会失去查余额能力。')) return;
+    if (!confirm('确定解除 muirouter 关联？muicv 余额耗尽后将无 LLM fallback。')) return;
     setError(null);
     setBusy(true);
     try {
@@ -110,7 +127,28 @@ export function MuirouterSection() {
     }
   }
 
-  if (status === null && !error) {
+  async function onChangeModel(model: string) {
+    if (!status?.linked) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch('/api/muirouter/model', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ model }),
+      });
+      const body = (await res.json()) as { error?: string; defaultModel?: string };
+      if (!res.ok) throw new Error(body.error ?? `HTTP ${res.status}`);
+      const next = body.defaultModel ?? model;
+      setStatus((s) => (s ? { ...s, defaultModel: next } : s));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '模型切换失败');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (status === null && !error && !info) {
     return <PlaceholderCard>加载中…</PlaceholderCard>;
   }
 
@@ -118,33 +156,31 @@ export function MuirouterSection() {
     <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter 余额</p>
-          <h2 className="mt-2 text-[18px] font-extrabold text-ink">关联你的 muirouter 账号</h2>
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter</p>
+          <h2 className="mt-2 text-[18px] font-extrabold text-ink">关联 muirouter，按需 fallback 调用 LLM</h2>
           <p className="mt-1 text-[13px] text-ink-soft">
-            把你在{' '}
+            muicv 平台余额优先扣费；耗尽后自动切到你绑定的{' '}
             <a
               href="https://muirouter.com"
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
             >
-              muirouter.com
+              muirouter
             </a>{' '}
-            的 API key（<code className="font-mono text-[12px]">sk-gw-…</code>）贴过来，dashboard 就能看到余额。Key 用
-            AES-GCM 加密存储，原文不明文留存。 余额查询走 muirouter 的{' '}
-            <a
-              href="https://muirouter.com/mcp"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep"
-            >
-              MCP get_balance
-            </a>{' '}
-            工具。
+            走自己的余额。授权全程在 muirouter 完成，muicv 只保管 OAuth token（AES-GCM 加密）。
           </p>
         </div>
       </header>
 
+      {info && (
+        <div
+          role="status"
+          className="mt-4 rounded-lg border-2 border-corgi/60 bg-fluff px-3 py-2 text-[13px] font-medium text-yellow-deep"
+        >
+          {info}
+        </div>
+      )}
       {error && (
         <div
           role="alert"
@@ -154,12 +190,11 @@ export function MuirouterSection() {
         </div>
       )}
 
-      {/* 已绑定视图 */}
-      {status?.linked && (
+      {status?.linked ? (
         <div className="mt-5 space-y-4">
           <div className="flex flex-col gap-4 rounded-xl border-2 border-corgi/60 bg-fluff p-5 sm:flex-row sm:items-center">
             <div className="flex-1">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-yellow-deep">余额</div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-yellow-deep">muirouter 余额</div>
               <div className="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">
                 {formatCents(status.balanceCents, status.currency)}
               </div>
@@ -180,79 +215,61 @@ export function MuirouterSection() {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-paper px-4 py-3">
-            <div className="text-[13px]">
-              <span className="font-bold text-ink">已绑定：</span>{' '}
-              <code className="font-mono text-[12px] text-mute">{status.preview}</code>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onRefresh}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="block text-[12px] font-bold text-ink">默认模型</span>
+              <select
+                value={status.defaultModel ?? 'mimo'}
+                onChange={(e) => onChangeModel(e.target.value)}
                 disabled={busy}
-                className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[12.5px] font-bold text-ink disabled:opacity-60"
+                className="mt-1 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 text-[13px] text-ink focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
               >
-                {busy ? '同步中…' : '刷新余额'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowInput(true)}
-                disabled={busy}
-                className="press-ink inline-flex items-center justify-center rounded-lg border-2 border-ink bg-cream px-3 py-1.5 text-[12.5px] font-bold text-ink disabled:opacity-60"
-              >
-                替换 key
-              </button>
-              <button
-                type="button"
-                onClick={onUnlink}
-                disabled={busy}
-                className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12.5px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:opacity-60"
-              >
-                解绑
-              </button>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                    {m.hint ? `（${m.hint}）` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex flex-col justify-end gap-1 text-[12.5px]">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-mute">关联账号</span>
+              <span className="text-ink">{status.email ?? '—'}</span>
+              <span className="font-mono text-[11px] text-mute">绑定于 {formatDate(status.linkedAt)}</span>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* 输入表单：未绑定时常驻；已绑定时点 "替换 key" 后弹出 */}
-      {(!status?.linked || showInput) && (
-        <form onSubmit={onLink} className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-end">
-          <label className="block flex-1">
-            <span className="block text-[12px] font-bold text-ink">muirouter API key</span>
-            <input
-              type="password"
-              required
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              disabled={busy}
-              placeholder="sk-gw-…"
-              autoComplete="off"
-              spellCheck={false}
-              className="mt-1 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 font-mono text-[13px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={busy}
-            className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2 text-[14px] font-bold text-ink disabled:opacity-60"
-          >
-            {busy ? '验证中…' : status?.linked ? '替换' : '绑定'}
-          </button>
-          {status?.linked && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
-              onClick={() => {
-                setShowInput(false);
-                setKeyInput('');
-                setError(null);
-              }}
-              className="rounded-lg px-3 py-2 text-[12.5px] font-medium text-mute hover:text-ink"
+              onClick={onRefresh}
+              disabled={busy}
+              className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[12.5px] font-bold text-ink disabled:opacity-60"
             >
-              取消
+              {busy ? '同步中…' : '刷新余额'}
             </button>
-          )}
-        </form>
+            <button
+              type="button"
+              onClick={onUnlink}
+              disabled={busy}
+              className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12.5px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:opacity-60"
+            >
+              解除关联
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-5 flex flex-col items-start gap-3 rounded-xl border-2 border-dashed border-rule-strong bg-paper p-5">
+          <p className="text-[13px] text-ink-soft">
+            还没有关联 muirouter。点下面按钮跳到 muirouter，登录或注册后授权 muicv 即可——全程不需要复制 API key。
+          </p>
+          <a
+            href="/api/muirouter/oauth/start"
+            className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2 text-[14px] font-bold text-ink"
+          >
+            关联 muirouter
+          </a>
+        </div>
       )}
     </section>
   );

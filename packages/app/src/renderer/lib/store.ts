@@ -382,5 +382,13 @@ export async function bootstrap(): Promise<void> {
     }
   });
 
+  window.muicv.session.onMuirouterLinked(async (result) => {
+    if (result.status === 'ok') {
+      await useAppStore.getState().refreshSession();
+    } else {
+      console.warn('[muirouter-linked] failed', result);
+    }
+  });
+
   useAppStore.setState({ bootstrapping: false });
 }

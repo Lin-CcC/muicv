@@ -7,6 +7,7 @@ import type {
   Conversation,
   ConversationSummary,
   ConversationType,
+  MuirouterLinkResult,
   Profile,
   RendererApi,
   SessionCheckResult,
@@ -43,6 +44,13 @@ const api: RendererApi = {
       const listener = (_e: Electron.IpcRendererEvent, result: SessionCheckResult) => handler(result);
       ipcRenderer.on('session:autoLogin', listener);
       return () => ipcRenderer.removeListener('session:autoLogin', listener);
+    },
+    beginLinkMuirouter: () =>
+      ipcRenderer.invoke('session:beginLinkMuirouter') as Promise<{ ok: boolean; message?: string }>,
+    onMuirouterLinked: (handler: (result: MuirouterLinkResult) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, result: MuirouterLinkResult) => handler(result);
+      ipcRenderer.on('muirouter:linked', listener);
+      return () => ipcRenderer.removeListener('muirouter:linked', listener);
     },
   },
   shell: {

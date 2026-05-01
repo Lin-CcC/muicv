@@ -83,18 +83,25 @@ export const apiKey = sqliteTable('apiKey', {
 });
 
 /**
- * muirouter BYOK 关联（每用户最多一条）。
- * 用户在 muirouter 自己生成 API key，在 muicv dashboard 粘贴进来。
- * key 走 AES-GCM 加密存储（lib/crypto.ts），原文 muicv 永远不再持有。
- * balance 等字段是上次成功 fetch 的快照，避免每次 dashboard 刷新都打 muirouter。
+ * muirouter 关联（每用户最多一条）。
+ * OAuth 流程：dashboard / Electron app 跳到 muirouter 授权 → 拿 code → 服务端换 token →
+ * AES-GCM 加密存 access/refresh token（lib/crypto.ts）。LLM 调用时 worker 端解密后转发。
+ * defaultModel 是 fallback 走 muirouter 时注入到请求体的 model 字段，dashboard / app 都可改。
+ * balance 等字段是上次成功调 muirouter 的快照，dashboard 默认看缓存，用户点刷新才重打。
  */
 export const muirouterLink = sqliteTable('muirouterLink', {
   userId: text('userId')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
-  keyCipher: text('keyCipher').notNull(),
-  keyIv: text('keyIv').notNull(),
-  keyPreview: text('keyPreview').notNull(),
+  accessTokenCipher: text('accessTokenCipher').notNull(),
+  accessTokenIv: text('accessTokenIv').notNull(),
+  refreshTokenCipher: text('refreshTokenCipher').notNull(),
+  refreshTokenIv: text('refreshTokenIv').notNull(),
+  tokenExpiresAt: integer('tokenExpiresAt', { mode: 'timestamp_ms' }).notNull(),
+  scope: text('scope'),
+  muirouterUserId: text('muirouterUserId').notNull(),
+  muirouterEmail: text('muirouterEmail'),
+  defaultModel: text('defaultModel').notNull().default('mimo'),
   currency: text('currency'),
   balanceCents: integer('balanceCents'),
   lifetimeToppedUpCents: integer('lifetimeToppedUpCents'),

@@ -14,7 +14,7 @@ import {
   listConversations,
   renameConversation,
 } from './conversations.ts';
-import { beginConnect, handleDeepLink, registerScheme, setMainWindowGetter } from './deep-link.ts';
+import { beginConnect, beginLinkMuirouter, handleDeepLink, registerScheme, setMainWindowGetter } from './deep-link.ts';
 import { checkSession as runCheckSession, loginWithKey, logout as runLogout, verifyCandidateKey } from './session.ts';
 import {
   addProfile,
@@ -225,6 +225,7 @@ ipcMain.handle('session:logout', () => {
   runLogout();
 });
 ipcMain.handle('session:beginConnect', () => beginConnect());
+ipcMain.handle('session:beginLinkMuirouter', () => beginLinkMuirouter());
 
 // -------------------- IPC: shell --------------------
 

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 
 import { type BrowserWindow, app, shell } from 'electron';
 
-import type { SessionCheckResult } from '../shared/types.ts';
+import type { MuirouterLinkResult, SessionCheckResult } from '../shared/types.ts';
 import { loginWithKey } from './session.ts';
 import { getConfig } from './store.ts';
 
@@ -24,9 +24,12 @@ import { getConfig } from './store.ts';
 const SCHEME = 'muicv';
 const STATE_TTL_MS = 5 * 60 * 1000;
 const CONNECT_PATH = '/connect';
+const MUIROUTER_OAUTH_START_PATH = '/api/muirouter/oauth/start';
 
 type Pending = { state: string; createdAt: number };
 const pending = new Map<string, Pending>();
+/** 独立的 muirouter OAuth pending map，跟登录用的 pending 隔离，避免互相串扰。 */
+const pendingMuirouter = new Map<string, Pending>();
 
 let mainWindowGetter: () => BrowserWindow | null = () => null;
 
@@ -58,6 +61,9 @@ function pruneExpired(): void {
   const now = Date.now();
   for (const [k, v] of pending) {
     if (now - v.createdAt > STATE_TTL_MS) pending.delete(k);
+  }
+  for (const [k, v] of pendingMuirouter) {
+    if (now - v.createdAt > STATE_TTL_MS) pendingMuirouter.delete(k);
   }
 }
 
@@ -116,10 +122,41 @@ export function inferWebBase(apiBase: string): string {
 }
 
 /**
+ * 启动一次 muirouter OAuth 关联：生成 app_state，打开浏览器到 /api/muirouter/oauth/start。
+ * muicv 服务端会带着 app_state 透传到 muirouter，授权完成后服务端 302 到
+ * muicv://muirouter-linked?app_state=...&ok=1，OS 唤起 app，main 校验 app_state 后
+ * 推 muirouter:linked 事件给 renderer。
+ *
+ * 前置条件：必须已经登录（muicvApiKey 在 session cookie 中），否则浏览器到达
+ * /api/muirouter/oauth/start 会被 401 拒掉。
+ */
+export async function beginLinkMuirouter(): Promise<{ ok: boolean; message?: string }> {
+  pruneExpired();
+  const state = generateState();
+  pendingMuirouter.set(state, { state, createdAt: Date.now() });
+
+  const cfg = getConfig();
+  const webBase = inferWebBase(cfg.muicvApiBase);
+  const params = new URLSearchParams({ from: 'app', app_state: state });
+  const url = `${webBase}${MUIROUTER_OAUTH_START_PATH}?${params.toString()}`;
+
+  try {
+    await shell.openExternal(url);
+    return { ok: true };
+  } catch (err) {
+    pendingMuirouter.delete(state);
+    return { ok: false, message: err instanceof Error ? err.message : 'open browser failed' };
+  }
+}
+
+/**
  * macOS 在 'open-url' 拿 deep link，Windows / Linux 在 second-instance 拿 argv，
  * 两边最终都喂给这个函数。
  *
- * url 形如：muicv://callback?state=xxx&key=mui_xxx
+ * 支持的 URL：
+ *   - muicv://callback?state=xxx&key=mui_xxx —— 自动登录
+ *   - muicv://muirouter-linked?app_state=xxx&ok=1 —— muirouter OAuth 关联完成
+ *   - muicv://muirouter-linked?app_state=xxx&error=... —— muirouter OAuth 失败
  */
 export async function handleDeepLink(url: string): Promise<void> {
   let parsed: URL;
@@ -131,20 +168,30 @@ export async function handleDeepLink(url: string): Promise<void> {
   }
   if (parsed.protocol !== `${SCHEME}:`) return;
 
-  // muicv://callback —— pathname 在 mac 上是 //callback，在 Windows 上是 /callback
-  // 只关心 host or pathname 包含 callback
-  const isCallback =
-    parsed.host === 'callback' || parsed.pathname === '/callback' || parsed.pathname.endsWith('/callback');
+  const action = parsed.host || parsed.pathname.replace(/^\/+/, '').split('/')[0] || '';
+  pruneExpired();
 
-  if (!isCallback) {
+  if (action === 'callback') {
+    await handleAutoLoginCallback(parsed);
+  } else if (action === 'muirouter-linked') {
+    await handleMuirouterLinked(parsed);
+  } else {
     console.warn('[deep-link] unknown action', url);
     return;
   }
 
+  // 把窗口拿到前台
+  const win = mainWindowGetter();
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+  }
+}
+
+async function handleAutoLoginCallback(parsed: URL): Promise<void> {
   const state = parsed.searchParams.get('state');
   const key = parsed.searchParams.get('key');
 
-  pruneExpired();
   if (!state || !pending.has(state)) {
     pushAutoLogin({ status: 'invalid-key', message: 'state 不匹配，可能过期或被串改。重新登录。' });
     return;
@@ -156,15 +203,25 @@ export async function handleDeepLink(url: string): Promise<void> {
     return;
   }
 
-  // 走标准 loginWithKey：验 /me + 写 store
   const result = await loginWithKey(key);
   pushAutoLogin(result);
+}
 
-  // 把窗口拿到前台（macOS 下 deep link 默认会唤起，但保险起见 focus 一下）
-  const win = mainWindowGetter();
-  if (win) {
-    if (win.isMinimized()) win.restore();
-    win.focus();
+async function handleMuirouterLinked(parsed: URL): Promise<void> {
+  const state = parsed.searchParams.get('app_state');
+  const ok = parsed.searchParams.get('ok') === '1';
+  const error = parsed.searchParams.get('error');
+
+  if (!state || !pendingMuirouter.has(state)) {
+    pushMuirouterLinked({ status: 'state-mismatch' });
+    return;
+  }
+  pendingMuirouter.delete(state);
+
+  if (ok) {
+    pushMuirouterLinked({ status: 'ok' });
+  } else {
+    pushMuirouterLinked({ status: 'failed', reason: error ?? 'unknown' });
   }
 }
 
@@ -172,5 +229,12 @@ function pushAutoLogin(result: SessionCheckResult): void {
   const win = mainWindowGetter();
   if (win && !win.isDestroyed()) {
     win.webContents.send('session:autoLogin', result);
+  }
+}
+
+function pushMuirouterLinked(result: MuirouterLinkResult): void {
+  const win = mainWindowGetter();
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('muirouter:linked', result);
   }
 }

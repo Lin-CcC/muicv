@@ -1,15 +1,17 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { decryptMuirouterKey } from '../src/lib/crypto.ts';
+import test from 'node:test';
+import { decryptToken, encryptToken } from '../src/lib/crypto.ts';
 
-test('decryptMuirouterKey should decrypt correctly', async () => {
-  // Since decrypt is dependent on how website encrypts, we should mock or write an encrypt wrapper
-  // But for now, we can verify that bad decryption fails gracefully or throws correctly
-  try {
-    await decryptMuirouterKey('invalid-secret', 'YWJjZA==', 'YWJjZGVmZ2hpamts'); // mock valid base64
-    assert.fail('Should have thrown an error due to bad cipher/iv');
-  } catch (e) {
-    // In Web Crypto API, decrypting bad data typically throws an OperationError
-    assert.ok(e instanceof Error);
-  }
+test('encrypt → decrypt 闭环', async () => {
+  const secret = 'shared-better-auth-secret';
+  const enc = await encryptToken(secret, 'mr_at_hello-world-123');
+  assert.match(enc.cipher, /^[A-Za-z0-9+/=]+$/);
+  assert.match(enc.iv, /^[A-Za-z0-9+/=]+$/);
+  const decoded = await decryptToken(secret, enc.cipher, enc.iv);
+  assert.equal(decoded, 'mr_at_hello-world-123');
+});
+
+test('decryptToken 错误的 secret 抛 OperationError', async () => {
+  const enc = await encryptToken('secret-A', 'payload');
+  await assert.rejects(decryptToken('secret-B', enc.cipher, enc.iv));
 });

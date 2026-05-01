@@ -3,7 +3,7 @@
  *
  * 协议参考：https://muirouter.com/mcp
  * 端点：POST https://api.muirouter.com/mcp
- * 认证：Authorization: Bearer sk-gw-...
+ * 认证：Authorization: Bearer <token>（OAuth access_token，历史上也兼容 sk-gw-... PAT）
  * 工具：tools/call name="get_balance" 返回钱包余额、累计充值、累计消费
  *
  * MCP `tools/call` 响应包在 JSON-RPC envelope 里：
@@ -42,7 +42,7 @@ type JsonRpcEnvelope = {
   error?: { code?: number; message?: string; data?: unknown };
 };
 
-export async function fetchMuirouterBalance(rawKey: string, signal?: AbortSignal): Promise<BalanceResult> {
+export async function fetchMuirouterBalance(bearerToken: string, signal?: AbortSignal): Promise<BalanceResult> {
   let res: Response;
   try {
     const init: RequestInit = {
@@ -50,7 +50,7 @@ export async function fetchMuirouterBalance(rawKey: string, signal?: AbortSignal
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json, text/event-stream',
-        Authorization: `Bearer ${rawKey}`,
+        Authorization: `Bearer ${bearerToken}`,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -223,27 +223,7 @@ async function readSseFirstMessage(res: Response): Promise<JsonRpcEnvelope | nul
   return null;
 }
 
-// -------------------- key 校验 / preview / 显示 --------------------
-
-const KEY_PREFIX = 'sk-gw-';
-const KEY_PATTERN = /^sk-gw-[A-Za-z0-9_-]+$/;
-const KEY_MIN_LENGTH = 14;
-
-export function looksLikeMuirouterKey(input: unknown): input is string {
-  if (typeof input !== 'string') return false;
-  const trimmed = input.trim();
-  return KEY_PATTERN.test(trimmed) && trimmed.length >= KEY_MIN_LENGTH;
-}
-
-export function previewMuirouterKey(key: string): string {
-  const trimmed = key.trim();
-  if (trimmed.length <= 8) return '••••';
-  if (trimmed.startsWith(KEY_PREFIX)) {
-    const body = trimmed.slice(KEY_PREFIX.length);
-    return `${KEY_PREFIX}${body.slice(0, 4)}…${body.slice(-4)}`;
-  }
-  return `${trimmed.slice(0, 4)}…${trimmed.slice(-4)}`;
-}
+// -------------------- 显示 --------------------
 
 export function formatCents(cents: number, currency = 'CNY'): string {
   const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : `${currency} `;

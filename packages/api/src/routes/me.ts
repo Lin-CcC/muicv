@@ -29,9 +29,18 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
   }
 
   const [link, wallet, sub] = await Promise.all([
-    c.env.MUICV_API_DB.prepare('SELECT 1 FROM muirouterLink WHERE userId = ? LIMIT 1')
+    c.env.MUICV_API_DB.prepare(
+      `SELECT muirouterEmail, defaultModel, currency, balanceCents, balanceUpdatedAt
+       FROM muirouterLink WHERE userId = ? LIMIT 1`,
+    )
       .bind(userId)
-      .first<{ '1': number } | null>(),
+      .first<{
+        muirouterEmail: string | null;
+        defaultModel: string;
+        currency: string | null;
+        balanceCents: number | null;
+        balanceUpdatedAt: number | null;
+      } | null>(),
     ensureBalance(c.env, userId),
     c.env.MUICV_API_DB.prepare(
       'SELECT status, monthlyTokens, currentPeriodEnd, cancelAtPeriodEnd FROM subscription WHERE userId = ? LIMIT 1',
@@ -51,6 +60,15 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
     name: user.name ?? user.email.split('@')[0] ?? '朋友',
     image: user.image ?? null,
     hasBYOK: !!link,
+    muirouter: link
+      ? {
+          email: link.muirouterEmail,
+          defaultModel: link.defaultModel,
+          currency: link.currency,
+          balanceCents: link.balanceCents,
+          balanceUpdatedAt: link.balanceUpdatedAt,
+        }
+      : null,
     balance: wallet.balance,
     subscription: sub
       ? {

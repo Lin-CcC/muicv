@@ -66,9 +66,33 @@ export type SessionInfo = {
   image: string | null;
   /** 订阅档位（M4 起激活，目前所有人都是 free） */
   plan: 'free' | 'pro' | 'max';
-  /** 是否在 dashboard 绑过 muirouter；没绑 LLM 调不通 */
+  /** 是否在 dashboard 绑过 muirouter；muicv 余额耗尽且 hasBYOK=false 时 LLM 调不通 */
   hasBYOK: boolean;
+  /** muirouter 绑定的快照——dashboard 改了模型 / 余额变化都在这里反映。null 表示未绑定。 */
+  muirouter: MuirouterInfo | null;
 };
+
+/** /api/me 返回的 muirouter 字段。来自 D1 muirouterLink 表，dashboard / app 共享同一份。 */
+export type MuirouterInfo = {
+  email: string | null;
+  defaultModel: string;
+  currency: string | null;
+  balanceCents: number | null;
+  /** balance 快照更新时间，Unix ms。 */
+  balanceUpdatedAt: number | null;
+};
+
+/**
+ * `muirouter:linked` 事件 payload —— main 进程把 deep-link 校验结果推给 renderer。
+ *
+ * 'ok'：服务端已写入 muirouterLink，renderer 应当重拉 /api/me 同步状态。
+ * 'state-mismatch'：深链 app_state 跟内存 pending 不匹配（过期 / CSRF 失败）。
+ * 'failed'：服务端汇报失败（用户拒绝授权 / token 端点错），reason 是错误码。
+ */
+export type MuirouterLinkResult =
+  | { status: 'ok' }
+  | { status: 'state-mismatch' }
+  | { status: 'failed'; reason: string };
 
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
@@ -269,6 +293,15 @@ export type RendererApi = {
     beginConnect(): Promise<{ ok: boolean; message?: string }>;
     /** 订阅自动登录结果（成功 / 失败）。返回 unsubscribe。 */
     onAutoLogin(handler: (result: SessionCheckResult) => void): () => void;
+    /**
+     * OAuth-style muirouter 关联：main 生成 app_state，打开浏览器到
+     * /api/muirouter/oauth/start?from=app&app_state=...。muicv 服务端透传到 muirouter，
+     * 授权完成后服务端 302 到 muicv://muirouter-linked，main 校验后推
+     * `muirouter:linked` 事件。renderer 收到后应重拉 /api/me 获取最新状态。
+     */
+    beginLinkMuirouter(): Promise<{ ok: boolean; message?: string }>;
+    /** 订阅 muirouter 关联结果（成功 / state 失配 / 服务端失败）。返回 unsubscribe。 */
+    onMuirouterLinked(handler: (result: MuirouterLinkResult) => void): () => void;
   };
   shell: {
     openExternal(url: string): Promise<void>;

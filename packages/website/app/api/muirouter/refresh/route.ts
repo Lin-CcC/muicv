@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
 
-import { decryptSecret } from '@/lib/crypto';
 import { getDb, schema } from '@/lib/db';
 import { fetchMuirouterBalance } from '@/lib/muirouter';
+import { getFreshMuirouterAccessToken } from '@/lib/muirouter-token';
 import { getCurrentSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
@@ -14,28 +14,20 @@ export async function POST(): Promise<Response> {
     return Response.json({ error: 'unauthorized' }, { status: 401 });
   }
 
-  const db = await getDb();
-  const row = (
-    await db.select().from(schema.muirouterLink).where(eq(schema.muirouterLink.userId, session.user.id)).limit(1)
-  )[0];
-
-  if (!row) {
-    return Response.json({ error: 'not-linked' }, { status: 404 });
-  }
-
-  let key: string;
+  let token;
   try {
-    key = await decryptSecret(row.keyCipher, row.keyIv);
+    token = await getFreshMuirouterAccessToken(session.user.id);
   } catch {
-    // BETTER_AUTH_SECRET 旋转过 → 老 key 无法解密
     return Response.json(
-      { error: 'decrypt-failed', message: '加密 key 已失效（可能因 secret 旋转），请重新绑定 muirouter' },
+      { error: 'token-refresh-failed', message: 'access_token 续期失败，请重新关联 muirouter' },
       { status: 500 },
     );
   }
+  if (!token) {
+    return Response.json({ error: 'not-linked' }, { status: 404 });
+  }
 
-  const result = await fetchMuirouterBalance(key);
-
+  const result = await fetchMuirouterBalance(token.accessToken);
   const balanceFields =
     result.status === 'ok'
       ? {
@@ -46,11 +38,9 @@ export async function POST(): Promise<Response> {
           balanceUpdatedAt: result.balance.updatedAt,
           lastError: null,
         }
-      : {
-          // 不清空 balance（保留上次成功的快照），只更新 lastError
-          lastError: result.message,
-        };
+      : { lastError: result.message };
 
+  const db = await getDb();
   await db.update(schema.muirouterLink).set(balanceFields).where(eq(schema.muirouterLink.userId, session.user.id));
 
   return Response.json({

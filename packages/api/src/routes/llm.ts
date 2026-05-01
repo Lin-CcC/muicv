@@ -1,21 +1,23 @@
 import type { Context } from 'hono';
 
-import { computeLlmCharge, insufficientBalanceError } from '@muicv/shared';
+import { computeLlmCharge, insufficientBalanceError, MuirouterOauthError } from '@muicv/shared';
 
-import { decryptMuirouterKey } from '../lib/crypto.ts';
 import { extractUsageFromSseStream, stripUsageChunkFromSse } from '../lib/llm-usage.ts';
+import { getMuirouterUpstreamCreds } from '../lib/muirouter-token.ts';
 import { charge, ensureBalance } from '../lib/wallet.ts';
 import type { AppEnv } from '../middleware/api-key.ts';
 
 /**
  * /llm/v1/* —— OpenAI 兼容反向代理。
  *
- * 双路径分流：
- *   1. **muicv 平台**（默认）：用户没绑 BYOK → 用 worker secret OPENAI_API_KEY
- *      调 https://api.openai.com/v1。**按 token 钱包扣费**（pre-check + tee 聚合
+ * 双路径分流（**muicv 平台余额优先**）：
+ *   1. **muicv 平台**（默认）：muicv tokenBalance > 0 → 用 worker secret OPENAI_API_KEY
+ *      调 https://api.openai.com/v1，**按 token 钱包扣费**（pre-check + tee 聚合
  *      usage + post-record charge）。比例 1.1× 上游 token，向上取整。
- *   2. **BYOK**：用户在 dashboard 绑了自己的 endpoint → 解密拿 key + base，
- *      转发过去。**不扣 muicv 余额**（用户自己付 muirouter）。
+ *   2. **muirouter fallback**：muicv 余额 = 0 且用户绑了 muirouter → 解密 access_token
+ *      （必要时 refresh）转发到 https://api.muirouter.com。**不扣 muicv 余额**
+ *      （用户自己的 muirouter 钱包扣）；如果客户端没指定 model，注入用户的 defaultModel。
+ *   3. **都没有**：余额 = 0 且没绑 muirouter → 402 insufficient_balance。
  *
  * Path 映射统一：/llm/v1/chat/completions → <upstream>/v1/chat/completions。
  */
@@ -23,7 +25,7 @@ import type { AppEnv } from '../middleware/api-key.ts';
 const OPENAI_BASE = 'https://api.openai.com';
 const MUIROUTER_BASE = 'https://api.muirouter.com';
 
-const CHAT_COMPLETIONS_PATH = '/llm/v1/chat/completions';
+const CHAT_COMPLETIONS_PATH = '/v1/chat/completions';
 
 export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   const userId = c.get('userId');
@@ -31,85 +33,90 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     return c.json({ error: 'unauthorized' }, 401);
   }
 
-  // 1. BYOK 检查
-  const link = await c.env.MUICV_API_DB.prepare('SELECT keyCipher, keyIv FROM muirouterLink WHERE userId = ? LIMIT 1')
-    .bind(userId)
-    .first<{ keyCipher: string; keyIv: string } | null>();
+  const wallet = await ensureBalance(c.env, userId);
 
   let upstreamBase: string;
   let upstreamKey: string;
+  let isPlatform: boolean;
+  let injectedModel: string | null = null;
 
-  if (link) {
-    const secret = c.env.BETTER_AUTH_SECRET;
-    if (!secret) {
-      return c.json(
-        { error: 'misconfigured', message: '后端缺 BETTER_AUTH_SECRET（解密 BYOK key 用），请联系管理员' },
-        500,
-      );
-    }
-    try {
-      upstreamKey = await decryptMuirouterKey(secret, link.keyCipher, link.keyIv);
-    } catch {
-      return c.json(
-        { error: 'decrypt-failed', message: '加密 key 失效（可能因 secret 旋转），请回 dashboard 重新绑定' },
-        500,
-      );
-    }
-    upstreamBase = MUIROUTER_BASE;
-  } else {
-    // 平台路径：扣 muicv 余额。pre-check 余额是否 > 0。
-    const wallet = await ensureBalance(c.env, userId);
-    if (wallet.balance <= 0) {
-      return c.json(insufficientBalanceError(wallet.balance), 402);
-    }
-
+  if (wallet.balance > 0) {
     const platformKey = c.env.OPENAI_API_KEY;
     if (!platformKey) {
       return c.json(
         {
           error: 'platform-key-missing',
-          message:
-            '后端没配 OPENAI_API_KEY（部署人员需要 wrangler secret put OPENAI_API_KEY），或者你可以去 dashboard 绑定自己的 BYOK',
+          message: '后端没配 OPENAI_API_KEY（部署人员需要 wrangler secret put OPENAI_API_KEY）',
         },
         500,
       );
     }
     upstreamBase = OPENAI_BASE;
     upstreamKey = platformKey;
+    isPlatform = true;
+  } else {
+    let creds;
+    try {
+      creds = await getMuirouterUpstreamCreds(c.env, userId);
+    } catch (err) {
+      const reason = err instanceof MuirouterOauthError ? err.code : 'token-refresh-failed';
+      return c.json({ error: reason, message: 'muirouter access_token 续期失败，请回 dashboard 重新关联' }, 502);
+    }
+    if (!creds) {
+      return c.json(insufficientBalanceError(wallet.balance), 402);
+    }
+    upstreamBase = MUIROUTER_BASE;
+    upstreamKey = creds.accessToken;
+    injectedModel = creds.defaultModel;
+    isPlatform = false;
   }
 
-  // 2. 拼上游 URL
+  // 拼上游 URL
   const incoming = new URL(c.req.url);
   const upstreamPath = incoming.pathname.replace(/^\/llm\//, '/');
   const upstreamUrl = `${upstreamBase}${upstreamPath}${incoming.search}`;
 
-  // 3. 仅平台路径 + chat/completions：解析 body 注入 stream_options.include_usage
-  const isChatCompletions = upstreamPath === '/v1/chat/completions';
-  const isPlatform = !link;
+  // 解析 body：平台路径需要注入 stream_options.include_usage 才能聚合扣账；
+  // muirouter 路径需要在客户端没传 model 时注入 defaultModel。
+  const isChatCompletions = upstreamPath === CHAT_COMPLETIONS_PATH;
   let bodyText: string | null = null;
   let parsedBody: { stream?: boolean; stream_options?: { include_usage?: boolean }; model?: string } | null = null;
   let isStreaming = false;
   let clientWantedUsage = false;
 
-  if (isPlatform && isChatCompletions && c.req.method === 'POST') {
+  if (isChatCompletions && c.req.method === 'POST') {
     bodyText = await c.req.text();
     try {
       parsedBody = JSON.parse(bodyText);
       isStreaming = parsedBody?.stream === true;
-      if (isStreaming && parsedBody) {
+      let mutated = false;
+
+      if (isPlatform && isStreaming && parsedBody) {
         if (parsedBody.stream_options?.include_usage === true) {
           clientWantedUsage = true;
         } else {
           parsedBody.stream_options = { ...(parsedBody.stream_options ?? {}), include_usage: true };
-          bodyText = JSON.stringify(parsedBody);
+          mutated = true;
         }
+      }
+
+      if (!isPlatform && injectedModel && parsedBody) {
+        const m = parsedBody.model;
+        if (typeof m !== 'string' || m.length === 0 || m === 'auto' || m === 'default') {
+          parsedBody.model = injectedModel;
+          mutated = true;
+        }
+      }
+
+      if (mutated && parsedBody) {
+        bodyText = JSON.stringify(parsedBody);
       }
     } catch {
       // 非 JSON body，透传让上游报错
     }
   }
 
-  // 4. 构造上游 headers
+  // 构造上游 headers
   const upstreamHeaders = new Headers();
   for (const [k, v] of c.req.raw.headers.entries()) {
     const lower = k.toLowerCase();
@@ -130,7 +137,7 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   }
   upstreamHeaders.set('Authorization', `Bearer ${upstreamKey}`);
 
-  // 5. 发起 fetch
+  // 发起 fetch
   let upstreamRes: Response;
   try {
     const init: RequestInit & { duplex?: 'half' } = {
@@ -146,14 +153,14 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     return c.json(
       {
         error: 'upstream-network-error',
-        upstream: link ? 'muirouter' : 'openai',
+        upstream: isPlatform ? 'openai' : 'muirouter',
         message: error instanceof Error ? error.message : '上游网络错误',
       },
       502,
     );
   }
 
-  // 6. 响应处理
+  // 响应处理
   const responseHeaders = new Headers();
   for (const [k, v] of upstreamRes.headers.entries()) {
     const lower = k.toLowerCase();
@@ -161,8 +168,8 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     responseHeaders.set(k, v);
   }
 
-  // BYOK 不扣账；上游 4xx/5xx 不扣账；非 chat/completions 不扣账
-  if (link || upstreamRes.status >= 400 || !isChatCompletions) {
+  // muirouter 不扣账；上游 4xx/5xx 不扣账；非 chat/completions 不扣账
+  if (!isPlatform || upstreamRes.status >= 400 || !isChatCompletions) {
     return new Response(upstreamRes.body, {
       status: upstreamRes.status,
       headers: responseHeaders,

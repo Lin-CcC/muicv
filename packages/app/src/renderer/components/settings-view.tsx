@@ -1,10 +1,24 @@
 import { useEffect, useState } from 'react';
 
+import type { MuirouterInfo } from '../../shared/types';
 import { useAppStore } from '../lib/store';
 import { CorgiMascot } from './corgi-mascot';
 
 const DASHBOARD_URL = 'https://muicv.com/dashboard';
 const MUIROUTER_URL = 'https://muirouter.com';
+
+function formatCents(cents: number | null | undefined, currency: string | null = 'CNY'): string {
+  if (typeof cents !== 'number') return '—';
+  const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : `${currency ?? ''} `;
+  return `${symbol}${(cents / 100).toFixed(2)}`;
+}
+
+function formatTimestamp(ms: number | null | undefined): string {
+  if (typeof ms !== 'number') return '—';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString();
+}
 
 const PLAN_LABEL: Record<string, string> = {
   free: '免费版',
@@ -49,7 +63,7 @@ export function SettingsView() {
 
       <PlanCard plan={session.plan} onRefresh={refreshSession} />
 
-      <MuirouterIntroCard hasBYOK={session.hasBYOK} />
+      <MuirouterCard hasBYOK={session.hasBYOK} muirouter={session.muirouter} onRefresh={refreshSession} />
 
       <CustomLlmCard />
 
@@ -110,30 +124,90 @@ function PlanCard({ plan, onRefresh }: { plan: 'free' | 'pro' | 'max'; onRefresh
   );
 }
 
-// -------------------- muirouter 介绍 --------------------
+// -------------------- muirouter --------------------
 
-function MuirouterIntroCard({ hasBYOK }: { hasBYOK: boolean }) {
+function MuirouterCard({
+  hasBYOK,
+  muirouter,
+  onRefresh,
+}: {
+  hasBYOK: boolean;
+  muirouter: MuirouterInfo | null;
+  onRefresh: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onLink() {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await window.muicv.session.beginLinkMuirouter();
+      if (!res.ok) setError(res.message ?? '打开浏览器失败');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (hasBYOK && muirouter) {
+    return (
+      <section className="rounded-2xl border-2 border-corgi/60 bg-fluff p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-[16px]">💰</div>
+          <div className="flex-1">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">muirouter（已关联）</p>
+            <h3 className="mt-1 text-[15px] font-bold text-ink">
+              余额：<span className="tabular-nums">{formatCents(muirouter.balanceCents, muirouter.currency)}</span>
+            </h3>
+            <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px] text-ink-soft">
+              <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">账号</dt>
+              <dd>{muirouter.email ?? '—'}</dd>
+              <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">默认模型</dt>
+              <dd>{muirouter.defaultModel}</dd>
+              <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">余额更新</dt>
+              <dd>{formatTimestamp(muirouter.balanceUpdatedAt)}</dd>
+            </dl>
+            <p className="mt-2 text-[12px] text-mute">
+              muicv 平台余额优先；耗尽后自动走 muirouter。模型切换和详细管理在网页 dashboard。
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void onRefresh()}
+                className="rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink-soft hover:bg-paper"
+              >
+                ↻ 同步状态
+              </button>
+              <ExternalButton href={`${DASHBOARD_URL}/muirouter`} label="去 dashboard 管理 →" />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-2xl border-2 border-rule bg-paper p-5">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-[16px]">💰</div>
         <div className="flex-1">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">关于 muirouter</p>
-          <h3 className="mt-1 text-[15px] font-bold text-ink">
-            想用自己的 AI 余额？
-            {hasBYOK && <span className="ml-2 text-[12px] font-medium text-yellow-deep">✓ 已绑定</span>}
-          </h3>
+          <h3 className="mt-1 text-[15px] font-bold text-ink">muicv 余额耗尽？关联 muirouter，按需 fallback</h3>
           <p className="mt-1.5 text-[12.5px] leading-[1.65] text-ink-soft">
-            muirouter 是一个独立的 AI 余额服务，类似话费充值。在它那边充一笔，可以用在所有支持 BYOK
-            的服务里——muicv、其他 AI 工具都行，余额跨服务复用，更省、跑量更大。
-            {hasBYOK ? '已经在 dashboard 绑定，AI 调用走你自己的余额。' : ''}
+            muirouter 是一个独立的 AI 余额服务。在它那边充一笔，跨服务复用：muicv 平台余额扣完后自动走 muirouter，
+            桌面端不掉链子。授权全程在 muirouter 完成，muicv 只保管 OAuth token（AES-GCM 加密）。
           </p>
+          {error && <p className="mt-2 text-[12px] font-medium text-tongue">{error}</p>}
           <div className="mt-3 flex flex-wrap gap-2">
-            <ExternalButton href={MUIROUTER_URL} label="去 muirouter 看看" />
-            <ExternalButton
-              href={`${DASHBOARD_URL}#muirouter`}
-              label={hasBYOK ? '管理绑定 →' : '在 dashboard 绑定 →'}
-            />
+            <button
+              type="button"
+              onClick={() => void onLink()}
+              disabled={busy}
+              className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 text-[12.5px] font-bold text-ink disabled:opacity-60"
+            >
+              {busy ? '正在打开浏览器…' : '关联 muirouter'}
+            </button>
+            <ExternalButton href={MUIROUTER_URL} label="先去 muirouter 看看" />
           </div>
         </div>
       </div>
