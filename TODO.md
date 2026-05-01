@@ -9,7 +9,7 @@
 
 ### 面试相关
 
-- ~~模拟面试 skill~~ — 已落地为 [muicv-interview](skills/muicv-interview/SKILL.md)（behavioral / technical / coding / mixed 四种类型）
+- ~~模拟面试 skill~~ — Phase 13 P0 重写完成：[muicv-interview](skills/muicv-interview/SKILL.md) 按 JD × 简历 × 轮次 × 级别 × 类别 × 输入方式动态推导题目；3 个 references 拆 + 双输入轨设计。**P1 待做**：client 端 STT + 录像集成（独立 phase）
 - 录音复盘 skill：上传录音文件 → 提取文本 → 复盘（要新加 /audio/transcribe 端点，中等工程）
 - ~~面试复盘 skill（真实面试后回放分析，跟 muicv-interview 配对）~~ — 落地为 [muicv-debrief](skills/muicv-debrief/SKILL.md)，写到 `debriefs/<company>-<date>.md`
 - 成为面试官 skill（角色互换，让用户练习当面试官）

@@ -82,6 +82,44 @@ test → live 切换 SOP）见 [DEPLOYMENT.md](./DEPLOYMENT.md)。
   - 改一个文件再 pull → 看到 .muicv-pull-backup-* 目录
   - dashboard 点恢复 / 删除 / 清空，刷新看效果
 
+### Phase 13：muicv-interview 重写 P0（按 JD × 简历 × 轮次 × 级别 × 类别 × 输入方式 动态推导，已落地）
+
+之前 muicv-interview 的 79 行版用固定 BQ 题库，技术题"按 JD 关键词挑"模糊，
+coding 题完全没基于 JD——同一个用户面 staff 和 junior 拿到一样的题。
+用户提了 5 个核心要求：多轮支持 / 岗位 + 级别区分 / 简历审查 / 同对话串多轮 /
+**STT 必须带进来**（打字模拟时长完全失真）。
+
+P0 范围（这次做）：
+
+- 重写 [skills/muicv-interview/SKILL.md](skills/muicv-interview/SKILL.md)
+  到 254 行：6 步流程（明确背景 → 审查素材 → 推断级别类别 → 轮次循环 →
+  跨轮原则 → 中途打断处理）+ 双输入轨设计
+- 新增 3 个 references（按 anthropic-skills 拆法）：
+  - [references/round-recipes.md](skills/muicv-interview/references/round-recipes.md)：
+    5 个轮次（tech-screen / hiring-manager / peer-cross / skip-level / hr）的题量
+    / 必考锚题 / 不会问 / 信号 / 示范题
+  - [references/level-category-heuristics.md](skills/muicv-interview/references/level-category-heuristics.md)：
+    级别推断（ladder / 中文 / 英文 / 年限 / IC vs M）+ 跨公司 ladder 警告 + 类别清单
+    + IC vs EM 强制声明
+  - [references/question-design-framework.md](skills/muicv-interview/references/question-design-framework.md)：
+    7 步推导 + 4 个 round×category×level 示例 + 双输入轨反馈维度表 + review 子模式
+- muicv-core 加更详细的 muicv-interview 描述
+
+**双输入轨设计**：
+- 语音模式（muicv 桌面 app）：完整反馈维度（内容 + 时长 + 流利度 + 填充词）
+- 打字模式（Claude Code / Codex 等 terminal）：降级反馈（只评内容），第一步显式
+  推荐用户切到桌面 app
+
+**P1 待办（独立 phase，下次写 plan）**：
+
+- 后端 `/audio/transcribe` 端点（whisper），按音频时长扣 token
+- 桌面 app interview 模式集成 STT（MediaRecorder 录音 → 调端点 → 拿 transcript +
+  duration_ms + filler_count）
+- 录像可选（默认关，desktopCapturer + 本地 webm）
+- agent tool `record_and_transcribe_response`，把 `{transcript, durationMs, fillerCount}`
+  喂给 interview agent
+- SKILL.md 不需要再改——P0 已经预留了接口约定
+
 ### Phase 12：muicv-debrief skill（面试复盘，已落地）
 
 跟 muicv-interview 配对——前者面**前**练，后者面**后**复盘。**写文件**类型 skill：

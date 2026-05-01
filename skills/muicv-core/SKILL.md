@@ -16,7 +16,7 @@ description: 管理本地 Markdown 简历素材库。帮用户在工作目录下
 - `muicv-jobs` — 抓 JD、匹配、辅助投递
 - `muicv-sync` — 把整个素材库同步到 muicv 云端 / 从云端拉回来（黑盒、自动化）
 - `muicv-git` — 把素材库放进自己的 git repo（GitHub / GitLab / 自建），白盒版本管理；可以和 muicv-sync 并用
-- `muicv-interview` — 模拟面试（面试**前**练习，纯对话）
+- `muicv-interview` — 模拟面试（面试**前**练习）：题目按 JD × 简历 × 轮次 × 级别 × 类别 × 输入方式动态推导。支持同对话串多轮（hiring-manager → hr）+ 即时复盘 + review 子模式。语音输入（client）走完整反馈维度，打字（skill）走降级反馈
 - `muicv-debrief` — 真实面试复盘（面试**后**回顾，写到 `debriefs/<company>-<date>.md`）
 - `muicv-coaching` — 就业辅导：跳槽 / offer / 转方向 / 薪资谈判等开放式咨询
 
