@@ -178,6 +178,26 @@
 - **Stripe API 2026-04 起 period 字段在 `subscription.items.data[0].current_period_*`**，
   不再在 subscription 顶层。webhook handler 取 period 时记得从 item 取。
 
+## 云同步与持久化架构 (MuiCV Sync & Git)
+
+Mui简历支持两种内容持久化策略（双通道并行，黑/白盒配对）：
+- **黑盒：muicv-sync（云同步）**
+  - **机制**：通过 `api.muicv.com` 提供的 API，将 `.claude/muicv/` 下的文件作为快照上传到 D1 (`resumeSnapshot` / `resumeSnapshotHistory`)。
+  - **冲突策略**：Last-write-wins（以客户端最新 push 为准），自动将老版本归档进 history，最多保留 5 份历史。
+  - **两类用户处理**：Client 用户（桌面端）通过 Deep Link 自动注入凭据，享有专门的 `sync_resume_to_cloud` 工具无感同步；Skill 用户则需先配置 `MUICV_API_KEY`，由 skill 引导获取并验证。
+  - **预校验**：1MB / 500 文件上限检查统一放在 `packages/shared/src/resume-sync.ts`，供两端复用。
+
+- **白盒：muicv-git**
+  - **机制**：纯本地操作，通过 git 将内容存入用户自己的 GitHub / GitLab 仓库。
+  - **边界**：不替用户隐式 commit，除非明确指示；教导用户使用 Git 而非掩盖 Git 的存在。避免 force push。
+
+## 面试类 Skills 架构
+
+面试辅导拆分为三个阶段的独立 Skill，避免单一 Agent 职责过重：
+1. **模拟面试 (`muicv-interview`)**：面向面试前。采用「双输入轨设计」——如果检测到环境支持语音（如桌面 App），则开启全面反馈（内容+流利度+填充词）；如果是打字环境，则降级为仅评价内容。出题逻辑按 JD × 简历 × 轮次 × 级别动态推导。
+2. **真实复盘 (`muicv-debrief`)**：面向真实面试后。属于“写文件”类型 skill，将用户口述内容落盘到 `debriefs/` 目录。Agent 明确保持中立，不下“过/挂”结论。
+3. **经验反哺**：`muicv-interview` 的 P1a 阶段引入题目质量打分机制，将好题目回写到 `interviews/` 下。后续可通过聚合高分题目建立共有题库。
+
 ## 测试
 
 - **node:test + 默认 ts 直接跑**（`node --test`）；不要引 vitest / jest，除非有强需求。
