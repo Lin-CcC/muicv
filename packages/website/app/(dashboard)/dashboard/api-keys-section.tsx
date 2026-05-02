@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { ConfirmDialog, type ConfirmDialogHandle } from '@/components/confirm-dialog';
 
 type KeyRow = {
   id: string;
@@ -25,6 +27,7 @@ export function ApiKeysSection() {
   const [newKeyName, setNewKeyName] = useState('');
   const [revealedKey, setRevealedKey] = useState<CreatedKey | null>(null);
   const [copied, setCopied] = useState(false);
+  const confirmRef = useRef<ConfirmDialogHandle>(null);
 
   async function load() {
     try {
@@ -74,7 +77,13 @@ export function ApiKeysSection() {
   }
 
   async function onRevoke(id: string) {
-    if (!confirm('确定撤销这个 key 吗？已经在用它的 skill / app 会立刻失效。')) return;
+    const ok = await confirmRef.current?.open({
+      title: '撤销这个 API key？',
+      message: '已经在用它的 skill / app 会立刻失效。',
+      confirmLabel: '撤销',
+      danger: true,
+    });
+    if (!ok) return;
     setError(null);
     try {
       const res = await fetch(`/api/keys/${id}`, { method: 'DELETE' });
@@ -211,6 +220,8 @@ export function ApiKeysSection() {
           </ul>
         )}
       </div>
+
+      <ConfirmDialog ref={confirmRef} />
     </section>
   );
 }
