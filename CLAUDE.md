@@ -80,6 +80,12 @@
 - 一个开发任务完成后，自动执行测试回归，更新文档、清理没有必要的文档，寻找可能的优化点进行优化
 - 全部做完再开始下一步
 
+## Skill 开发规范
+
+- 纯本地 agent 分析的 skill（绝大多数）：免费，不需要鉴权 / gate。
+- 调 muicv 远端 API 的 skill：**必须**遵守 [docs/skill-api-key.md](docs/skill-api-key.md) 的 key gate / 标准教育文案 / 错误映射。
+- 标准文案改动统一改 `docs/skill-api-key.md`，再回写所有引用 skill（`grep -lr "docs/skill-api-key.md" skills/`）。
+
 ## 代码规范
 
 - 除非专门提及，否则默认使用 TypeScript，尽可能把类型写好

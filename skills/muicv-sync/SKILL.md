@@ -12,6 +12,8 @@ description: MuiCV 平台云同步——把本地素材库整体推到云端（p
 - **last-write-wins**：每次 push 前云端会自动归档当前活动版到 history（保留最近 5 份），所以"误覆盖"可在 dashboard 一键恢复。
 - **单库上限**：1 MB / 500 文件。超限服务端会 400。素材库再大就要清理（删旧 versions / critiques）。
 
+> 鉴权 / 计费 / 错误处理统一规范见 [docs/skill-api-key.md](../../docs/skill-api-key.md)。云同步本身**不扣 token**，但同样强制 Bearer 鉴权。
+
 ---
 
 ## 前置检查
@@ -34,20 +36,28 @@ prelude 已探查 `**/profile.md`：
 
 云同步两个端点都强制 Bearer 鉴权。读 `MUICV_API_KEY` 环境变量；**没设或为空** → 别开始 push/pull，把下面整套发给用户：
 
-> 还没看到你配置 muicv API key。云同步需要 key 来识别身份。一次性配好就行，以后 skill 自己读：
+> 还没看到你配置 muicv API key。云同步需要 key 来识别身份和计费（云同步本身不扣 token，但同样强制鉴权）。一次性配好就行，以后 skill 自己读：
 >
-> 1. 浏览器打开 **https://muicv.com/dashboard/api-keys**（如果还没注册，先去 muicv.com 注册——注册赠 10K token，云同步本身不扣 token）
+> 1. 浏览器打开 **https://muicv.com/dashboard/api-keys**（如果还没注册，先去 muicv.com 注册——注册赠 10K token）
 > 2. 点「创建 key」，给它起个名（比如"我的 mac"），复制弹出来的 **`mui_xxxxxxxx...`**（只显示一次，错过就只能撤销重发）
 > 3. 写到 shell rc 里：
 >    ```bash
+>    # macOS / Linux
 >    echo 'export MUICV_API_KEY="mui_刚才复制的那串"' >> ~/.zshrc
 >    source ~/.zshrc
 >    # bash 用户把 .zshrc 换成 .bashrc / .bash_profile
+>
+>    # Windows (PowerShell)
+>    setx MUICV_API_KEY "mui_刚才复制的那串"
+>    # 然后重开终端
 >    ```
-> 4. 验证：`echo $MUICV_API_KEY` 看到 `mui_` 开头 36 字符 → 配好了
+> 4. 验证：`echo $MUICV_API_KEY`（Windows: `echo %MUICV_API_KEY%`）看到 `mui_` 开头 36 字符 → 配好了
 > 5. 回来跟我说"重试同步"
 
-**已设但格式异常**（不是 `mui_` 开头 36 字符）→ 提示用户可能复制时漏了字符或多带了引号空格，让他去 dashboard 再生成一次。
+**已设但格式异常**（不匹配 `/^mui_[A-Za-z0-9]{32}$/`）→ 别调 API，回：
+
+> 你这个 key 看起来不像 muicv 发的。可能复制时漏了字符或多了空格、引号；
+> 去 https://muicv.com/dashboard/api-keys 重新发一份再 export 试试。
 
 **已设格式正确** → 继续 push/pull 流程。第一次跑流程前可以选择性调一次 `GET ${MUICV_API_BASE}/me` 验证 key 有效（200 = 通过；401 = key 已被撤销/过期，让用户重新生成）。如果用户性子急可省略这一步。
 
@@ -161,16 +171,24 @@ prelude 已探查 `**/profile.md`：
 
 ## 错误处理小抄
 
-每条响应都尽量翻译成"用户能直接行动"的话，不要原样抛 HTTP 状态码。
+每条响应都尽量翻译成"用户能直接行动"的话，不要原样抛 HTTP 状态码。规范见 [docs/skill-api-key.md](../../docs/skill-api-key.md)。
+
+通用映射（同所有联网 skill）：
 
 | 现象 | 给用户怎么说 |
 |---|---|
 | `MUICV_API_KEY` 没 export | 走前置检查里的「API key 教育流程」，五步详细发给用户 |
-| `MUICV_API_KEY` 格式异常（不是 `mui_` + 32 字符）| "你这个 key 看起来不像 muicv 发的。可能复制的时候漏了或多了空格、引号；去 https://muicv.com/dashboard/api-keys 重新发一份再 export 试试" |
-| 401 unauthorized | "muicv 拒了这个 key（可能你在 dashboard 撤销过、或者过期）。去 https://muicv.com/dashboard/api-keys 重新发一份，更新 shell rc 后 `source` 一下再来" |
-| 400 路径/超限 | 把 server 的 error 字段原话转给用户（例如「only .md files are supported: foo.txt」「total size exceeds 1048576 bytes」）；超限就建议清 versions/ critiques/ 旧文件 |
-| 404 no-snapshot（pull）| "云端还没有这个账号的快照——先在另一台机器或本机说'同步到云端'才能 pull" |
-| 网络错 / 超时 | API 一般 <1s；超时多半是网络。"试一次没通常就别再硬试，先看看 https://status.muicv.com 或检查本地网络（/dashboard 能正常打开吗？）" |
+| `MUICV_API_KEY` 格式异常（不匹配 `/^mui_[A-Za-z0-9]{32}$/`）| "你这个 key 看起来不像 muicv 发的。可能复制时漏了字符或多了空格、引号；去 https://muicv.com/dashboard/api-keys 重新发一份再 export 试试。" |
+| `401 missing-api-key` / `401 unauthorized` | "muicv 拒了这个 key（可能在 dashboard 撤销过、或者过期）。去 https://muicv.com/dashboard/api-keys 重新发一份，更新 shell rc 后 `source` 一下再来。" **不要重试**。 |
+| `429 rate-limited` | "调太频了，等 60s 再试。" |
+| 网络错 / 超时 | API 一般 <1s；超时多半是网络。"试一次没通常就别再硬试，先看看 https://status.muicv.com 或检查本地网络（dashboard 能正常打开吗？）" |
+
+业务特有（sync 自己的）：
+
+| 现象 | 给用户怎么说 |
+|---|---|
+| `400` 路径 / 超限 | 把 server 的 `error` 字段原话转给用户（例如「only .md files are supported: foo.txt」「total size exceeds 1048576 bytes」）；超限就建议清 versions/ critiques/ 旧文件 |
+| `404 no-snapshot`（pull）| "云端还没有这个账号的快照——先在另一台机器或本机说'同步到云端'才能 pull" |
 
 ---
 

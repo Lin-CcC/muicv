@@ -104,11 +104,25 @@
 - `mui_xxx` 是桌面 app + skill 的统一凭据。在 web dashboard 创建/撤销，
   存到 D1 的 `apiKey` 表（hash 后的）。
 - 中间件：
-  - `requireApiKey`：缺/无效直接 401；用于 /me、/llm/v1/*
-  - `optionalApiKey`：有就解析 userId 给后续 handler 用，没有也放行；用于 /render、/jobs/fetch
+  - `requireApiKey`：缺/无效直接 401。**当前所有付费 / 计费端点都用它**：
+    `/me`、`/llm/v1/*`、`/render`、`/jobs/fetch`、`/resume/*`。
+  - `optionalApiKey`：保留备用；目前**没有**端点在用（早期 `/render`、`/jobs/fetch` 曾走过它，
+    2026-05 切到 `requireApiKey` 配合 token 扣费）。
 - `/llm/v1/*` 是**反向代理到 muirouter**（OpenAI 兼容），我们自己**不**直接发 LLM 请求。
   桌面 app 的 OpenAI Agent SDK 把 baseURL 配成 `https://api.muicv.com/llm/v1`，
   我们透传 + 计费 + 按用户 BYOK 路由到他们绑定的 muirouter key。
+
+## Skill 鉴权与计费策略
+
+- **2026-05-02 决策**：muicv API 全量收紧到 Bearer 强制鉴权（无匿名档）。
+  原因：所有联网调用都按 token 计费（`/render` 扣 `PDF_RENDER_COST`、
+  `/jobs/fetch` 扣 `JD_FETCH_COST`、`/llm/v1/*` 按真实用量），
+  匿名用户没账户 → 没法计费 / 限流 / 监控用量 / 审计。
+- 所有调 muicv API 的 skill 必须走 [docs/skill-api-key.md](docs/skill-api-key.md)
+  的统一规范——前置 gate + 标准教育文案 + 错误映射表（含 401 / 402 / 429）。
+- 写新 skill 时先判断"要不要联网"：要 → 套规范；不要 → 别加 gate 吓走免费用户。
+- 标准文案改动统一改 `docs/skill-api-key.md`，再回写所有引用 skill
+  （`grep -lr "docs/skill-api-key.md" skills/`）。
 
 ## Skills 分发
 

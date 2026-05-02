@@ -7,7 +7,7 @@ description: 把 `versions/` 下的简历 Markdown 渲染成 PDF，调 Mui简历
 
 把一份已经生成的简历 Markdown 渲染成 PDF 文件，保存到同名路径（`versions/foo.md` → `versions/foo.pdf`）。
 
-**这是 skill 里唯一需要联网的核心能力**（抓 JD 在 muicv-jobs）。MVP 阶段 API 匿名可用 + 速率限制，未来加账号/订阅。
+**这是 skill 里唯一需要联网的核心能力**（抓 JD 在 muicv-jobs）。调用 API **必须**配 `MUICV_API_KEY`（在 https://muicv.com/dashboard/api-keys 创建）；鉴权 / 计费 / 错误处理统一规范见 [docs/skill-api-key.md](../../docs/skill-api-key.md)。
 
 ## 前置检查
 
@@ -20,9 +20,40 @@ description: 把 `versions/` 下的简历 Markdown 渲染成 PDF，调 Mui简历
    2. 环境变量 `MUICV_API_BASE`（如果用户在 shell 里 export 了）
    3. 默认值 `https://api.muicv.com`
 
-4. 如果环境变量里有 `MUICV_API_KEY`（用户在 https://muicv.com/dashboard 创建的），
-   调 API 时带上 `Authorization: Bearer $MUICV_API_KEY`。没设也能用（走 IP
-   速率，但额度更紧）。带 key 的好处：识别身份、未来计费按用户、用量可在 dashboard 看到。
+4. **API key gate**（强制；规范详见 [docs/skill-api-key.md](../../docs/skill-api-key.md)）
+
+   `/render` 端点强制 Bearer 鉴权，且按 `PDF_RENDER_COST` 扣 token。读 `MUICV_API_KEY` 环境变量：
+
+   - **没设 / 为空** → 别调 API，原文发下面这段教育文案给用户：
+
+     > 还没看到你配置 muicv API key。渲染 PDF 需要 key 来识别身份和计费。
+     > 一次性配好就行，以后 skill 自己读：
+     >
+     > 1. 浏览器打开 **https://muicv.com/dashboard/api-keys**
+     >    （还没注册先去 muicv.com 注册——注册赠 10K token）
+     > 2. 点「创建 key」，给它起个名（比如"我的 mac"），复制弹出来的
+     >    **`mui_xxxxxxxx...`**（只显示一次，错过就只能撤销重发）
+     > 3. 写到 shell rc 里：
+     >    ```bash
+     >    # macOS / Linux
+     >    echo 'export MUICV_API_KEY="mui_刚才复制的那串"' >> ~/.zshrc
+     >    source ~/.zshrc
+     >    # bash 用户把 .zshrc 换成 .bashrc / .bash_profile
+     >
+     >    # Windows (PowerShell)
+     >    setx MUICV_API_KEY "mui_刚才复制的那串"
+     >    # 然后重开终端
+     >    ```
+     > 4. 验证：`echo $MUICV_API_KEY`（Windows: `echo %MUICV_API_KEY%`）
+     >    看到 `mui_` 开头 36 字符 → 配好了
+     > 5. 回来跟我说"重试渲染"
+
+   - **格式不合法**（不匹配 `/^mui_[A-Za-z0-9]{32}$/`）→ 别调 API，回：
+
+     > 你这个 key 看起来不像 muicv 发的。可能复制时漏了字符或多了空格、引号；
+     > 去 https://muicv.com/dashboard/api-keys 重新发一份再 export 试试。
+
+   - **合法** → 继续渲染流程。
 
 ## 渲染流程
 
@@ -35,7 +66,7 @@ description: 把 `versions/` 下的简历 Markdown 渲染成 PDF，调 Mui简历
 ```bash
 curl -X POST "${MUICV_API_BASE}/render" \
   -H "Content-Type: application/json" \
-  ${MUICV_API_KEY:+-H "Authorization: Bearer ${MUICV_API_KEY}"} \
+  -H "Authorization: Bearer ${MUICV_API_KEY}" \
   -d '{"markdown": "<整个 .md 文件内容>", "template": "default"}' \
   --output "<version 文件同名的 .pdf>"
 ```
@@ -47,6 +78,8 @@ curl -X POST "${MUICV_API_BASE}/render" \
 响应：
 - `200` + `application/pdf`：直接是 PDF 二进制
 - `400` + JSON：参数错误（例如 markdown 为空）
+- `401` + JSON `{"error":"missing-api-key" | ...}`：key 没带 / 被拒。**不要重试**，按下方「错误处理小抄」处理
+- `402` + JSON `{"error":"insufficient-balance", "balance":..., "required":...}`：余额不够。把 balance/required 念给用户，让他去 https://muicv.com/dashboard 充值
 - `502` + JSON：container 侧异常
 - 网络错误 / 超时：告诉用户可能是首次调用 Container 冷启动（5-10s），让用户重试一次
 
@@ -100,3 +133,16 @@ Claude：
 - `muicv-generate` → 产出 version md → `muicv-render` 导出 PDF
 - `muicv-critique` 评审完用户满意 → 再 render
 - 如果用户渲染后发现排版问题，**建议去调 API 团队改模板**，不要自己在 md 里加 HTML 尝试绕过（会被 API 的模板覆盖）
+
+## 错误处理小抄
+
+每条响应都尽量翻译成"用户能直接行动"的话，不要原样抛 HTTP 状态码。规范见 [docs/skill-api-key.md](../../docs/skill-api-key.md)。
+
+| 现象 | 给用户怎么说 |
+|---|---|
+| `MUICV_API_KEY` 没 export | 走前置检查里的 API key 教育流程，五步详细发给用户 |
+| `MUICV_API_KEY` 格式异常（不匹配 `/^mui_[A-Za-z0-9]{32}$/`）| "你这个 key 看起来不像 muicv 发的。可能复制时漏了字符或多了空格、引号；去 https://muicv.com/dashboard/api-keys 重新发一份再 export 试试。" |
+| `401 missing-api-key` / `401 unauthorized` | "muicv 拒了这个 key（可能在 dashboard 撤销过、或者过期）。去 https://muicv.com/dashboard/api-keys 重新发一份，更新 shell rc 后 `source` 一下再来。" **不要重试**。 |
+| `402 insufficient-balance` | 把响应里的 `balance` / `required` 念给用户："你的余额不够这次渲染（需 X，剩 Y）。去 https://muicv.com/dashboard 充值后重试。" |
+| `429 rate-limited` | "调太频了，等 60s 再试。" |
+| `502` / 网络错 / 超时 | 首次冷启动 5-10s 属正常，重试一次；连续失败提示去 https://status.muicv.com 看服务状态 |
