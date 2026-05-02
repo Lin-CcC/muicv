@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Status = {
   linked: boolean;
@@ -69,6 +69,7 @@ export function MuirouterSection() {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const unlinkDialogRef = useRef<HTMLDialogElement | null>(null);
 
   async function load() {
     try {
@@ -112,8 +113,12 @@ export function MuirouterSection() {
     }
   }
 
-  async function onUnlink() {
-    if (!confirm('确定解除 muirouter 关联？muicv 余额耗尽后将无 LLM fallback。')) return;
+  function openUnlinkDialog() {
+    unlinkDialogRef.current?.showModal();
+  }
+
+  async function onConfirmUnlink() {
+    unlinkDialogRef.current?.close();
     setError(null);
     setBusy(true);
     try {
@@ -250,13 +255,41 @@ export function MuirouterSection() {
             </button>
             <button
               type="button"
-              onClick={onUnlink}
+              onClick={openUnlinkDialog}
               disabled={busy}
               className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12.5px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:opacity-60"
             >
               解除关联
             </button>
           </div>
+
+          <dialog
+            ref={unlinkDialogRef}
+            className="m-auto w-full max-w-sm rounded-2xl border-2 border-ink bg-cream p-0 text-ink shadow-[0_6px_0_0_oklch(0.24_0.04_65)] backdrop:bg-ink/40"
+          >
+            <form method="dialog" className="flex flex-col gap-4 p-6">
+              <h3 className="text-[16px] font-extrabold">解除 muirouter 关联？</h3>
+              <p className="text-[13px] text-ink-soft">
+                muicv 平台余额耗尽后将无 LLM fallback。muirouter 端的 token 会一并撤销。
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => unlinkDialogRef.current?.close()}
+                  className="rounded-lg border-2 border-rule-strong bg-cream px-4 py-1.5 text-[13px] font-medium text-ink hover:bg-paper"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onConfirmUnlink()}
+                  className="rounded-lg border-2 border-tongue bg-tongue px-4 py-1.5 text-[13px] font-bold text-cream hover:bg-tongue/90"
+                >
+                  确认解除
+                </button>
+              </div>
+            </form>
+          </dialog>
         </div>
       ) : (
         <div className="mt-5 flex flex-col items-start gap-3 rounded-xl border-2 border-dashed border-rule-strong bg-paper p-5">
