@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState, useTransition } from 'react';
 
 import { ConfirmDialog, type ConfirmDialogHandle, type ConfirmDialogOpenOptions } from '@/components/confirm-dialog';
+import { Spinner } from '@/components/spinner';
 
 type ActionType = 'wipe' | 'restore' | 'delete-history';
 
@@ -39,8 +40,9 @@ export function WipeButton() {
         type="button"
         onClick={() => void onClick()}
         disabled={pending}
-        className="rounded-xl border-2 border-ink bg-paper px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_oklch(0.24_0.04_65)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_oklch(0.24_0.04_65)] disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-paper px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_oklch(0.24_0.04_65)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_oklch(0.24_0.04_65)] disabled:opacity-60"
       >
+        {pending && <Spinner />}
         {pending ? '清空中…' : '清空云端'}
       </button>
       {error && <p className="mt-2 text-[12px] text-tongue">{error}</p>}
@@ -79,7 +81,7 @@ export function HistoryRowActions({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className={`flex flex-col items-end gap-1 transition-opacity ${pending ? 'opacity-50' : ''}`}>
       <div className="flex gap-2">
         <button
           type="button"
@@ -91,9 +93,9 @@ export function HistoryRowActions({ id }: { id: string }) {
             })
           }
           disabled={pending}
-          className="rounded-lg border border-ink bg-fluff px-2.5 py-1 text-[12px] font-bold text-ink transition hover:bg-corgi disabled:opacity-60"
+          className="inline-flex min-w-[56px] items-center justify-center rounded-lg border border-ink bg-fluff px-2.5 py-1 text-[12px] font-bold text-ink transition hover:bg-corgi disabled:cursor-not-allowed"
         >
-          {busyAction === 'restore' ? '恢复中…' : '恢复'}
+          {busyAction === 'restore' ? <Spinner /> : '恢复'}
         </button>
         <button
           type="button"
@@ -106,9 +108,9 @@ export function HistoryRowActions({ id }: { id: string }) {
             })
           }
           disabled={pending}
-          className="rounded-lg border border-rule bg-paper px-2.5 py-1 text-[12px] font-bold text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-60"
+          className="inline-flex min-w-[56px] items-center justify-center rounded-lg border border-rule bg-paper px-2.5 py-1 text-[12px] font-bold text-ink-soft transition hover:border-ink hover:text-ink disabled:cursor-not-allowed"
         >
-          {busyAction === 'delete-history' ? '删除中…' : '删除'}
+          {busyAction === 'delete-history' ? <Spinner /> : '删除'}
         </button>
       </div>
       {error && <p className="text-[11px] text-tongue">{error}</p>}

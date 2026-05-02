@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { ConfirmDialog, type ConfirmDialogHandle } from '@/components/confirm-dialog';
+import { Spinner } from '@/components/spinner';
 
 type KeyRow = {
   id: string;
@@ -27,6 +28,8 @@ export function ApiKeysSection() {
   const [newKeyName, setNewKeyName] = useState('');
   const [revealedKey, setRevealedKey] = useState<CreatedKey | null>(null);
   const [copied, setCopied] = useState(false);
+  /** 正在删除的 key id 集合——支持连续点多个，每行各自显示 spinner，互不阻塞。 */
+  const [deletingIds, setDeletingIds] = useState<ReadonlySet<string>>(() => new Set());
   const confirmRef = useRef<ConfirmDialogHandle>(null);
 
   async function load() {
@@ -77,6 +80,7 @@ export function ApiKeysSection() {
   }
 
   async function onRevoke(id: string) {
+    if (deletingIds.has(id)) return;
     const ok = await confirmRef.current?.open({
       title: '撤销这个 API key？',
       message: '已经在用它的 skill / app 会立刻失效。',
@@ -85,12 +89,24 @@ export function ApiKeysSection() {
     });
     if (!ok) return;
     setError(null);
+    setDeletingIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
     try {
       const res = await fetch(`/api/keys/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : '撤销失败');
+    } finally {
+      setDeletingIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   }
 
@@ -194,29 +210,34 @@ export function ApiKeysSection() {
           <p className="text-[13px] text-mute">还没有 API key。点上面"生成新 key"开个第一把。</p>
         ) : (
           <ul className="space-y-2">
-            {keys.map((k) => (
-              <li
-                key={k.id}
-                className="flex flex-col items-start gap-2 rounded-lg border-2 border-rule bg-paper px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
-              >
-                <div className="flex-1">
-                  <div className="text-[14px] font-bold text-ink">{k.name}</div>
-                  <div className="mt-0.5 font-mono text-[12px] text-mute">{k.keyPreview}</div>
-                </div>
-                <div className="flex items-center gap-3 text-[11px] text-mute">
-                  <span title={`创建于 ${formatDate(k.createdAt)}`}>建于 {formatDate(k.createdAt)}</span>
-                  <span>·</span>
-                  <span>最后使用：{k.lastUsedAt ? formatDate(k.lastUsedAt) : '从未'}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onRevoke(k.id)}
-                  className="rounded-md border-2 border-tongue/60 px-3 py-1 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-cream"
+            {keys.map((k) => {
+              const deleting = deletingIds.has(k.id);
+              return (
+                <li
+                  key={k.id}
+                  className={`flex flex-col items-start gap-2 rounded-lg border-2 border-rule bg-paper px-4 py-3 transition-opacity sm:flex-row sm:items-center sm:gap-4 ${deleting ? 'opacity-50' : ''}`}
+                  aria-busy={deleting}
                 >
-                  撤销
-                </button>
-              </li>
-            ))}
+                  <div className="flex-1">
+                    <div className="text-[14px] font-bold text-ink">{k.name}</div>
+                    <div className="mt-0.5 font-mono text-[12px] text-mute">{k.keyPreview}</div>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-mute">
+                    <span title={`创建于 ${formatDate(k.createdAt)}`}>建于 {formatDate(k.createdAt)}</span>
+                    <span>·</span>
+                    <span>最后使用：{k.lastUsedAt ? formatDate(k.lastUsedAt) : '从未'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onRevoke(k.id)}
+                    disabled={deleting}
+                    className="inline-flex min-w-[64px] items-center justify-center rounded-md border-2 border-tongue/60 px-3 py-1 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-tongue"
+                  >
+                    {deleting ? <Spinner /> : '撤销'}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
