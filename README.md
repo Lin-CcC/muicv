@@ -12,22 +12,6 @@ Mui简历
 安装
 ---
 
-两种方式任选：
-
-### 1. Claude Code Plugin Marketplace
-
-官方机制，用户通过 `/plugin` 命令管理：
-
-```bash
-# 在 Claude Code 里：
-/plugin marketplace add meathill/muicv
-/plugin install muicv@meathill
-```
-
-装完立刻可用。`/plugin list` 查看已装，`/plugin update` 更新。
-
-### 2. npx skills（多 agent 通用）
-
 用 [`skills`](https://www.npmjs.com/package/skills) CLI（Vercel Labs 出品，兼容 Claude Code / Codex / Cursor / OpenCode 等 40+ agent）：
 
 ```bash

@@ -112,9 +112,8 @@
 
 ## Skills 分发
 
-- 双通道并行：
-  - `/plugin marketplace add meathill/muicv` + `/plugin install muicv@meathill`（Claude Code 官方）
-  - `npx skills add meathill/muicv`（Vercel `skills` CLI，兼容 Claude Code / Codex / Cursor / OpenCode 等）
+- 通过 Vercel `skills` CLI 分发：`npx skills add meathill/muicv`
+  （兼容 Claude Code / Codex / Cursor / OpenCode 等 40+ agent）。
 - skill 大段 prompt 放在 `skills/<name>/references/*.md`，SKILL.md 里靠
   `{{ reference: xxx }}` 引用，避免主文件臃肿。
 

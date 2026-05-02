@@ -28,7 +28,7 @@ export function Install() {
             </h2>
             <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-ink-soft">
               不需要等桌面 app。装了 Claude Code、Codex、Cursor、OpenCode 等任何一种支持 skill 协议的
-              agent，下面任选一种安装方式，5 秒装完。
+              agent，用下面这条命令，5 秒装完。
             </p>
             <p className="mt-4 max-w-md text-[13px] leading-[1.7] text-mute">
               不熟悉 AI agent？等桌面 app 上线即可，
@@ -43,13 +43,6 @@ export function Install() {
           </div>
 
           <div className="grid gap-4 lg:col-span-7">
-            <InstallCard
-              title="Claude Code Plugin Marketplace"
-              meta="官方机制 / /plugin 命令"
-              code={`/plugin marketplace add muicv
-/plugin install muicv`}
-              preferred
-            />
             <InstallCard title="npx skills" meta="多 agent 通用 / 40+ 兼容" code={`npx skills add muicv -g`} />
           </div>
         </div>
