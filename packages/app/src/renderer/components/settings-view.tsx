@@ -238,7 +238,7 @@ function CustomLlmCard() {
 
   async function onSave() {
     await patch({
-      defaultModel: defaultModel.trim() || 'gpt-4o-mini',
+      defaultModel: defaultModel.trim() || 'gpt-5.4',
       customLlmBase: customLlmBase.trim() || null,
       customLlmKey: customLlmKey.trim() || null,
       muicvApiBase: muicvApiBase.trim() || 'https://api.muicv.com',
@@ -292,10 +292,10 @@ function CustomLlmCard() {
         />
         <Field
           label="默认模型"
-          hint="OpenAI 兼容的 model id，跟你 endpoint 支持的清单对齐"
+          hint="走 muicv 平台支持：gpt-5.5 / gpt-5.4 / mimo-v2.5-pro / mimo-v2.5（前两个国际，后两个国内便宜）。自带 endpoint 时按你的清单填。"
           value={defaultModel}
           onChange={setDefaultModel}
-          placeholder="gpt-4o-mini"
+          placeholder="gpt-5.4"
           mono
         />
 

@@ -1,3 +1,4 @@
+import { microToDisplay } from '@muicv/shared';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
         <Card label="邮箱" value={user.email} />
         <Card
           label="Token 余额"
-          value={wallet.balance.toLocaleString()}
+          value={microToDisplay(wallet.balance).toLocaleString()}
           hint={wallet.justInitialized ? '注册赠送已到账' : '永不过期'}
         />
       </section>

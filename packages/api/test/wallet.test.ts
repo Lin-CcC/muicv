@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 
+import { displayToMicro, SIGNUP_BONUS } from '@muicv/shared';
+
 import { charge, credit, ensureBalance, readBalance } from '../src/lib/wallet.ts';
 
 /**
@@ -87,6 +89,15 @@ test('ensureBalance 第一次 lazy init signup_bonus + ledger 一条', async () 
     .first<{ type: string; delta: number }>();
   assert.equal(ledger?.type, 'signup_bonus');
   assert.equal(ledger?.delta, 10000);
+});
+
+test('ensureBalance 默认 bonus = SIGNUP_BONUS（μtoken）', async () => {
+  // 默认入参等于 displayToMicro(SIGNUP_BONUS) = 10_000 × 10_000 = 100_000_000 μ
+  const env = setupDb();
+  const r = await ensureBalance(env, 'u1');
+  const expected = displayToMicro(SIGNUP_BONUS);
+  assert.equal(r.balance, expected);
+  assert.equal(r.justInitialized, true);
 });
 
 test('ensureBalance 第二次不重复发 bonus', async () => {

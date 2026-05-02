@@ -1,4 +1,4 @@
-import { JD_FETCH_COST, PDF_RENDER_COST, insufficientBalanceError } from '@muicv/shared';
+import { displayToMicro, JD_FETCH_COST, PDF_RENDER_COST, insufficientBalanceError } from '@muicv/shared';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
@@ -121,8 +121,9 @@ app.post('/render', requireApiKey, async (c) => {
   const template = typeof payload.template === 'string' ? payload.template : 'default';
 
   const userId = c.get('userId') as string;
+  const pdfCostMicro = displayToMicro(PDF_RENDER_COST);
   const wallet = await ensureBalance(c.env, userId);
-  if (wallet.balance < PDF_RENDER_COST) {
+  if (wallet.balance < pdfCostMicro) {
     return c.json(insufficientBalanceError(wallet.balance), 402);
   }
 
@@ -140,7 +141,7 @@ app.post('/render', requireApiKey, async (c) => {
   }
 
   // 成功才扣账（异步，不阻塞 PDF 返回）
-  c.executionCtx.waitUntil(charge(c.env, userId, PDF_RENDER_COST, 'pdf_render', { template }).catch(() => {}));
+  c.executionCtx.waitUntil(charge(c.env, userId, pdfCostMicro, 'pdf_render', { template }).catch(() => {}));
 
   return new Response(pdf, {
     status: 200,
@@ -189,14 +190,15 @@ app.post('/jobs/fetch', requireApiKey, async (c) => {
   const url = payload.url;
 
   const userId = c.get('userId') as string;
+  const jdCostMicro = displayToMicro(JD_FETCH_COST);
   const wallet = await ensureBalance(c.env, userId);
-  if (wallet.balance < JD_FETCH_COST) {
+  if (wallet.balance < jdCostMicro) {
     return c.json(insufficientBalanceError(wallet.balance), 402);
   }
 
   try {
     const result = await fetchJd({ url }, c.env);
-    c.executionCtx.waitUntil(charge(c.env, userId, JD_FETCH_COST, 'jd_fetch', { url }).catch(() => {}));
+    c.executionCtx.waitUntil(charge(c.env, userId, jdCostMicro, 'jd_fetch', { url }).catch(() => {}));
     return c.json(result);
   } catch (error) {
     if (error instanceof FetchJdError) {

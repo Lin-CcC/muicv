@@ -1,3 +1,4 @@
+import { microToDisplay } from '@muicv/shared';
 import { eq } from 'drizzle-orm';
 
 import { getDb, schema } from '@/lib/db';
@@ -82,7 +83,7 @@ export async function PlansSection() {
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">
           余额{' '}
           <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">
-            {wallet.balance.toLocaleString()}
+            {microToDisplay(wallet.balance).toLocaleString()}
           </span>{' '}
           tokens
         </h2>
@@ -133,7 +134,7 @@ export async function PlansSection() {
                   }`}
                 >
                   {row.delta > 0 ? '+' : ''}
-                  {row.delta.toLocaleString()}
+                  {microToDisplay(row.delta).toLocaleString()}
                 </span>
               </li>
             ))}

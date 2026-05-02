@@ -2,7 +2,7 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-05-01
+最后更新：2026-05-02
 
 ---
 
@@ -128,7 +128,7 @@
 ## 付费 token 钱包（M4，packages/website + packages/api）
 
 > 我们没有"档位 + 月度配额"模型，是**统一 token 钱包**：注册送 10K，月卡每月续，
-> 补充包随用随买。所有云端服务（LLM 1.1×、PDF 200、JD 300）按 token 扣。BYOK
+> 补充包随用随买。所有云端服务（LLM 按 model 分价、PDF 200、JD 300）按 token 扣。BYOK
 > 用户的 LLM 走 muirouter 自己付，但 PDF / JD 仍扣 muicv tokens。
 
 - **D1 原子扣账：必须单 statement**。`UPDATE tokenBalance SET balance = balance - ?
@@ -142,6 +142,35 @@
 - **lazy init signup_bonus**：用 `INSERT OR IGNORE INTO tokenBalance ... RETURNING`，
   RETURNING 仅对真新建的行返回，conflict 时返回 null —— 借此判断是否要写 signup_bonus
   流水。三处入口（website /api/me、api worker /me、dashboard 首页）都调，并发安全。
+
+## μtoken 内部存储单位 + 按 model 分价 LLM 计费（2026-05）
+
+> 历史：原本 `tokenBalance.balance` 直接存「显示 token」整数，扣费按
+> `ceil((prompt+completion) × 1.1)`，model-agnostic。新增 Xiaomi Mimo 上游 +
+> 4 model 价差 60× 后，整数 ceil 在最便宜的 mimo-v2.5（input 0.008/上游 token）上
+> 会让小请求被多扣 100×+，老公式必须替换。
+
+- **存储单位 ×1e4**：`tokenBalance.balance` / `lifetimeEarned` / `lifetimeSpent` /
+  `tokenLedger.delta` 都改成 **μtoken**（1 显示 token = 10_000 μ）。SQLite INTEGER
+  64-bit，存量最大值 ×1e4 后远未触顶。Migration `0011_scale_tokens_to_micro.sql`
+  一次性 `UPDATE … SET col = col * 10000`，无回滚路径，先 `--local` apply 后核对再发生产。
+- **边界**：写路径在调 wallet 前 `displayToMicro`（PDF / JD / Stripe webhook）；
+  读路径在 API response handler / SSR 渲染时 `microToDisplay`。**wallet.ts 内部
+  统一 μtoken**，函数签名不再有 display/μ 混用。helpers 都在 `packages/shared/src/pricing.ts`。
+- **按 model 分价**：`LLM_PRICING` 表给每个 model 一对 `inputRate`（显示 token / 上游 prompt token）
+  和 `outputRate`（同口径，给 completion）。新公式
+  `ceil((prompt × inputRate + completion × outputRate) × 1.1 × TOKEN_PRECISION)` 直接返 μtoken，
+  取整在 μ 层（4 位精度），上面那个溢扣问题彻底没了。
+- **支持 4 个 model**：`gpt-5.5` / `gpt-5.4` / `mimo-v2.5-pro` / `mimo-v2.5`。
+  锚点 1 显示 token = $1e-5（从 Pro 套餐 500k/$4.99 反推）。Xiaomi 价以 ¥7/USD 折算到
+  USD 后再算 rate。表外 model（含老的 `gpt-4o-mini`）一律 400 `unsupported_model`，
+  让客户端显式升级 `defaultModel`——不用 fallback rate 是为了避免悄悄按错价格扣。
+- **平台第二上游**：`packages/api/src/routes/llm.ts` 在余额 > 0 路径里按 `model.startsWith('mimo-')`
+  分流：`mimo-*` 走 Xiaomi（`https://token-plan-sgp.xiaomimimo.com`，`MIMO_API_KEY`），
+  其它走 OpenAI（`https://api.openai.com`，`OPENAI_API_KEY`）。muirouter fallback 路径
+  不被本表约束（其 model 列表由 muirouter 端管理）。前缀分流的取舍：客户端零改动、
+  未来加 deepseek/moonshot 一行 case 即可；缺点是 model id 命名空间冲突时会路由错
+  （目前 `mimo-` / `gpt-` 前缀够独特）。
 
 ## OpenAI Chat Completions stream 注入 + 计费（packages/api）
 

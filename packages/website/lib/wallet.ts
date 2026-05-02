@@ -1,15 +1,17 @@
-import { type LedgerType, SIGNUP_BONUS } from '@muicv/shared';
+import { displayToMicro, type LedgerType, SIGNUP_BONUS } from '@muicv/shared';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 /**
  * Token 钱包：原子扣账 / 入账 / 余额查询。
  *
+ * **单位约定**：所有 `amount` / `balance` / `delta` 都是 **μtoken**（1 显示 token = 10_000 μtoken）。
+ * 详见 packages/api/src/lib/wallet.ts 的 docstring。
+ *
  * 镜像版本在 packages/api/src/lib/wallet.ts，函数签名一致，差别只在 D1 binding 名
  * （此处 `MUICV_DB`，api 那边 `MUICV_API_DB`，指向同一个 D1）。
- *
- * 设计说明见 api/lib/wallet.ts。这边的调用方主要是 webhook、/api/me、dashboard
- * 端 API 路由（topup / checkout / portal 跳转）。
  */
+
+const SIGNUP_BONUS_MICRO = displayToMicro(SIGNUP_BONUS);
 
 async function getDb(): Promise<D1Database> {
   const { env } = await getCloudflareContext({ async: true });
@@ -34,7 +36,7 @@ export async function readBalance(
 
 export async function ensureBalance(
   userId: string,
-  bonus = SIGNUP_BONUS,
+  bonus = SIGNUP_BONUS_MICRO,
 ): Promise<{ balance: number; justInitialized: boolean }> {
   const db = await getDb();
   const now = Date.now();

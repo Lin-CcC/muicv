@@ -11,11 +11,17 @@ declare namespace Cloudflare {
     /** 与 packages/website 共用同一个值，HKDF 派生 key 加解密 muirouterLink 上的 OAuth token。 */
     BETTER_AUTH_SECRET: string;
     /**
-     * muicv 平台自家的 OpenAI API key（sk-...）。muicv 余额 > 0 时走这把，
+     * muicv 平台自家的 OpenAI API key（sk-...）。muicv 余额 > 0 且 model 是 `gpt-*` 时走这把，
      * 配额由 muicv 后端控制（M2 起做月度上限）。
      * 部署：`wrangler secret put OPENAI_API_KEY`。
      */
     OPENAI_API_KEY: string;
+    /**
+     * muicv 平台自家的 Xiaomi Mimo API key。muicv 余额 > 0 且 model 是 `mimo-*` 时走这把。
+     * 上游 base：https://token-plan-sgp.xiaomimimo.com，OpenAI 兼容。
+     * 部署：`wrangler secret put MIMO_API_KEY`。
+     */
+    MIMO_API_KEY: string;
     /**
      * muirouter OAuth client secret——余额耗尽 fallback 到 muirouter 时，token 过期需要 refresh。
      * 与 packages/website 共用同一个值。`wrangler secret put MUIROUTER_OAUTH_CLIENT_SECRET`。

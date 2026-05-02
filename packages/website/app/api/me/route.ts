@@ -1,3 +1,4 @@
+import { microToDisplay } from '@muicv/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 
 import { hashApiKey } from '@/lib/api-key';
@@ -119,7 +120,7 @@ export async function GET(request: Request) {
           balanceUpdatedAt: link.balanceUpdatedAt?.getTime() ?? null,
         }
       : null,
-    balance: wallet.balance,
+    balance: microToDisplay(wallet.balance),
     subscription: sub
       ? {
           status: sub.status,

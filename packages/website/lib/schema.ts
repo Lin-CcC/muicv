@@ -113,9 +113,12 @@ export const muirouterLink = sqliteTable('muirouterLink', {
 
 /**
  * Token 钱包：每用户一行余额，永不过期。
- * 注册赠送（10K）走 lazy init，第一次访问时 INSERT OR IGNORE。
+ * 注册赠送（10K 显示 token）走 lazy init，第一次访问时 INSERT OR IGNORE。
  * D1 原子扣账靠 `UPDATE ... WHERE balance >= :cost RETURNING balance`，
  * `meta.changes === 0` 即余额不足。
+ *
+ * **单位**：balance / lifetimeEarned / lifetimeSpent 都是 **μtoken**（1 显示 token = 10_000 μ）。
+ * 见 packages/shared/src/pricing.ts 的 TOKEN_PRECISION，迁移见 migrations/0011_scale_tokens_to_micro.sql。
  */
 export const tokenBalance = sqliteTable('tokenBalance', {
   userId: text('userId')
@@ -129,7 +132,8 @@ export const tokenBalance = sqliteTable('tokenBalance', {
 
 /**
  * Token 流水：所有 balance 变化的审计日志。
- * delta 正负即入账 / 出账。invoice.paid 用 meta.invoiceId 做第二层幂等。
+ * delta 正负即入账 / 出账（单位与 tokenBalance.balance 一致：μtoken）。
+ * invoice.paid 用 meta.invoiceId 做第二层幂等。
  */
 export const tokenLedger = sqliteTable('tokenLedger', {
   id: text('id').primaryKey(),

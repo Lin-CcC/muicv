@@ -51,7 +51,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   workspaceDir: null,
   muicvApiKey: null,
   muicvApiBase: 'https://api.muicv.com',
-  defaultModel: 'gpt-4o-mini',
+  defaultModel: 'gpt-5.4',
   customLlmBase: null,
   customLlmKey: null,
 };

@@ -1,3 +1,4 @@
+import { displayToMicro } from '@muicv/shared';
 import { eq } from 'drizzle-orm';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type Stripe from 'stripe';
@@ -125,7 +126,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   await credit(
     userId,
-    tokens,
+    displayToMicro(tokens),
     'topup',
     { sessionId: session.id, priceId, pack: session.metadata?.pack ?? null },
     `checkout_${session.id}`,
@@ -203,7 +204,13 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     throw new Error(`invoice.paid price ${priceId} not in subscription map (invoice=${invoice.id})`);
   }
 
-  await credit(userId, tokens, 'subscription', { invoiceId: invoice.id, priceId }, `invoice_${invoice.id}`);
+  await credit(
+    userId,
+    displayToMicro(tokens),
+    'subscription',
+    { invoiceId: invoice.id, priceId },
+    `invoice_${invoice.id}`,
+  );
 }
 
 /** 续费失败 → 仅记一条事件，subscription 表 status 由 customer.subscription.updated 同步。 */

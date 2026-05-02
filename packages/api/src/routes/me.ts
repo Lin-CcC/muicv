@@ -1,3 +1,4 @@
+import { microToDisplay } from '@muicv/shared';
 import type { Context } from 'hono';
 
 import { ensureBalance } from '../lib/wallet.ts';
@@ -69,7 +70,7 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
           balanceUpdatedAt: link.balanceUpdatedAt,
         }
       : null,
-    balance: wallet.balance,
+    balance: microToDisplay(wallet.balance),
     subscription: sub
       ? {
           status: sub.status,

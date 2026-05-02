@@ -1,3 +1,5 @@
+import { microToDisplay } from '@muicv/shared';
+
 import { getCurrentSession } from '@/lib/session';
 import { ensureBalance, listLedger } from '@/lib/wallet';
 
@@ -23,7 +25,7 @@ export async function GET(request: Request) {
   const ledger = await listLedger(session.user.id, limit);
 
   return Response.json({
-    balance: wallet.balance,
-    ledger,
+    balance: microToDisplay(wallet.balance),
+    ledger: ledger.map((row) => ({ ...row, delta: microToDisplay(row.delta) })),
   });
 }

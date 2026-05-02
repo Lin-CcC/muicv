@@ -1,6 +1,6 @@
 # DEPLOYMENT
 
-最后更新：2026-04-29
+最后更新：2026-05-02
 
 Mui简历的**运行时代码**（service deploy 的部分）只有这几个独立部署单元：
 
@@ -168,7 +168,11 @@ pdftotext /tmp/test.pdf -
 |---|---|---|---|
 | `RENDER_BASE_URL` | var | wrangler.jsonc | packages/website 的公网 base（`https://muicv.com`） |
 | `BETTER_AUTH_SECRET` | secret | `wrangler secret put` | 与 packages/website 同值 |
-| `OPENAI_API_KEY` | secret | `wrangler secret put` | 平台默认 LLM key |
+| `OPENAI_API_KEY` | secret | `wrangler secret put` | 平台 OpenAI key（model 为 `gpt-*` 时使用） |
+| `MIMO_API_KEY` | secret | `wrangler secret put` | 平台 Xiaomi Mimo key（model 为 `mimo-*` 时使用），上游 `https://token-plan-sgp.xiaomimimo.com/v1` |
+
+> 平台路径（余额 > 0）只接受 `gpt-5.5` / `gpt-5.4` / `mimo-v2.5-pro` / `mimo-v2.5` 四个 model，
+> 表外（如老的 `gpt-4o-mini`）会拿到 400 `unsupported_model`。详见 `packages/shared/src/pricing.ts` 的 `LLM_PRICING`。
 
 ### 添加新简历模板
 
@@ -257,6 +261,12 @@ pnpm --filter @muicv/website exec wrangler d1 migrations apply muicv --remote
 # 本地 dev D1
 pnpm --filter @muicv/website exec wrangler d1 migrations apply muicv --local
 ```
+
+> **0011_scale_tokens_to_micro.sql**（2026-05）：把 tokenBalance 和 tokenLedger 的数值列
+> ×10_000，进入 μtoken 内部单位（1 显示 token = 10_000 μ）。配合新的按 model 分价计费表。
+> **代码上线和 migration 必须同次部署**——旧代码看到 ×1e4 的数值会显示错乱、扣费翻倍。
+> CI 走 `wrangler d1 migrations apply`，无回滚路径，先 `--local` apply 后核对一行 `SELECT
+> userId, balance FROM tokenBalance LIMIT 1` 再发生产。
 
 ### 本地开发
 

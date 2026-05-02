@@ -25,6 +25,11 @@ type MockOptions = {
   first?: <T = unknown>() => Promise<T | null>;
   /** true 时 SELECT FROM apiKey 强制返 fake 行，让带 FAKE_API_KEY 的请求通过 requireApiKey */
   authenticated?: boolean;
+  /** > 0 时 INSERT/SELECT tokenBalance 返回该 μtoken 余额，让 LLM 走平台路径 */
+  walletMicro?: number;
+  /** OpenAI / Xiaomi key（默认两把都配好）。设 null 模拟「key 缺失」。 */
+  openaiKey?: string | null;
+  mimoKey?: string | null;
 };
 
 const FAKE_API_KEY = `mui_${'a'.repeat(32)}`;
@@ -39,13 +44,22 @@ function mockEnv(opts: MockOptions = {}): unknown {
         if (opts.authenticated && /FROM apiKey/i.test(sql)) {
           return { id: 'k_test', userId: FAKE_USER_ID, revokedAt: null } as T;
         }
+        if (opts.walletMicro != null && /tokenBalance/i.test(sql)) {
+          // INSERT…RETURNING balance / SELECT balance,…—统一返带 μtoken 的行，
+          // ensureBalance 取到非零余额，LLM 路由进入平台分支
+          return {
+            balance: opts.walletMicro,
+            lifetimeEarned: opts.walletMicro,
+            lifetimeSpent: 0,
+          } as T;
+        }
         // 其余表走调用方 first override 或默认 null
         return opts.first ? await opts.first<T>() : null;
       },
     };
     return stmt;
   };
-  return {
+  const env: Record<string, unknown> = {
     MUICV_API_DB: { prepare: (sql: string) => makeStmt(sql) },
     // BROWSER / MUICV_KV 这些只需要满足 type shape；当前测试只覆盖入口校验
     // 路径，不会真的走 puppeteer 渲染 / KV 读写。
@@ -57,6 +71,9 @@ function mockEnv(opts: MockOptions = {}): unknown {
     },
     RENDER_BASE_URL: 'https://muicv.com',
   };
+  if (opts.openaiKey !== null) env.OPENAI_API_KEY = opts.openaiKey ?? 'sk-fake-openai';
+  if (opts.mimoKey !== null) env.MIMO_API_KEY = opts.mimoKey ?? 'sk-fake-mimo';
+  return env;
 }
 
 const AUTH = { authorization: `Bearer ${FAKE_API_KEY}` };
@@ -353,4 +370,147 @@ test('CORS preflight from 未授信 origin 不返回 allow-origin', async () => 
     ctx,
   );
   assert.equal(res.headers.get('access-control-allow-origin'), null);
+});
+
+/**
+ * LLM 代理：平台路径（余额 > 0）按 model 前缀分上游 + 校验支持列表。
+ * 用 globalThis.fetch 拦截上游请求，断言 URL / Authorization / 不真的走网络。
+ */
+type FetchCapture = { url: string; init: RequestInit | undefined };
+function withMockedFetch(captureInto: FetchCapture[], response: Response): () => void {
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (url: unknown, init?: RequestInit) => {
+    captureInto.push({ url: String(url), init });
+    return response;
+  }) as typeof fetch;
+  return () => {
+    globalThis.fetch = original;
+  };
+}
+
+function makeChatCompletionResponse(model: string): Response {
+  return new Response(
+    JSON.stringify({
+      id: 'chatcmpl-test',
+      object: 'chat.completion',
+      model,
+      choices: [{ index: 0, message: { role: 'assistant', content: 'hi' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+}
+
+test('POST /llm/v1/chat/completions model=mimo-v2.5-pro → 上游 Xiaomi + MIMO key', async () => {
+  const captures: FetchCapture[] = [];
+  const restore = withMockedFetch(captures, makeChatCompletionResponse('mimo-v2.5-pro'));
+  try {
+    const res = await app.request(
+      '/llm/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...AUTH },
+        body: JSON.stringify({ model: 'mimo-v2.5-pro', messages: [{ role: 'user', content: 'hi' }] }),
+      },
+      mockEnv({ authenticated: true, walletMicro: 100_000_000, mimoKey: 'sk-mimo-test' }),
+      ctx,
+    );
+    assert.equal(res.status, 200);
+    assert.equal(captures.length, 1);
+    assert.equal(captures[0]?.url, 'https://token-plan-sgp.xiaomimimo.com/v1/chat/completions');
+    const headers = new Headers(captures[0]?.init?.headers as HeadersInit);
+    assert.equal(headers.get('authorization'), 'Bearer sk-mimo-test');
+  } finally {
+    restore();
+  }
+});
+
+test('POST /llm/v1/chat/completions model=gpt-5.4 → 上游 OpenAI', async () => {
+  const captures: FetchCapture[] = [];
+  const restore = withMockedFetch(captures, makeChatCompletionResponse('gpt-5.4'));
+  try {
+    const res = await app.request(
+      '/llm/v1/chat/completions',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...AUTH },
+        body: JSON.stringify({ model: 'gpt-5.4', messages: [{ role: 'user', content: 'hi' }] }),
+      },
+      mockEnv({ authenticated: true, walletMicro: 100_000_000, openaiKey: 'sk-openai-test' }),
+      ctx,
+    );
+    assert.equal(res.status, 200);
+    assert.equal(captures[0]?.url, 'https://api.openai.com/v1/chat/completions');
+    const headers = new Headers(captures[0]?.init?.headers as HeadersInit);
+    assert.equal(headers.get('authorization'), 'Bearer sk-openai-test');
+  } finally {
+    restore();
+  }
+});
+
+test('POST /llm/v1/chat/completions model=gpt-4o-mini（表外）→ 400 unsupported_model', async () => {
+  const res = await app.request(
+    '/llm/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: 'hi' }] }),
+    },
+    mockEnv({ authenticated: true, walletMicro: 100_000_000 }),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string; supported: string[] };
+  assert.equal(body.error, 'unsupported_model');
+  assert.ok(body.supported.includes('gpt-5.4'));
+  assert.ok(body.supported.includes('mimo-v2.5'));
+});
+
+test('POST /llm/v1/chat/completions model=mimo-v2.5 但缺 MIMO_API_KEY → 500 mimo-key-missing', async () => {
+  const res = await app.request(
+    '/llm/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ model: 'mimo-v2.5', messages: [{ role: 'user', content: 'hi' }] }),
+    },
+    mockEnv({ authenticated: true, walletMicro: 100_000_000, mimoKey: null }),
+    ctx,
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'mimo-key-missing');
+});
+
+test('POST /llm/v1/chat/completions model=gpt-5.5 但缺 OPENAI_API_KEY → 500 openai-key-missing', async () => {
+  const res = await app.request(
+    '/llm/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ model: 'gpt-5.5', messages: [{ role: 'user', content: 'hi' }] }),
+    },
+    mockEnv({ authenticated: true, walletMicro: 100_000_000, openaiKey: null }),
+    ctx,
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'openai-key-missing');
+});
+
+test('POST /llm/v1/chat/completions 余额=0 + 没绑 muirouter → 402 insufficient_balance', async () => {
+  const res = await app.request(
+    '/llm/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ model: 'gpt-5.4', messages: [{ role: 'user', content: 'hi' }] }),
+    },
+    // walletMicro 不设 → 余额 = 0；muirouterLink 表 SELECT 也返 null → 402
+    mockEnv({ authenticated: true }),
+    ctx,
+  );
+  assert.equal(res.status, 402);
+  const body = (await res.json()) as { error: { code: string } };
+  assert.equal(body.error.code, 'insufficient_balance');
 });

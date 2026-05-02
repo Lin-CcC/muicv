@@ -1,8 +1,12 @@
 import type { LedgerType } from '@muicv/shared';
-import { SIGNUP_BONUS } from '@muicv/shared';
+import { displayToMicro, SIGNUP_BONUS } from '@muicv/shared';
 
 /**
  * Token 钱包：原子扣账 / 入账 / 余额查询。
+ *
+ * **单位约定**：本模块所有 `amount` / `balance` / `lifetimeEarned` / `lifetimeSpent` / `delta`
+ * 都是 **μtoken**（1 显示 token = 10_000 μtoken）。调用方传入和读出都是 μ；要展示给用户
+ * 时上层用 `microToDisplay` 转回去。
  *
  * 设计要点：
  *   - 扣账走 `UPDATE … WHERE balance >= ? RETURNING balance` 单语句原子，
@@ -15,6 +19,8 @@ import { SIGNUP_BONUS } from '@muicv/shared';
  *
  * 这份给 packages/api 用，packages/website/lib/wallet.ts 是镜像版本。
  */
+
+const SIGNUP_BONUS_MICRO = displayToMicro(SIGNUP_BONUS);
 
 export type WalletEnv = {
   MUICV_API_DB: D1Database;
@@ -48,7 +54,7 @@ export async function readBalance(
 export async function ensureBalance(
   env: WalletEnv,
   userId: string,
-  bonus = SIGNUP_BONUS,
+  bonus = SIGNUP_BONUS_MICRO,
 ): Promise<{ balance: number; justInitialized: boolean }> {
   const now = Date.now();
   const inserted = await env.MUICV_API_DB.prepare(
