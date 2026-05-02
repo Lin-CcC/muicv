@@ -1,8 +1,15 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import { exchangeCodeForToken, MuirouterOauthError, type TokenResponse } from '@muicv/shared';
+import {
+  exchangeCodeForToken,
+  hsmPut,
+  muirouterHsmPath,
+  MuirouterOauthError,
+  type StoredMuirouterTokens,
+  type TokenResponse,
+} from '@muicv/shared';
 
-import { encryptSecret } from '@/lib/crypto';
 import { getDb, schema } from '@/lib/db';
+import { getHsmConfig } from '@/lib/hsm-config';
 import { fetchMuirouterBalance } from '@/lib/muirouter';
 import { getMuirouterOauthConfig } from '@/lib/muirouter-config';
 import { getCurrentSession } from '@/lib/session';
@@ -80,10 +87,14 @@ export async function GET(request: Request): Promise<Response> {
     message: err instanceof Error ? err.message : 'balance fetch failed',
   }));
 
-  const [accessEnc, refreshEnc] = await Promise.all([
-    encryptSecret(token.accessToken),
-    encryptSecret(token.refreshToken),
-  ]);
+  // 把 access + refresh 整对外包给 HSM。失败就直接告诉用户重试——不要把明文落 D1。
+  const hsm = await getHsmConfig();
+  const tokensPayload: StoredMuirouterTokens = { accessToken: token.accessToken, refreshToken: token.refreshToken };
+  try {
+    await hsmPut(hsm, muirouterHsmPath(stored.userId), JSON.stringify(tokensPayload));
+  } catch {
+    return errorRedirect(stored, 'hsm-put-failed');
+  }
 
   const now = new Date();
   const balanceFields =
@@ -105,11 +116,7 @@ export async function GET(request: Request): Promise<Response> {
           lastError: balanceResult.message,
         };
 
-  const tokenFields = {
-    accessTokenCipher: accessEnc.cipher,
-    accessTokenIv: accessEnc.iv,
-    refreshTokenCipher: refreshEnc.cipher,
-    refreshTokenIv: refreshEnc.iv,
+  const metadataFields = {
     tokenExpiresAt: new Date(token.tokenExpiresAt),
     scope: token.scope,
     muirouterUserId: token.user.id,
@@ -122,13 +129,13 @@ export async function GET(request: Request): Promise<Response> {
     .insert(schema.muirouterLink)
     .values({
       userId: stored.userId,
-      ...tokenFields,
+      ...metadataFields,
       ...balanceFields,
     })
     .onConflictDoUpdate({
       target: schema.muirouterLink.userId,
       set: {
-        ...tokenFields,
+        ...metadataFields,
         ...balanceFields,
       },
     });

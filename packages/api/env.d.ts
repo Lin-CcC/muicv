@@ -30,6 +30,9 @@ declare namespace Cloudflare {
     MUIROUTER_OAUTH_TOKEN_URL?: string;
     MUIROUTER_OAUTH_REVOKE_URL?: string;
     MUIROUTER_OAUTH_CLIENT_ID?: string;
+    /** HSM 服务凭据，与 packages/website 共用同一个值。`wrangler secret put HSM_SECRET`。 */
+    HSM_SECRET: string;
+    HSM_BASE_URL?: string;
   }
 }
 

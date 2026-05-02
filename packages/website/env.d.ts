@@ -26,6 +26,10 @@ declare global {
     MUIROUTER_OAUTH_CLIENT_ID?: string;
     /** muicv 自身的 base URL，用来拼 OAuth redirect_uri。缺省取 BETTER_AUTH_URL。 */
     MUICV_BASE_URL?: string;
+    /** hsm.meathill.com 的 X-HSM-Secret，wrangler secret put HSM_SECRET 注入。 */
+    HSM_SECRET: string;
+    /** HSM 服务 base URL，缺省 https://hsm.meathill.com，本地联调可指向 mock。 */
+    HSM_BASE_URL?: string;
   }
 }
 

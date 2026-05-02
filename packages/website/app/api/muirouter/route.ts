@@ -1,8 +1,8 @@
 import { eq } from 'drizzle-orm';
-import { revokeToken } from '@muicv/shared';
+import { hsmDelete, hsmGet, muirouterHsmPath, revokeToken, type StoredMuirouterTokens } from '@muicv/shared';
 
-import { decryptSecret } from '@/lib/crypto';
 import { getDb, schema } from '@/lib/db';
+import { getHsmConfig } from '@/lib/hsm-config';
 import { getMuirouterOauthConfig } from '@/lib/muirouter-config';
 import { getCurrentSession } from '@/lib/session';
 
@@ -55,8 +55,8 @@ export async function GET(): Promise<Response> {
 
 /**
  * DELETE /api/muirouter —— 解绑。
- * 解密 access_token、调 muirouter /oauth/revoke（best-effort），删表。
- * revoke 失败也继续删本地，因为本地一旦删表 muicv 就再用不了 token。
+ * 从 HSM 读 access_token → 调 muirouter /oauth/revoke（best-effort）→ HSM 删 path →
+ * D1 删 metadata 行。任一步失败都不阻塞后续——目标是「本地不再持有可用的 token 引用」。
  */
 export async function DELETE(): Promise<Response> {
   const session = await getCurrentSession();
@@ -68,13 +68,19 @@ export async function DELETE(): Promise<Response> {
     await db.select().from(schema.muirouterLink).where(eq(schema.muirouterLink.userId, session.user.id)).limit(1)
   )[0];
   if (row) {
+    const hsm = await getHsmConfig();
+    const path = muirouterHsmPath(session.user.id);
     try {
-      const accessToken = await decryptSecret(row.accessTokenCipher, row.accessTokenIv);
-      const config = await getMuirouterOauthConfig();
-      await revokeToken({ endpoints: config.endpoints, client: config.client, token: accessToken });
+      const raw = await hsmGet(hsm, path);
+      if (raw) {
+        const stored = JSON.parse(raw) as StoredMuirouterTokens;
+        const config = await getMuirouterOauthConfig();
+        await revokeToken({ endpoints: config.endpoints, client: config.client, token: stored.accessToken });
+      }
     } catch {
-      // 解密失败 / revoke 失败都不阻塞本地删除
+      // HSM 读失败 / revoke 失败都不阻塞——下面照样把本地索引清掉
     }
+    await hsmDelete(hsm, path).catch(() => {});
     await db.delete(schema.muirouterLink).where(eq(schema.muirouterLink.userId, session.user.id));
   }
   return Response.json({ ok: true });

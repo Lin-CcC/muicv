@@ -84,8 +84,11 @@ export const apiKey = sqliteTable('apiKey', {
 
 /**
  * muirouter 关联（每用户最多一条）。
- * OAuth 流程：dashboard / Electron app 跳到 muirouter 授权 → 拿 code → 服务端换 token →
- * AES-GCM 加密存 access/refresh token（lib/crypto.ts）。LLM 调用时 worker 端解密后转发。
+ *
+ * OAuth 流程：dashboard / Electron app 跳 muirouter 授权 → 拿 code → 服务端换 token →
+ * **access/refresh token 走 hsm.meathill.com 信封加密存储**，path = muicv/muirouter/<userId>。
+ * D1 这张表只留非敏感元数据 + 余额快照——muicv 仓库不再持有任何密钥派生代码。
+ *
  * defaultModel 是 fallback 走 muirouter 时注入到请求体的 model 字段，dashboard / app 都可改。
  * balance 等字段是上次成功调 muirouter 的快照，dashboard 默认看缓存，用户点刷新才重打。
  */
@@ -93,10 +96,6 @@ export const muirouterLink = sqliteTable('muirouterLink', {
   userId: text('userId')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
-  accessTokenCipher: text('accessTokenCipher').notNull(),
-  accessTokenIv: text('accessTokenIv').notNull(),
-  refreshTokenCipher: text('refreshTokenCipher').notNull(),
-  refreshTokenIv: text('refreshTokenIv').notNull(),
   tokenExpiresAt: integer('tokenExpiresAt', { mode: 'timestamp_ms' }).notNull(),
   scope: text('scope'),
   muirouterUserId: text('muirouterUserId').notNull(),
