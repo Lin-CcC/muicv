@@ -40,10 +40,11 @@ mac:
         CFBundleURLSchemes:
           - muicv
 
-# Windows / Linux 启用时 protocols 也加上：
-# protocols:
-#   - name: Mui简历 OAuth
-#     schemes: [muicv]
+# 顶层 protocols 给 Windows / Linux 用
+# （macOS 走 mac.extendInfo.CFBundleURLTypes，与之不冲突）
+protocols:
+  - name: Mui简历 OAuth
+    schemes: [muicv]
 
 dmg:
   writeUpdateInfo: false
@@ -55,11 +56,27 @@ dmg:
       type: link
       path: /Applications
 
-# ============ Windows / Linux （后续 enable） ============
-# win:
-#   target: nsis
-# linux:
-#   target: AppImage
+# ============ Windows ============
+# 不签名（unsigned）。用户首次运行会撞 SmartScreen 警告，需要点 "更多信息 → 仍要运行"。
+# 申请 Authenticode 证书后再开启 signAndEditExecutable。
+win:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false                          # 让用户能选安装路径，不要静默安装
+  perMachine: false                        # 装到当前用户目录，不需要管理员
+  allowToChangeInstallationDirectory: true
+
+# ============ Linux ============
+linux:
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  category: Office
+  target:
+    - target: AppImage
+      arch: [x64]
 
 # 先不挂 publisher，build 出来本地自测，Phase 5 接 GitHub Actions
 publish: null

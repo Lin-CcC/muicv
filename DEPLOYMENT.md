@@ -493,11 +493,21 @@ pnpm --filter @muicv/app build && pnpm --filter @muicv/app preview
 
 ### 自动 release（推荐）
 
-`.github/workflows/release.yml` 监听 `v*` tag，触发 macOS runner 跑：
+`.github/workflows/release.yml` 监听 `v*` tag，**matrix 三平台并行**跑：
+
+| Runner | 产物 |
+|---|---|
+| `macos-latest` | `Mui简历-x.x.x-{arm64,x64}.{dmg,zip}` + `latest-mac.yml` |
+| `windows-latest` | `Mui简历-x.x.x-x64.exe`（NSIS 安装包）+ `latest.yml` |
+| `ubuntu-latest` | `Mui简历-x.x.x-x64.AppImage` + `latest-linux.yml` |
+
+每台 runner 走相同步骤：
 
 1. `pnpm install --frozen-lockfile`
-2. `pnpm --filter @muicv/app package`（electron-vite build → electron-builder）
-3. 把 `packages/app/release/*.dmg` + `*.zip` + `latest-mac.yml` 上传到对应 GitHub Release
+2. `pnpm --filter @muicv/app package:${target}`（target = `mac` / `win` / `linux`）
+3. 把对应平台产物上传到同一个 GitHub Release（`softprops/action-gh-release@v2` 默认 append assets）
+
+`fail-fast: false`：某一平台失败不连累另两个 in-progress 的 build。
 
 发布步骤：
 
@@ -506,36 +516,73 @@ pnpm --filter @muicv/app build && pnpm --filter @muicv/app preview
 # 然后 commit，打 tag
 git tag v0.1.0
 git push origin v0.1.0
-# GitHub Actions 跑 ~10 分钟，完成后 release 页面有 .dmg 下载
+# GitHub Actions 跑 ~12 分钟（windows runner 通常最慢），完成后 release 页面有 4 个安装包
 ```
+
+> Windows / Linux 暂只发 x64。arm64 Windows（Surface Pro X）和 arm64 Linux 用户极少，
+> 看反馈再补。
 
 ### 本地手动 build
 
 ```bash
-pnpm --filter @muicv/app package          # 当前主机架构
+pnpm --filter @muicv/app package          # 当前主机架构（mac）
 pnpm --filter @muicv/app package:mac:arm  # 强制 Apple Silicon
 pnpm --filter @muicv/app package:mac:x64  # 强制 Intel
+pnpm --filter @muicv/app package:win      # NSIS .exe（需要 win runner 或 wine）
+pnpm --filter @muicv/app package:linux    # AppImage（需要 linux runner）
 ```
+
+跨平台 build 限制：在 mac 上跑 `package:win` 需要装 wine（`brew install --cask wine-stable`）；
+跑 `package:linux` 通常 mac 上能直接出 AppImage。**实际发版走 GitHub Actions**，本地这两个
+脚本只是开发期 smoke test 用。
 
 产物在 `packages/app/release/`。
 
+### 图标生成
+
+`pnpm --filter @muicv/app build:icons` 跨平台：
+
+- 任何平台都生成 `build/icon.png`（1024 通用）和 `build/icon.ico`（Windows，借 `png-to-ico` 多分辨率拼）
+- 只在 macOS 上跑 `iconutil` 输出 `build/icon.icns`（macOS-only 命令）
+- `build/icon.icns` 已 commit 到仓库，所以非 darwin runner 直接用 cached 文件
+
+改完 `build/icon.svg` 后在 mac 上跑一次 `build:icons`，连同新的 `.icns` / `.ico` / `.png` 一起 commit。
+
 ### 签名 / 公证（M5+）
 
-当前版本 **不签名 (identity: null)**，用户首次打开要右键 → 打开。
-后续申请 Apple Developer ID 后：
+当前版本三平台**全部 unsigned**：
 
-1. 在 Apple Developer 后台拿 `Developer ID Application` cert
-2. GitHub Actions secrets 加 `CSC_LINK`（base64 .p12）+ `CSC_KEY_PASSWORD`
-3. `electron-builder.yml` 改 `mac.identity: '<your team>'`，`hardenedRuntime: true`
-4. 加 `mac.notarize: true` + `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` secrets
+- macOS：用户首次打开要右键 → 打开 → 允许
+- Windows：首次启动撞 SmartScreen，要点 "更多信息 → 仍要运行"
+- Linux：AppImage 加 `chmod +x` 后直接跑，本来就不签名
+
+后续申请：
+
+1. **Apple Developer ID**：
+   - 拿 `Developer ID Application` cert
+   - GitHub Actions secrets 加 `CSC_LINK`（base64 .p12）+ `CSC_KEY_PASSWORD`
+   - `electron-builder.yml` 改 `mac.identity: '<your team>'`，`hardenedRuntime: true`
+   - 加 `mac.notarize: true` + `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID`
+2. **Windows Authenticode 证书**：
+   - DigiCert / SSL.com 等买 EV 证书
+   - GH secrets 加 `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD`
+   - `electron-builder.yml` 的 `win` 段加 `signAndEditExecutable: true`
 
 ### 用户首次安装注意
 
-`/download` 页面已经写明：右键 .app → 打开 → 允许；或一行命令解 quarantine：
+- **macOS**：`/download` 页面已经写明：右键 .app → 打开 → 允许；或一行命令解 quarantine：
 
-```bash
-xattr -d com.apple.quarantine /Applications/Mui简历.app
-```
+  ```bash
+  xattr -d com.apple.quarantine /Applications/Mui简历.app
+  ```
+
+- **Windows**：双击 .exe → SmartScreen 蓝屏 → 点 "更多信息" → 点 "仍要运行" → 选安装路径
+- **Linux**：
+
+  ```bash
+  chmod +x Mui简历-*.AppImage
+  ./Mui简历-*.AppImage
+  ```
 
 ---
 

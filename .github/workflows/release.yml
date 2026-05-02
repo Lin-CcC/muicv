@@ -15,13 +15,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-mac:
-    name: Build & package for macOS
-    runs-on: macos-latest
-    timeout-minutes: 25
+  build:
+    name: Build & package (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
 
     permissions:
       contents: write # 创建 / 上传 release
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: mac
+            artifacts: |
+              packages/app/release/*.dmg
+              packages/app/release/*.zip
+              packages/app/release/latest-mac.yml
+          - os: windows-latest
+            target: win
+            artifacts: |
+              packages/app/release/*.exe
+              packages/app/release/*.exe.blockmap
+              packages/app/release/latest.yml
+          - os: ubuntu-latest
+            target: linux
+            artifacts: |
+              packages/app/release/*.AppImage
+              packages/app/release/latest-linux.yml
 
     steps:
       - name: Checkout
@@ -42,25 +64,24 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      # electron-builder 不签名 build。后续申请 Apple Developer ID 后再加
-      # CSC_LINK / CSC_KEY_PASSWORD secrets 启用签名 + notarize。
+      # electron-builder 不签名 build。后续申请 Apple Developer ID / Authenticode
+      # 后再加 CSC_LINK / CSC_KEY_PASSWORD secrets 启用签名 + notarize。
       - name: Build & package
         env:
           # disable auto-publish；我们自己 upload
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm --filter @muicv/app package
+        run: pnpm --filter @muicv/app package:${{ matrix.target }}
 
       - name: List output
+        shell: bash
         run: ls -lah packages/app/release || true
 
       - name: Upload artifacts (dispatch only)
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: muicv-mac-${{ github.run_id }}
-          path: |
-            packages/app/release/*.dmg
-            packages/app/release/*.zip
+          name: muicv-${{ matrix.target }}-${{ github.run_id }}
+          path: ${{ matrix.artifacts }}
           if-no-files-found: error
           retention-days: 14
 
@@ -70,8 +91,5 @@ jobs:
         with:
           draft: false
           generate_release_notes: true
-          files: |
-            packages/app/release/*.dmg
-            packages/app/release/*.zip
-            packages/app/release/latest-mac.yml
+          files: ${{ matrix.artifacts }}
           fail_on_unmatched_files: false
