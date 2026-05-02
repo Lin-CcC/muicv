@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: '下载桌面 app',
-  description: 'Mui简历桌面端：让不用 AI agent 的求职者也能跑完整简历工作流。macOS Apple Silicon / Intel 双版本。',
+  description: 'Mui简历桌面端：让不用 AI agent 的求职者也能跑完整简历工作流。macOS / Windows / Linux 全平台支持。',
 };
 
 // 5 分钟 ISR 缓存 GitHub releases API（user-agent 防 60/h 限流）
@@ -137,13 +137,17 @@ export default async function DownloadPage() {
 }
 
 function ReleasePanel({ release }: { release: GhRelease }) {
-  const macAssets = release.assets
-    .map(classifyAsset)
-    .filter((a) => a.platform === 'mac' && (a.format === 'dmg' || a.format === 'zip'))
-    .sort((a, b) => a.format.localeCompare(b.format));
+  const all = release.assets.map(classifyAsset);
 
-  const arm64 = macAssets.filter((a) => a.arch === 'arm64' || a.arch === 'universal');
-  const x64 = macAssets.filter((a) => a.arch === 'x64' || a.arch === 'universal');
+  // 安装包过滤：mac 收 dmg/zip；win 收 exe；linux 收 AppImage/deb
+  const macArm64 = all
+    .filter((a) => a.platform === 'mac' && (a.format === 'dmg' || a.format === 'zip') && a.arch === 'arm64')
+    .sort((a, b) => a.format.localeCompare(b.format));
+  const macX64 = all
+    .filter((a) => a.platform === 'mac' && (a.format === 'dmg' || a.format === 'zip') && a.arch === 'x64')
+    .sort((a, b) => a.format.localeCompare(b.format));
+  const win = all.filter((a) => a.platform === 'win' && a.format === 'exe');
+  const linux = all.filter((a) => a.platform === 'linux' && (a.format === 'AppImage' || a.format === 'deb'));
 
   return (
     <section className="mt-12 space-y-6">
@@ -153,12 +157,14 @@ function ReleasePanel({ release }: { release: GhRelease }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Platform title="macOS · Apple Silicon" subtitle="M1 / M2 / M3 / M4" assets={arm64} />
-        <Platform title="macOS · Intel" subtitle="x64 旧机型" assets={x64} />
+        <Platform title="macOS · Apple Silicon" subtitle="M1 / M2 / M3 / M4" assets={macArm64} />
+        <Platform title="macOS · Intel" subtitle="x64 旧机型" assets={macX64} />
+        <Platform title="Windows" subtitle="x64 · NSIS 安装包" assets={win} />
+        <Platform title="Linux" subtitle="x86_64 · AppImage" assets={linux} />
       </div>
 
       <div className="rounded-xl border border-rule bg-paper px-4 py-3 text-[12.5px] text-mute">
-        Linux / Windows 版本还在排期，先用 macOS 测着；其他平台发布会通过 Waitlist 通知。
+        全平台都未做代码签名，首次运行需要按下方说明手动放行；后续版本接入开发者证书后会去掉这一步。
       </div>
     </section>
   );
@@ -219,24 +225,49 @@ function NoRelease() {
 
 function FirstRunHelp() {
   return (
-    <section className="mt-12 space-y-4 rounded-2xl border-2 border-ink bg-fluff p-6">
-      <h2 className="text-[16px] font-extrabold text-ink">⚠️ 首次打开需要解除限制</h2>
-      <p className="text-[13.5px] leading-[1.7] text-ink-soft">
-        当前版本未做苹果开发者签名（Apple Developer ID）。macOS 第一次打开会提示 "无法验证开发者"。需要：
-      </p>
-      <ol className="list-decimal space-y-1 pl-5 text-[13.5px] text-ink-soft">
-        <li>下载 .dmg 拖到 /Applications</li>
-        <li>
-          <strong>右键</strong>（或 control-click）该 app → <strong>打开</strong>
-        </li>
-        <li>弹窗提示后再次点 "打开"，之后双击就能直接用</li>
-      </ol>
-      <p className="text-[12px] text-mute">
-        命令行版（无需 GUI 操作）：
-        <code className="ml-1 rounded bg-cream px-1.5 py-0.5 font-mono text-[11.5px] text-ink">
-          xattr -d com.apple.quarantine /Applications/Mui简历.app
-        </code>
-      </p>
+    <section className="mt-12 space-y-6 rounded-2xl border-2 border-ink bg-fluff p-6">
+      <header>
+        <h2 className="text-[16px] font-extrabold text-ink">⚠️ 首次打开需要解除限制</h2>
+        <p className="mt-2 text-[13.5px] leading-[1.7] text-ink-soft">
+          三平台都没做代码签名，操作系统会拦一下。按下面的步骤放行一次，之后双击 / 命令行直接用。
+        </p>
+      </header>
+
+      <div className="space-y-1.5">
+        <h3 className="text-[14px] font-bold text-ink">macOS</h3>
+        <ol className="list-decimal space-y-1 pl-5 text-[13.5px] text-ink-soft">
+          <li>下载 .dmg 拖到 /Applications</li>
+          <li>
+            <strong>右键</strong>（或 control-click）该 app → <strong>打开</strong>
+          </li>
+          <li>弹窗提示后再次点 "打开"，之后双击就能直接用</li>
+        </ol>
+        <p className="text-[12px] text-mute">
+          命令行版（无需 GUI 操作）：
+          <code className="ml-1 rounded bg-cream px-1.5 py-0.5 font-mono text-[11.5px] text-ink">
+            xattr -d com.apple.quarantine /Applications/Mui简历.app
+          </code>
+        </p>
+      </div>
+
+      <div className="space-y-1.5">
+        <h3 className="text-[14px] font-bold text-ink">Windows</h3>
+        <ol className="list-decimal space-y-1 pl-5 text-[13.5px] text-ink-soft">
+          <li>双击下载的 .exe</li>
+          <li>
+            撞上 SmartScreen 蓝屏 → 点 <strong>更多信息</strong> → 点 <strong>仍要运行</strong>
+          </li>
+          <li>选安装路径，默认装到当前用户目录，不需要管理员密码</li>
+        </ol>
+      </div>
+
+      <div className="space-y-1.5">
+        <h3 className="text-[14px] font-bold text-ink">Linux</h3>
+        <p className="text-[13.5px] text-ink-soft">下载 .AppImage 后给执行权限，直接跑：</p>
+        <pre className="overflow-x-auto rounded-lg bg-cream px-3 py-2 font-mono text-[11.5px] text-ink">
+          <code>{`chmod +x MuiCV-*.AppImage\n./MuiCV-*.AppImage`}</code>
+        </pre>
+      </div>
     </section>
   );
 }
