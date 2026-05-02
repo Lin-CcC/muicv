@@ -15,10 +15,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 先把 release 创出来，notes 一次性由 GH 自动生成
+  # （否则 matrix 三个 build job 各调一次 action-gh-release，会把 changelog
+  # 重复 append 三次）
+  create-release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create release with auto notes
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          generate_release_notes: true
+
   build:
     name: Build & package (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    # !cancelled() 让 workflow_dispatch 时（create-release 被 if 跳过）
+    # build 仍能跑；tag push 时如果 create-release 失败这里也会 skip
+    needs: [create-release]
+    if: ${{ !cancelled() }}
 
     permissions:
       contents: write # 创建 / 上传 release
@@ -85,11 +105,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Publish to GitHub Release
+      # notes 已由 create-release job 一次性生成；这里只负责 append assets
+      - name: Upload assets to GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          draft: false
-          generate_release_notes: true
           files: ${{ matrix.artifacts }}
           fail_on_unmatched_files: false

@@ -27,7 +27,7 @@ mac:
   gatekeeperAssess: false
   # 强制 arch 后缀，让 x64 也带显式 arch（默认 x64 不带后缀，会让 landing page
   # 解析时分不清架构，v0.1.0 已踩过这个坑）。
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  artifactName: "MuiCV-${version}-${arch}.${ext}"
   target:
     - target: dmg
       arch: [arm64, x64]
@@ -60,7 +60,7 @@ dmg:
 # 不签名（unsigned）。用户首次运行会撞 SmartScreen 警告，需要点 "更多信息 → 仍要运行"。
 # 申请 Authenticode 证书后再开启 signAndEditExecutable。
 win:
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  artifactName: "MuiCV-${version}-${arch}.${ext}"
   target:
     - target: nsis
       arch: [x64]
@@ -72,11 +72,18 @@ nsis:
 
 # ============ Linux ============
 linux:
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  artifactName: "MuiCV-${version}-${arch}.${ext}"
   category: Office
   target:
     - target: AppImage
       arch: [x64]
 
-# 先不挂 publisher，build 出来本地自测，Phase 5 接 GitHub Actions
-publish: null
+# publish 配 github provider 是为了让 electron-builder 写出
+# latest-mac.yml / latest.yml / latest-linux.yml 这三份 update manifest
+# （否则 electron-updater 在客户端拿不到升级清单）。
+# 实际上传到 release 还是走 workflow 里的 softprops/action-gh-release，
+# 所以 npm script 里要保留 `--publish never` 让 electron-builder 不要自己上传。
+publish:
+  provider: github
+  owner: meathill
+  repo: muicv
