@@ -29,8 +29,18 @@ export function PreviewDrawer() {
   useEffect(() => {
     if (previewPath) {
       setMountedPath(previewPath);
-      const id = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(id);
+      // 双 rAF：第一帧 React 把 closed 状态 commit 并交给浏览器 paint，
+      // 第二帧再 set visible=true 切 open，CSS transition 才有"前一帧"
+      // 的样式快照可以跟当前帧 diff —— 单 rAF 时 React 18+ 偶尔会把两次
+      // setState 合并到一次 commit，结果浏览器只看到 open 状态，没动画。
+      let raf2 = 0;
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => setVisible(true));
+      });
+      return () => {
+        cancelAnimationFrame(raf1);
+        cancelAnimationFrame(raf2);
+      };
     }
     setVisible(false);
     const t = setTimeout(() => setMountedPath(null), TRANSITION_MS);
