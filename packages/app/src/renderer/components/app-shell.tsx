@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
 import { ChatView } from './chat-view';
+import { PreviewDrawer } from './preview-drawer';
 import { SettingsView } from './settings-view';
 import { SidebarLeft } from './sidebar-left';
 import { SidebarRight } from './sidebar-right';
 import { TitleBar } from './title-bar';
 
 /**
- * 三栏布局：left navigator | center main | right artifact preview。
+ * 三栏布局：left navigator | center main | right file tree。
  *
- * 左栏可折叠（默认展开）；右栏只在 rightPanelPath 不为空时展开。
+ * 左栏可折叠（默认展开）；右栏只在 rightPanelTreeRoot 不空时展开。
+ * 文件预览走全局 PreviewDrawer（drawer overlay），跟右栏解耦。
  * 中栏是 view 路由（chat / settings 切换），不再切左右栏。
  */
 export function AppShell() {
@@ -18,10 +20,9 @@ export function AppShell() {
   const leftCollapsed = useAppStore((s) => s.leftCollapsed);
   const rightCollapsed = useAppStore((s) => s.rightCollapsed);
   const treeRoot = useAppStore((s) => s.rightPanelTreeRoot);
-  const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
   const rightWidth = useAppStore((s) => s.rightPanelWidth);
 
-  const showRight = !rightCollapsed && (treeRoot !== null || previewPath !== null);
+  const showRight = !rightCollapsed && treeRoot !== null;
 
   return (
     <div className="flex h-screen flex-col bg-cream">
@@ -42,6 +43,7 @@ export function AppShell() {
           </>
         )}
       </div>
+      <PreviewDrawer />
     </div>
   );
 }

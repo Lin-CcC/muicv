@@ -344,7 +344,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     if (!root) return;
     set({ rightPanelTreeRoot: root, rightCollapsed: false });
   },
-  openRightPanel: (path) => set({ rightPanelPreviewPath: path, rightCollapsed: false }),
+  openRightPanel: (path) => set({ rightPanelPreviewPath: path }),
   closePreview: () => set({ rightPanelPreviewPath: null }),
   closeRightPanel: () => set({ rightPanelTreeRoot: null, rightPanelPreviewPath: null, rightCollapsed: true }),
   setRightPanelWidth: (w) => {

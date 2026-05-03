@@ -1,3 +1,5 @@
+import { SidebarSimpleIcon } from '@phosphor-icons/react';
+
 import { useAppStore } from '../lib/store';
 
 /**
@@ -12,12 +14,11 @@ export function TitleBar() {
   const leftCollapsed = useAppStore((s) => s.leftCollapsed);
   const rightCollapsed = useAppStore((s) => s.rightCollapsed);
   const treeRoot = useAppStore((s) => s.rightPanelTreeRoot);
-  const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
   const toggleLeft = useAppStore((s) => s.toggleLeft);
   const toggleRight = useAppStore((s) => s.toggleRight);
 
   const busy = activeChannel !== null;
-  const canToggleRight = treeRoot !== null || previewPath !== null;
+  const canToggleRight = treeRoot !== null;
 
   return (
     <header className="titlebar-drag flex h-11 shrink-0 items-center justify-between border-b border-rule bg-cream/85 pl-[80px] pr-3 backdrop-blur-sm">
@@ -27,9 +28,11 @@ export function TitleBar() {
             type="button"
             onClick={toggleLeft}
             title={leftCollapsed ? '展开左栏' : '收起左栏'}
-            className="rounded-md px-2 py-0.5 text-[14px] text-mute hover:bg-fluff hover:text-ink"
+            aria-label={leftCollapsed ? '展开左栏' : '收起左栏'}
+            aria-pressed={!leftCollapsed}
+            className="flex items-center justify-center rounded-md px-2 py-0.5 text-mute hover:bg-fluff hover:text-ink"
           >
-            {leftCollapsed ? '☰' : '◧'}
+            <SidebarSimpleIcon size={16} weight={leftCollapsed ? 'regular' : 'fill'} />
           </button>
         )}
         <span className="text-[14px] font-bold tracking-tight text-ink">Mui简历</span>
@@ -47,10 +50,12 @@ export function TitleBar() {
           <button
             type="button"
             onClick={toggleRight}
-            title={rightCollapsed ? '展开右栏预览' : '收起右栏预览'}
-            className="rounded-md px-2 py-0.5 text-[14px] text-mute hover:bg-fluff hover:text-ink"
+            title={rightCollapsed ? '展开文件浏览' : '收起文件浏览'}
+            aria-label={rightCollapsed ? '展开文件浏览' : '收起文件浏览'}
+            aria-pressed={!rightCollapsed}
+            className="flex items-center justify-center rounded-md px-2 py-0.5 text-mute hover:bg-fluff hover:text-ink"
           >
-            {rightCollapsed ? '◨' : '☰'}
+            <SidebarSimpleIcon size={16} weight={rightCollapsed ? 'regular' : 'fill'} className="-scale-x-100" />
           </button>
         )}
       </div>
