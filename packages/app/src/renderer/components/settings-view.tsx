@@ -1,5 +1,5 @@
 import { ArrowClockwiseIcon, ArrowLeftIcon, CheckIcon, CpuIcon, WalletIcon } from '@phosphor-icons/react';
-import { LLM_DISPLAY_META, SUPPORTED_LLM_MODELS } from '@muicv/shared';
+import { DEFAULT_LLM_MODEL, LLM_DISPLAY_META, SUPPORTED_LLM_MODELS } from '@muicv/shared';
 import { useEffect, useState } from 'react';
 
 import type { MuirouterInfo } from '../../shared/types';
@@ -55,17 +55,19 @@ export function SettingsView() {
   const isBYOK = !!(config.customLlmBase && config.customLlmKey);
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-2xl flex-col gap-6 overflow-y-auto px-6 py-10">
+    <div className="mx-auto flex h-full w-full max-w-2xl flex-col gap-4 overflow-y-auto px-6 py-10">
+      <button
+        type="button"
+        onClick={() => setView('chat')}
+        title="返回对话"
+        className="-mb-2 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-ink-soft hover:bg-fluff hover:text-ink"
+      >
+        <ArrowLeftIcon size={13} weight="bold" />
+        <span>返回</span>
+      </button>
+
       <header className="flex items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setView('chat')}
-            title="返回对话"
-            className="rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink-soft hover:bg-fluff hover:text-ink"
-          >
-            <ArrowLeftIcon size={14} weight="bold" />
-          </button>
           <Avatar session={session} />
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">已登录</p>
@@ -245,6 +247,11 @@ function ModelCard({ isBYOK, currentModel }: { isBYOK: boolean; currentModel: st
               <span className="flex-1">
                 <span className="flex flex-wrap items-baseline gap-1.5">
                   <span className="text-[13.5px] font-bold text-ink">{meta.label}</span>
+                  {meta.isDefault && (
+                    <span className="rounded-md bg-yellow px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wider text-ink">
+                      默认
+                    </span>
+                  )}
                   <span className="font-mono text-[10px] uppercase tracking-wider text-mute">
                     {meta.vendor === 'openai' ? 'OpenAI' : 'Xiaomi'}
                   </span>
@@ -381,7 +388,7 @@ function CustomLlmCard() {
 
   async function onSave() {
     await patch({
-      defaultModel: defaultModel.trim() || 'gpt-5.4',
+      defaultModel: defaultModel.trim() || DEFAULT_LLM_MODEL,
       customLlmBase: customLlmBase.trim() || null,
       customLlmKey: customLlmKey.trim() || null,
       muicvApiBase: muicvApiBase.trim() || 'https://api.muicv.com',
@@ -408,7 +415,7 @@ function CustomLlmCard() {
                 <span>当前直连 {shortHost(cfg.customLlmBase ?? '')}（不走 muicv 平台）</span>
               </>
             ) : (
-              <span>默认走 muicv 平台调用 AI。普通用户不用动。</span>
+              <span>您也可以使用其它平台的模型，减少 MuiCV token 消耗。</span>
             )}
           </p>
         </div>

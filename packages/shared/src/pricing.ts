@@ -74,6 +74,9 @@ export function isSupportedLlmModel(model: string): boolean {
 /** 平台路径支持的 model id 列表，给 400 响应/前端选择 UI 用。 */
 export const SUPPORTED_LLM_MODELS = Object.keys(LLM_PRICING);
 
+/** 全平台默认模型 id。新装 / 老 store 里没设过时回退到这个；UI 也按 isDefault 标识。 */
+export const DEFAULT_LLM_MODEL = 'gpt-5.4';
+
 /**
  * UI 展示元数据：人类可读名 / 上游 vendor / 输入输出价（保留原币种以便用户判断）/ 简短亮点。
  * 桌面 app 设置页的 ModelCard 用，避免在组件里硬编码字符串。
@@ -86,6 +89,8 @@ export const LLM_DISPLAY_META: Record<
     inputPrice: string;
     outputPrice: string;
     hint: string;
+    /** true 表示这是全平台默认，UI 加 "默认" chip，并在 store 里没值时落到它。 */
+    isDefault?: boolean;
   }
 > = {
   'gpt-5.5': {
@@ -100,7 +105,8 @@ export const LLM_DISPLAY_META: Record<
     vendor: 'openai',
     inputPrice: '$2.5 / 1M',
     outputPrice: '$15 / 1M',
-    hint: '默认推荐',
+    hint: '通用首选',
+    isDefault: true,
   },
   'mimo-v2.5-pro': {
     label: 'MiMo v2.5 Pro',

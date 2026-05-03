@@ -2,6 +2,8 @@
  * main 和 renderer 共用的类型。preload 把同形 API 暴露给 window.muicv。
  */
 
+import { DEFAULT_LLM_MODEL } from '@muicv/shared';
+
 /**
  * 一份"简历"的元数据。每份 profile 对应硬盘上的一个独立资料夹，
  * 里面 .claude/muicv/ 是真实素材库。同一账号支持多份 profile，
@@ -51,7 +53,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   workspaceDir: null,
   muicvApiKey: null,
   muicvApiBase: 'https://api.muicv.com',
-  defaultModel: 'gpt-5.4',
+  defaultModel: DEFAULT_LLM_MODEL,
   customLlmBase: null,
   customLlmKey: null,
 };
