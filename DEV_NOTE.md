@@ -2,7 +2,7 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-05-02
+最后更新：2026-05-03
 
 ---
 
@@ -80,6 +80,11 @@
 - **artifact source 二分**：agent 工具调用 emit 的 artifact 分 `read`（参考资料）/
   `write`（产物）。read 类折叠到操作组里不打扰，write 类显眼卡片**自动开右栏**
   让用户看到结果。判断完全靠 `source` 字段，不靠 path 推断。
+- **设置页结构**：`settings-view.tsx` 是壳（账号头部 + 4 张卡 + footer），具体卡片
+  全部拆到 `components/settings/` 子目录：`plan-card.tsx`（会员档位 + 余额 + 同步）/
+  `model-card.tsx`（4 model 选择 + BYOK 降级）/ `muirouter-card.tsx`（绑定 / 余额 / fallback）/
+  `custom-llm-card.tsx`（折叠的 BYOK 配置 + Field 子件）。`bits.tsx` 放 Avatar /
+  ExternalButton + DASHBOARD_URL / MUIROUTER_URL 常量。改设置页时按卡定位文件，不要回写整个壳。
 
 ## packages/app 内置 PDF 预览（muicv-pdf:// custom protocol）
 
@@ -296,10 +301,25 @@ dashboard 或 app 点关联
 `MUIROUTER_OAUTH_REVOKE_URL` / `MUIROUTER_OAUTH_CLIENT_ID` / `MUICV_BASE_URL` /
 `HSM_BASE_URL`，联调可指向 mock。
 
+## packages/shared 跨端展示常量
+
+> 所有跨包的展示文案 / 格式化 / 价目表都进 `@muicv/shared`，禁止在 app / website 各写一份。
+
+- **格式化**：`formatCents(cents, currency?)` 在 `src/format.ts`；webside SSR 与 Electron
+  renderer 都从这里 import。日期 / 时间故意不放这里——SSR 输出必须确定性（避免
+  hydration mismatch），各端按自己的需求硬格式化（website 用 `YYYY-MM-DD HH:mm`、
+  app 用 `toLocaleString()`）。
+- **会员档位 label**：`getPlanLabel(plan)` 在 `src/pricing.ts`，含 free/pro/max 三档
+  + 空值兜底 + 未知 plan 透传。**禁止在 UI 组件里 hardcode `PLAN_LABEL` map**——
+  以后增减档位只在 pricing.ts 改一处。
+- **LLM 元数据**：`LLM_DISPLAY_META` / `SUPPORTED_LLM_MODELS` / `DEFAULT_LLM_MODEL`
+  也在 `src/pricing.ts`，模型选择 UI / 计费 / API 校验都从这里读。
+
 ## 测试
 
 - **node:test + 默认 ts 直接跑**（`node --test`）；不要引 vitest / jest，除非有强需求。
-- `packages/shared` 是基线参考（纯类型包，目前只有一个导入 smoke test）。
+- `packages/shared` 覆盖核心工具：pricing（含 getPlanLabel）/ format / resume-sync /
+  hsm-client / muirouter-oauth + smoke test，46 个 case。
 - `packages/api` 用 Hono 的 `app.request()` 测路由，不需要 wrangler / miniflare；
   覆盖入口校验、CORS 白名单、api-key middleware 各分支（共 21 个 case）。
 - `packages/app` 测纯逻辑 helper（chat-utils 等），不测 React 组件 / IPC —— 投入

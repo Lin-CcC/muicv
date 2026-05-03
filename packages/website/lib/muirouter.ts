@@ -222,10 +222,3 @@ async function readSseFirstMessage(res: Response): Promise<JsonRpcEnvelope | nul
   }
   return null;
 }
-
-// -------------------- 显示 --------------------
-
-export function formatCents(cents: number, currency = 'CNY'): string {
-  const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : `${currency} `;
-  return `${symbol}${(cents / 100).toFixed(2)}`;
-}

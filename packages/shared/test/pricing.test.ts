@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import {
   computeLlmCharge,
   displayToMicro,
+  getPlanLabel,
   insufficientBalanceError,
   isSupportedLlmModel,
   LLM_PRICING,
@@ -90,6 +91,25 @@ describe('Pricing', () => {
     it('未知 model → null', () => {
       assert.equal(computeLlmCharge('gpt-4o-mini', 100, 100), null);
       assert.equal(computeLlmCharge('', 100, 100), null);
+    });
+  });
+
+  describe('getPlanLabel', () => {
+    it('已知档位返回中文', () => {
+      assert.equal(getPlanLabel('free'), '免费版');
+      assert.equal(getPlanLabel('pro'), 'Pro 会员');
+      assert.equal(getPlanLabel('max'), 'Max 会员');
+    });
+
+    it('null / undefined / 空串 → 兜底「免费版」', () => {
+      assert.equal(getPlanLabel(null), '免费版');
+      assert.equal(getPlanLabel(undefined), '免费版');
+      assert.equal(getPlanLabel(''), '免费版');
+    });
+
+    it('未知 plan → 原样返回（避免误降级到免费版）', () => {
+      assert.equal(getPlanLabel('enterprise'), 'enterprise');
+      assert.equal(getPlanLabel('lifetime'), 'lifetime');
     });
   });
 

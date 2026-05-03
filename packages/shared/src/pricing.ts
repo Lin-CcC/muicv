@@ -153,6 +153,23 @@ export type SubscriptionPlanKey = keyof typeof SUBSCRIPTION_PLANS;
 export type BillingInterval = 'monthly' | 'yearly';
 
 /**
+ * 会员档位的中文展示名（free + Pro/Max）。app 设置页 / 侧边栏用户菜单等
+ * 多处都要展示，统一在这里维护，避免各端各写一份。
+ *
+ * 未知 plan（包括 server 漏返字段）走 fallback：直接回显 plan 字符串；空值兜底为「免费版」。
+ */
+const PLAN_LABEL_ZH = {
+  free: '免费版',
+  pro: 'Pro 会员',
+  max: 'Max 会员',
+} as const satisfies Record<string, string>;
+
+export function getPlanLabel(plan: string | null | undefined): string {
+  if (!plan) return PLAN_LABEL_ZH.free;
+  return (PLAN_LABEL_ZH as Record<string, string>)[plan] ?? plan;
+}
+
+/**
  * 一次性补充包：付完款 webhook 立刻 +tokens（显示 token，credit 时转 μ）。
  * priceCnyDisplay 仅展示用，真实价格在 Stripe price 上。
  */

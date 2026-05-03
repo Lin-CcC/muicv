@@ -1,14 +1,9 @@
 import { CaretDownIcon, CaretUpIcon, GearIcon } from '@phosphor-icons/react';
+import { getPlanLabel } from '@muicv/shared';
 import { useRef, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
 import { useClickOutside } from '../lib/use-click-outside';
-
-const PLAN_LABEL: Record<string, string> = {
-  free: '免费版',
-  pro: 'Pro 会员',
-  max: 'Max 会员',
-};
 
 /**
  * 底部用户菜单：头像 / 邮箱 / 档位 + 弹出去 settings / 退出登录。
@@ -24,9 +19,8 @@ export function UserSection() {
   useClickOutside(ref, open, () => setOpen(false));
 
   if (!session) return null;
-  // server 漏返 plan 时兜底为免费，避免误显 Max。
-  const safePlan = session.plan ?? 'free';
-  const planLabel = PLAN_LABEL[safePlan] ?? safePlan;
+  // server 漏返 plan 时 getPlanLabel 兜底为「免费版」，避免误显 Max。
+  const planLabel = getPlanLabel(session.plan);
 
   return (
     <div ref={ref} className="relative shrink-0">

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCents } from '@muicv/shared';
 import { useEffect, useRef, useState } from 'react';
 
 import { ConfirmDialog, type ConfirmDialogHandle } from '@/components/confirm-dialog';
@@ -20,12 +21,7 @@ type Status = {
 
 type Model = { id: string; label: string; hint?: string };
 
-function formatCents(cents: number | null | undefined, currency = 'CNY'): string {
-  if (typeof cents !== 'number') return '—';
-  const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : `${currency} `;
-  return `${symbol}${(cents / 100).toFixed(2)}`;
-}
-
+// SSR 安全的硬格式化（避免 toLocaleString 在 server 与 client 输出不一致导致 hydration mismatch）。
 function formatDate(input: string | undefined): string {
   if (!input) return '—';
   const d = new Date(input);
