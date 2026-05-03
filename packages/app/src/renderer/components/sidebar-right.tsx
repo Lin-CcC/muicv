@@ -1,3 +1,4 @@
+import { ArrowLeftIcon, FolderOpenIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
@@ -77,9 +78,10 @@ function TreeMode({
           type="button"
           onClick={onClose}
           title="关闭"
-          className="rounded-md px-2 py-1 text-[14px] text-mute hover:bg-fluff hover:text-ink"
+          aria-label="关闭"
+          className="flex shrink-0 items-center justify-center rounded-md px-2 py-1 text-mute hover:bg-fluff hover:text-ink"
         >
-          ✕
+          <XIcon size={14} weight="bold" />
         </button>
       </header>
       <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -128,9 +130,10 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
           type="button"
           onClick={onBackToTree}
           title="返回文件树"
-          className="shrink-0 rounded-md px-2 py-1 text-[12px] text-mute hover:bg-fluff hover:text-ink"
+          className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-mute hover:bg-fluff hover:text-ink"
         >
-          ← 文件树
+          <ArrowLeftIcon size={12} weight="bold" />
+          <span>文件树</span>
         </button>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10px] uppercase tracking-wider text-mute">预览</p>
@@ -142,9 +145,10 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
           type="button"
           onClick={onClose}
           title="关闭整个右栏"
-          className="shrink-0 rounded-md px-2 py-1 text-[14px] text-mute hover:bg-fluff hover:text-ink"
+          aria-label="关闭整个右栏"
+          className="flex shrink-0 items-center justify-center rounded-md px-2 py-1 text-mute hover:bg-fluff hover:text-ink"
         >
-          ✕
+          <XIcon size={14} weight="bold" />
         </button>
       </header>
 
@@ -181,9 +185,10 @@ function PreviewMode({ path, onBackToTree, onClose }: { path: string; onBackToTr
         <button
           type="button"
           onClick={() => void window.muicv.fs.showInFolder(path)}
-          className="rounded px-2 py-1 hover:bg-fluff hover:text-ink"
+          className="inline-flex items-center gap-1 rounded px-2 py-1 hover:bg-fluff hover:text-ink"
         >
-          📁 在文件管理器
+          <FolderOpenIcon size={12} />
+          <span>在文件管理器</span>
         </button>
         <button
           type="button"

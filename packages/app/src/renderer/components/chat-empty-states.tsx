@@ -1,4 +1,5 @@
 import { CONVERSATION_TYPE_META, type ConversationType } from '../../shared/types.ts';
+import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { CorgiMascot } from './corgi-mascot';
 
 export function CenteredCard({
@@ -46,9 +47,10 @@ export function NoConversationCard() {
 
 export function EmptyConversation({ type }: { type: ConversationType }) {
   const meta = CONVERSATION_TYPE_META[type];
+  const TypeIcon = CONVERSATION_TYPE_ICON[type];
   return (
     <div className="mt-10 flex flex-col items-center text-center">
-      <span className="text-[40px]">{meta.emoji}</span>
+      <TypeIcon size={48} weight="duotone" className="text-yellow-deep" />
       <h2 className="mt-3 text-2xl font-extrabold tracking-tight text-ink">{meta.label}</h2>
       <p className="mt-2 max-w-md text-[13px] leading-[1.7] text-ink-soft">{meta.tagline}</p>
       <p className="mt-4 max-w-md text-[12px] text-mute">下面输入框直接说就行 —— 例：</p>

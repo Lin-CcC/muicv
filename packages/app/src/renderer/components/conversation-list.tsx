@@ -1,6 +1,8 @@
+import { CircleIcon, PencilSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 
 import { CONVERSATION_TYPE_META, type ConversationType } from '../../shared/types.ts';
+import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
 import { useClickOutside } from '../lib/use-click-outside';
 import { ConfirmDialog } from './confirm-dialog';
@@ -10,7 +12,7 @@ const ALL_TYPES: ConversationType[] = ['core', 'generate', 'critique', 'jobs', '
 /**
  * 左栏中部：对话列表 + 顶部「+ 新建」（弹类型选择菜单）+ 行内重命名 / 删除。
  *
- * 每行点击 → switchConversation。hover 露出 ✎ 重命名 / ✕ 删除。
+ * 每行点击 → switchConversation。hover 露出重命名 / 删除按钮。
  */
 export function ConversationList() {
   const conversations = useAppStore((s) => s.conversations);
@@ -43,6 +45,7 @@ export function ConversationList() {
             <p className="px-2 py-1 text-[10.5px] font-bold uppercase tracking-wider text-mute">挑一种对话类型</p>
             {ALL_TYPES.map((t) => {
               const meta = CONVERSATION_TYPE_META[t];
+              const TypeIcon = CONVERSATION_TYPE_ICON[t];
               return (
                 <button
                   key={t}
@@ -50,7 +53,7 @@ export function ConversationList() {
                   onClick={() => void pick(t)}
                   className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left hover:bg-fluff"
                 >
-                  <span className="mt-0.5 text-[16px]">{meta.emoji}</span>
+                  <TypeIcon size={16} className="mt-0.5 shrink-0 text-yellow-deep" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-[12.5px] font-bold text-ink">{meta.label}</span>
                     <span className="block text-[11px] leading-[1.5] text-mute">{meta.tagline}</span>
@@ -144,7 +147,7 @@ function ConversationRow({
     >
       <button type="button" onClick={onSwitch} className="flex min-w-0 flex-1 flex-col items-start text-left">
         <div className="flex w-full items-center gap-1.5">
-          {active && <span className="text-[10px] text-yellow-deep">●</span>}
+          {active && <CircleIcon size={8} weight="fill" className="shrink-0 text-yellow-deep" />}
           <span className="truncate text-[12.5px] font-bold text-ink">{title}</span>
         </div>
         <span className="text-[10.5px] text-mute">{relTime(updatedAt)}</span>
@@ -154,24 +157,26 @@ function ConversationRow({
         <button
           type="button"
           title="重命名"
+          aria-label="重命名"
           onClick={(e) => {
             e.stopPropagation();
             setRenaming(true);
           }}
-          className="rounded px-1.5 py-0.5 text-[11px] text-mute hover:bg-paper hover:text-ink"
+          className="flex items-center justify-center rounded px-1.5 py-0.5 text-mute hover:bg-paper hover:text-ink"
         >
-          ✎
+          <PencilSimpleIcon size={12} />
         </button>
         <button
           type="button"
           title="删除对话"
+          aria-label="删除对话"
           onClick={(e) => {
             e.stopPropagation();
             setConfirmRemove(true);
           }}
-          className="rounded px-1.5 py-0.5 text-[11px] text-mute hover:bg-tongue/10 hover:text-tongue"
+          className="flex items-center justify-center rounded px-1.5 py-0.5 text-mute hover:bg-tongue/10 hover:text-tongue"
         >
-          ✕
+          <XIcon size={12} weight="bold" />
         </button>
       </div>
 

@@ -1,3 +1,14 @@
+import {
+  CaretDownIcon,
+  CaretRightIcon,
+  FileCodeIcon,
+  FileIcon,
+  FileImageIcon,
+  FilePdfIcon,
+  FileTextIcon,
+  FolderIcon,
+  type Icon,
+} from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 type Entry = { name: string; path: string; isDirectory: boolean };
@@ -102,8 +113,10 @@ function DirNode({
         style={{ paddingLeft: depth * 12 + 8 }}
         className="flex w-full items-center gap-1 rounded py-0.5 pr-2 text-left hover:bg-fluff"
       >
-        <span className="w-3 text-[10px] text-mute">{expanded ? '▾' : '▸'}</span>
-        <span className="text-[13px]">📁</span>
+        <span className="flex w-3 shrink-0 items-center justify-center text-mute">
+          {expanded ? <CaretDownIcon size={10} weight="bold" /> : <CaretRightIcon size={10} weight="bold" />}
+        </span>
+        <FolderIcon size={14} weight="fill" className="shrink-0 text-yellow-deep" />
         <span className="truncate text-[12.5px] font-bold text-ink">{name}</span>
       </button>
       {everExpanded && (
@@ -126,7 +139,7 @@ function FileNode({
   depth: number;
   onPickFile: (path: string) => void;
 }) {
-  const icon = fileIcon(name);
+  const FileTypeIcon = fileIcon(name);
   return (
     <button
       type="button"
@@ -135,16 +148,16 @@ function FileNode({
       className="flex w-full items-center gap-1 rounded py-0.5 pr-2 text-left hover:bg-fluff"
       title={path}
     >
-      <span className="text-[13px]">{icon}</span>
+      <FileTypeIcon size={14} className="shrink-0 text-mute" />
       <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-soft">{name}</span>
     </button>
   );
 }
 
-function fileIcon(name: string): string {
-  if (/\.md$/i.test(name)) return '📄';
-  if (/\.pdf$/i.test(name)) return '📕';
-  if (/\.json$/i.test(name)) return '🔧';
-  if (/\.(png|jpe?g|gif|webp|svg)$/i.test(name)) return '🖼';
-  return '📃';
+function fileIcon(name: string): Icon {
+  if (/\.md$/i.test(name)) return FileTextIcon;
+  if (/\.pdf$/i.test(name)) return FilePdfIcon;
+  if (/\.json$/i.test(name)) return FileCodeIcon;
+  if (/\.(png|jpe?g|gif|webp|svg)$/i.test(name)) return FileImageIcon;
+  return FileIcon;
 }

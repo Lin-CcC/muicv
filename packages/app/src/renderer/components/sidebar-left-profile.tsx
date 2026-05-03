@@ -1,3 +1,11 @@
+import {
+  CaretDownIcon,
+  CircleIcon,
+  FolderOpenIcon,
+  FolderSimpleIcon,
+  PencilSimpleIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 
 import type { Profile } from '../../shared/types.ts';
@@ -38,7 +46,7 @@ export function ProfileSection() {
           <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
             {activeProfile?.name ?? 'Mui简历'}
           </span>
-          <span className="shrink-0 text-[11px] text-mute">▾</span>
+          <CaretDownIcon size={11} weight="bold" className="shrink-0 text-mute" />
         </button>
         {activeProfile && (
           <button
@@ -48,9 +56,10 @@ export function ProfileSection() {
               openFileTree();
             }}
             title="查看文件"
-            className="shrink-0 rounded-md px-1.5 py-1 text-[14px] text-mute hover:bg-fluff hover:text-ink"
+            aria-label="查看文件"
+            className="flex shrink-0 items-center justify-center rounded-md px-1.5 py-1 text-mute hover:bg-fluff hover:text-ink"
           >
-            📁
+            <FolderSimpleIcon size={16} />
           </button>
         )}
       </div>
@@ -149,19 +158,19 @@ function ProfileItem({
         title={profile.dir}
         className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
       >
-        {isActive && <span className="shrink-0 text-[10px] text-yellow-deep">●</span>}
+        {isActive && <CircleIcon size={8} weight="fill" className="shrink-0 text-yellow-deep" />}
         <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">{profile.name}</span>
       </button>
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
         <IconBtn title="重命名" onClick={() => setRenaming(true)}>
-          ✎
+          <PencilSimpleIcon size={12} />
         </IconBtn>
         <IconBtn title="在文件管理器里打开" onClick={onOpenInFinder}>
-          📁
+          <FolderOpenIcon size={12} />
         </IconBtn>
         {canDelete && (
           <IconBtn title="从列表里移除（不删文件）" onClick={() => setConfirmRemove(true)} danger>
-            ✕
+            <XIcon size={12} weight="bold" />
           </IconBtn>
         )}
       </div>

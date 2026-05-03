@@ -1,14 +1,27 @@
+import {
+  ArrowRightIcon,
+  BriefcaseIcon,
+  EnvelopeIcon,
+  FileTextIcon,
+  type Icon,
+  IdentificationCardIcon,
+  MagnifyingGlassIcon,
+  PaperclipIcon,
+  TargetIcon,
+  WrenchIcon,
+} from '@phosphor-icons/react';
+
 import type { ArtifactKind, ArtifactRef } from '../../shared/types.ts';
 
-const KIND_META: Record<ArtifactKind, { emoji: string; label: string }> = {
-  profile: { emoji: '🪪', label: '个人资料' },
-  experience: { emoji: '💼', label: '工作经历' },
-  project: { emoji: '🛠️', label: '项目' },
-  'jd-target': { emoji: '🎯', label: '岗位 JD' },
-  'resume-version': { emoji: '📄', label: '简历版本' },
-  'critique-report': { emoji: '🔍', label: '评审报告' },
-  'cover-letter': { emoji: '✉️', label: 'Cover Letter' },
-  other: { emoji: '📎', label: '文件' },
+const KIND_META: Record<ArtifactKind, { Icon: Icon; label: string }> = {
+  profile: { Icon: IdentificationCardIcon, label: '个人资料' },
+  experience: { Icon: BriefcaseIcon, label: '工作经历' },
+  project: { Icon: WrenchIcon, label: '项目' },
+  'jd-target': { Icon: TargetIcon, label: '岗位 JD' },
+  'resume-version': { Icon: FileTextIcon, label: '简历版本' },
+  'critique-report': { Icon: MagnifyingGlassIcon, label: '评审报告' },
+  'cover-letter': { Icon: EnvelopeIcon, label: 'Cover Letter' },
+  other: { Icon: PaperclipIcon, label: '文件' },
 };
 
 /**
@@ -17,18 +30,19 @@ const KIND_META: Record<ArtifactKind, { emoji: string; label: string }> = {
  */
 export function ArtifactCard({ artifact, onOpen }: { artifact: ArtifactRef; onOpen: () => void }) {
   const meta = KIND_META[artifact.kind];
+  const KindIcon = meta.Icon;
   return (
     <button
       type="button"
       onClick={onOpen}
       className="group flex w-full items-center gap-3 rounded-xl border-2 border-rule-strong bg-cream px-3 py-2.5 text-left transition hover:border-ink hover:bg-fluff"
     >
-      <span className="text-[20px]">{meta.emoji}</span>
+      <KindIcon size={20} className="shrink-0 text-yellow-deep" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-bold text-ink">{artifact.title}</span>
         <span className="block text-[11px] text-mute">{meta.label} · 点击在右栏预览</span>
       </span>
-      <span className="text-[12px] text-mute group-hover:text-ink">→</span>
+      <ArrowRightIcon size={12} className="shrink-0 text-mute group-hover:text-ink" />
     </button>
   );
 }

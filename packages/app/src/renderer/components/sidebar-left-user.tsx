@@ -1,3 +1,4 @@
+import { CaretDownIcon, CaretUpIcon, GearIcon } from '@phosphor-icons/react';
 import { useRef, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
@@ -37,7 +38,11 @@ export function UserSection() {
           <span className="block truncate text-[12px] font-bold text-ink">{session.email}</span>
           <span className="block text-[10.5px] text-mute">{planLabel}</span>
         </span>
-        <span className="text-[11px] text-mute">{open ? '▾' : '▴'}</span>
+        {open ? (
+          <CaretDownIcon size={11} weight="bold" className="shrink-0 text-mute" />
+        ) : (
+          <CaretUpIcon size={11} weight="bold" className="shrink-0 text-mute" />
+        )}
       </button>
 
       {open && (
@@ -48,9 +53,10 @@ export function UserSection() {
               setView('settings');
               setOpen(false);
             }}
-            className="block w-full rounded-md px-3 py-2 text-left text-[12.5px] font-medium text-ink hover:bg-fluff"
+            className="flex w-full items-center gap-1.5 rounded-md px-3 py-2 text-left text-[12.5px] font-medium text-ink hover:bg-fluff"
           >
-            ⚙ 设置
+            <GearIcon size={14} />
+            <span>设置</span>
           </button>
           <button
             type="button"

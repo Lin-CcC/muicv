@@ -1,3 +1,4 @@
+import { CheckIcon, FileTextIcon, GearIcon, HourglassIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 import type { ArtifactRef, ToolCallRecord } from '../../shared/types.ts';
@@ -78,7 +79,11 @@ function OpsGroup({ toolCalls, reads }: { toolCalls: ToolCallRecord[]; reads: Ar
       className="rounded-md border border-rule bg-fluff/50"
     >
       <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 text-[12px] text-mute">
-        <span className={inflight ? 'animate-pulse text-yellow-deep' : 'text-yellow-deep'}>⚙</span>
+        <GearIcon
+          size={12}
+          weight="fill"
+          className={inflight ? 'shrink-0 animate-spin text-yellow-deep' : 'shrink-0 text-yellow-deep'}
+        />
         <span className="flex-1 truncate font-mono">{summary}</span>
         <span className="text-[10px]">{open ? '收起' : '展开'}</span>
       </summary>
@@ -91,8 +96,9 @@ function OpsGroup({ toolCalls, reads }: { toolCalls: ToolCallRecord[]; reads: Ar
             <p className="mb-1 px-1 text-[10.5px] text-mute">参考的素材：</p>
             <ul className="space-y-0.5">
               {reads.map((r, i) => (
-                <li key={`${r.path}-${i}`} className="px-1 font-mono text-[11px] text-ink-soft">
-                  📄 {r.title}
+                <li key={`${r.path}-${i}`} className="flex items-center gap-1 px-1 font-mono text-[11px] text-ink-soft">
+                  <FileTextIcon size={11} className="shrink-0 text-mute" />
+                  <span className="truncate">{r.title}</span>
                 </li>
               ))}
             </ul>
@@ -113,7 +119,11 @@ function ToolCallChip({ call }: { call: ToolCallRecord }) {
       className="rounded-md border border-rule bg-fluff/70"
     >
       <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 font-mono text-[12px]">
-        <span className={done ? 'text-yellow-deep' : 'text-mute'}>{done ? '✓' : '⏳'}</span>
+        {done ? (
+          <CheckIcon size={12} weight="bold" className="shrink-0 text-yellow-deep" />
+        ) : (
+          <HourglassIcon size={12} className="shrink-0 animate-pulse text-mute" />
+        )}
         <span className="font-bold text-ink">{call.name}</span>
         <span className="truncate text-mute">{previewArgs(call.input)}</span>
       </summary>

@@ -1,3 +1,4 @@
+import { ArrowClockwiseIcon, CheckIcon, WalletIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 import type { MuirouterInfo } from '../../shared/types';
@@ -115,9 +116,21 @@ function PlanCard({ plan, onRefresh }: { plan: 'free' | 'pro' | 'max'; onRefresh
           onClick={() => void handleRefresh()}
           disabled={refreshing}
           title="在网页升级 / 充值后回来点这个，立刻同步"
-          className="rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink-soft hover:bg-fluff hover:text-ink disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink-soft hover:bg-fluff hover:text-ink disabled:opacity-60"
         >
-          {refreshing ? '同步中…' : justSynced ? '✓ 已是最新' : '↻ 同步状态'}
+          {refreshing ? (
+            <span>同步中…</span>
+          ) : justSynced ? (
+            <>
+              <CheckIcon size={12} weight="bold" />
+              <span>已是最新</span>
+            </>
+          ) : (
+            <>
+              <ArrowClockwiseIcon size={12} weight="bold" />
+              <span>同步状态</span>
+            </>
+          )}
         </button>
       </div>
     </section>
@@ -153,7 +166,9 @@ function MuirouterCard({
     return (
       <section className="rounded-2xl border-2 border-corgi/60 bg-fluff p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-[16px]">💰</div>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-yellow-deep">
+            <WalletIcon size={18} weight="duotone" />
+          </div>
           <div className="flex-1">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">muirouter（已关联）</p>
             <h3 className="mt-1 text-[15px] font-bold text-ink">
@@ -174,9 +189,10 @@ function MuirouterCard({
               <button
                 type="button"
                 onClick={() => void onRefresh()}
-                className="rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink-soft hover:bg-paper"
+                className="inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink-soft hover:bg-paper"
               >
-                ↻ 同步状态
+                <ArrowClockwiseIcon size={12} weight="bold" />
+                <span>同步状态</span>
               </button>
               <ExternalButton href={`${DASHBOARD_URL}/muirouter`} label="去 dashboard 管理 →" />
             </div>
@@ -189,7 +205,9 @@ function MuirouterCard({
   return (
     <section className="rounded-2xl border-2 border-rule bg-paper p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-[16px]">💰</div>
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-yellow-deep">
+          <WalletIcon size={18} weight="duotone" />
+        </div>
         <div className="flex-1">
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">关于 muirouter</p>
           <h3 className="mt-1 text-[15px] font-bold text-ink">muicv 余额耗尽？关联 muirouter，按需 fallback</h3>
@@ -258,10 +276,15 @@ function CustomLlmCard() {
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5">
         <div>
           <p className="text-[13px] font-bold text-ink-soft">用我自己的模型和额度</p>
-          <p className="mt-0.5 text-[11.5px] text-mute">
-            {customConfigured
-              ? `✓ 当前直连 ${shortHost(cfg.customLlmBase ?? '')}（不走 muicv 平台）`
-              : '默认走 muicv 平台调用 AI。普通用户不用动。'}
+          <p className="mt-0.5 inline-flex items-center gap-1 text-[11.5px] text-mute">
+            {customConfigured ? (
+              <>
+                <CheckIcon size={11} weight="bold" className="shrink-0" />
+                <span>当前直连 {shortHost(cfg.customLlmBase ?? '')}（不走 muicv 平台）</span>
+              </>
+            ) : (
+              <span>默认走 muicv 平台调用 AI。普通用户不用动。</span>
+            )}
           </p>
         </div>
         <span className="text-[10px] text-mute">展开 ↓</span>
@@ -313,9 +336,16 @@ function CustomLlmCard() {
           <button
             type="button"
             onClick={() => void onSave()}
-            className="press inline-flex items-center justify-center rounded-lg bg-yellow px-4 py-2 text-[13px] font-bold text-ink"
+            className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2 text-[13px] font-bold text-ink"
           >
-            {saved ? '✓ 已保存' : '保存'}
+            {saved ? (
+              <>
+                <CheckIcon size={13} weight="bold" />
+                <span>已保存</span>
+              </>
+            ) : (
+              <span>保存</span>
+            )}
           </button>
           {customConfigured && (
             <button

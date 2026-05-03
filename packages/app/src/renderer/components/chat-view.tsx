@@ -1,6 +1,8 @@
+import { StopIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 import { type AgentChunk, type ArtifactRef, CONVERSATION_TYPE_META, type ToolCallRecord } from '../../shared/types.ts';
+import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
 import { AiSetupCard, CenteredCard, EmptyConversation, NoConversationCard } from './chat-empty-states';
 import { MessageBubble } from './chat-message-bubble';
@@ -157,9 +159,11 @@ export function ChatView() {
     if (activeChannel) void window.muicv.agent.abort(activeChannel);
   }
 
+  const TypeIcon = CONVERSATION_TYPE_ICON[activeConversation.type];
+
   return (
     <div className="flex h-full flex-col">
-      <ConversationHeader title={activeConversation.title} typeLabel={`${meta.emoji} ${meta.label}`} />
+      <ConversationHeader title={activeConversation.title} TypeIcon={TypeIcon} typeLabel={meta.label} />
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
@@ -207,9 +211,10 @@ export function ChatView() {
               <button
                 type="button"
                 onClick={onAbort}
-                className="press-ink shrink-0 rounded-lg border-2 border-ink bg-cream px-3.5 py-2 text-[13px] font-bold text-ink"
+                className="press-ink inline-flex shrink-0 items-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3.5 py-2 text-[13px] font-bold text-ink"
               >
-                停 ◼︎
+                <span>停</span>
+                <StopIcon size={12} weight="fill" />
               </button>
             ) : (
               <button
@@ -228,12 +233,21 @@ export function ChatView() {
   );
 }
 
-function ConversationHeader({ title, typeLabel }: { title: string; typeLabel: string }) {
+function ConversationHeader({
+  title,
+  TypeIcon,
+  typeLabel,
+}: {
+  title: string;
+  TypeIcon: import('@phosphor-icons/react').Icon;
+  typeLabel: string;
+}) {
   return (
     <header className="flex shrink-0 items-center gap-3 border-b border-rule bg-cream/70 px-6 py-3 backdrop-blur-sm">
       <h1 className="min-w-0 flex-1 truncate text-[14px] font-extrabold text-ink">{title}</h1>
-      <span className="rounded-full border border-rule bg-paper px-2 py-0.5 font-mono text-[10.5px] font-semibold text-ink-soft">
-        {typeLabel}
+      <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-paper px-2 py-0.5 font-mono text-[10.5px] font-semibold text-ink-soft">
+        <TypeIcon size={11} className="shrink-0 text-yellow-deep" />
+        <span>{typeLabel}</span>
       </span>
     </header>
   );
