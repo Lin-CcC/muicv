@@ -75,6 +75,50 @@ export function isSupportedLlmModel(model: string): boolean {
 export const SUPPORTED_LLM_MODELS = Object.keys(LLM_PRICING);
 
 /**
+ * UI 展示元数据：人类可读名 / 上游 vendor / 输入输出价（保留原币种以便用户判断）/ 简短亮点。
+ * 桌面 app 设置页的 ModelCard 用，避免在组件里硬编码字符串。
+ */
+export const LLM_DISPLAY_META: Record<
+  string,
+  {
+    label: string;
+    vendor: 'openai' | 'xiaomi';
+    inputPrice: string;
+    outputPrice: string;
+    hint: string;
+  }
+> = {
+  'gpt-5.5': {
+    label: 'GPT-5.5',
+    vendor: 'openai',
+    inputPrice: '$5 / 1M',
+    outputPrice: '$30 / 1M',
+    hint: '最强，最贵',
+  },
+  'gpt-5.4': {
+    label: 'GPT-5.4',
+    vendor: 'openai',
+    inputPrice: '$2.5 / 1M',
+    outputPrice: '$15 / 1M',
+    hint: '默认推荐',
+  },
+  'mimo-v2.5-pro': {
+    label: 'MiMo v2.5 Pro',
+    vendor: 'xiaomi',
+    inputPrice: '¥1.4 / 1M',
+    outputPrice: '¥21 / 1M',
+    hint: '中文友好',
+  },
+  'mimo-v2.5': {
+    label: 'MiMo v2.5',
+    vendor: 'xiaomi',
+    inputPrice: '¥0.56 / 1M',
+    outputPrice: '¥14 / 1M',
+    hint: '最便宜',
+  },
+};
+
+/**
  * 订阅档位：每个 cycle（月付每月 / 年付每年）自动续 tokens。
  * 年付 = Stripe 一年 invoice 一次，invoice.paid 时一次性发 yearly.tokens（标准 SaaS 做法）。
  *

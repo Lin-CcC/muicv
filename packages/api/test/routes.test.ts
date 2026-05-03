@@ -30,6 +30,23 @@ type MockOptions = {
   /** OpenAI / Xiaomi key（默认两把都配好）。设 null 模拟「key 缺失」。 */
   openaiKey?: string | null;
   mimoKey?: string | null;
+  /** /me 路径的 user 行；设 false 模拟 user-not-found；缺省时打 /me 路径会兜默认 fake 行 */
+  user?: { id: string; email: string; name: string | null; image: string | null } | false;
+  /** /me 路径的 subscription 行（null = 无订阅，缺省 = null） */
+  subscription?: {
+    status: string;
+    stripePriceId: string | null;
+    monthlyTokens: number | null;
+    currentPeriodEnd: number | null;
+    cancelAtPeriodEnd: number;
+  } | null;
+  /** Stripe price IDs（覆盖默认）。设 null 模拟未配置（dev / 老部署）。 */
+  stripePriceIds?: {
+    pro_monthly?: string | null;
+    pro_yearly?: string | null;
+    max_monthly?: string | null;
+    max_yearly?: string | null;
+  };
 };
 
 const FAKE_API_KEY = `mui_${'a'.repeat(32)}`;
@@ -53,6 +70,16 @@ function mockEnv(opts: MockOptions = {}): unknown {
             lifetimeSpent: 0,
           } as T;
         }
+        if (/FROM user\b/i.test(sql)) {
+          if (opts.user === false) return null;
+          return (opts.user ?? { id: FAKE_USER_ID, email: 'u@test.com', name: 'tester', image: null }) as T;
+        }
+        if (/FROM muirouterLink/i.test(sql)) {
+          return null;
+        }
+        if (/FROM subscription/i.test(sql)) {
+          return (opts.subscription ?? null) as T | null;
+        }
         // 其余表走调用方 first override 或默认 null
         return opts.first ? await opts.first<T>() : null;
       },
@@ -73,6 +100,12 @@ function mockEnv(opts: MockOptions = {}): unknown {
   };
   if (opts.openaiKey !== null) env.OPENAI_API_KEY = opts.openaiKey ?? 'sk-fake-openai';
   if (opts.mimoKey !== null) env.MIMO_API_KEY = opts.mimoKey ?? 'sk-fake-mimo';
+  // Stripe price IDs：默认全配，单测可覆盖。/me 用它把 stripePriceId 反查成 plan。
+  const sp = opts.stripePriceIds ?? {};
+  if (sp.pro_monthly !== null) env.STRIPE_PRICE_PRO_MONTHLY = sp.pro_monthly ?? 'price_pro_m';
+  if (sp.pro_yearly !== null) env.STRIPE_PRICE_PRO_YEARLY = sp.pro_yearly ?? 'price_pro_y';
+  if (sp.max_monthly !== null) env.STRIPE_PRICE_MAX_MONTHLY = sp.max_monthly ?? 'price_max_m';
+  if (sp.max_yearly !== null) env.STRIPE_PRICE_MAX_YEARLY = sp.max_yearly ?? 'price_max_y';
   return env;
 }
 
@@ -321,6 +354,76 @@ test('GET /me Authorization 不是 Bearer → 401', async () => {
 test('GET /me Bearer 后是非法 key 格式 → 401', async () => {
   const res = await app.request('/me', { headers: { authorization: 'Bearer not-a-mui-key' } }, mockEnv(), ctx);
   assert.equal(res.status, 401);
+});
+
+test('GET /me 无订阅 → plan=free', async () => {
+  const res = await app.request('/me', { headers: AUTH }, authedEnv({ walletMicro: 1, subscription: null }), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { plan: string };
+  assert.equal(body.plan, 'free');
+});
+
+test('GET /me 订阅 active + Pro 月付 priceId → plan=pro', async () => {
+  const res = await app.request(
+    '/me',
+    { headers: AUTH },
+    authedEnv({
+      walletMicro: 1,
+      subscription: {
+        status: 'active',
+        stripePriceId: 'price_pro_m',
+        monthlyTokens: 500_000,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: 0,
+      },
+    }),
+    ctx,
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { plan: string };
+  assert.equal(body.plan, 'pro');
+});
+
+test('GET /me 订阅 trialing + Max 年付 priceId → plan=max', async () => {
+  const res = await app.request(
+    '/me',
+    { headers: AUTH },
+    authedEnv({
+      walletMicro: 1,
+      subscription: {
+        status: 'trialing',
+        stripePriceId: 'price_max_y',
+        monthlyTokens: 48_000_000,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: 0,
+      },
+    }),
+    ctx,
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { plan: string };
+  assert.equal(body.plan, 'max');
+});
+
+test('GET /me 订阅 canceled（非活跃 status）→ plan=free', async () => {
+  const res = await app.request(
+    '/me',
+    { headers: AUTH },
+    authedEnv({
+      walletMicro: 1,
+      subscription: {
+        status: 'canceled',
+        stripePriceId: 'price_pro_m',
+        monthlyTokens: 500_000,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: 0,
+      },
+    }),
+    ctx,
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { plan: string };
+  assert.equal(body.plan, 'free');
 });
 
 test('GET /me 合法格式但 DB 查不到 key → 401', async () => {

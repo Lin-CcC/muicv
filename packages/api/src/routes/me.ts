@@ -4,6 +4,27 @@ import type { Context } from 'hono';
 import { ensureBalance } from '../lib/wallet.ts';
 import type { AppEnv } from '../middleware/api-key.ts';
 
+const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due']);
+
+/**
+ * 把 Stripe price id 反查成 plan key（'pro' / 'max'）。env 里没配（dev / 老部署）
+ * 时返回 null，调用方按免费处理。和 packages/website/lib/stripe.ts 的
+ * priceIdToPlanInterval 等价，但本 worker 不需要 interval，少一次 await。
+ */
+function resolvePlanFromPriceId(
+  env: {
+    STRIPE_PRICE_PRO_MONTHLY?: string;
+    STRIPE_PRICE_PRO_YEARLY?: string;
+    STRIPE_PRICE_MAX_MONTHLY?: string;
+    STRIPE_PRICE_MAX_YEARLY?: string;
+  },
+  priceId: string,
+): 'pro' | 'max' | null {
+  if (priceId === env.STRIPE_PRICE_PRO_MONTHLY || priceId === env.STRIPE_PRICE_PRO_YEARLY) return 'pro';
+  if (priceId === env.STRIPE_PRICE_MAX_MONTHLY || priceId === env.STRIPE_PRICE_MAX_YEARLY) return 'max';
+  return null;
+}
+
 /**
  * GET /me —— 桌面 app / skill 用 mui_ key 拉取登录用户信息。
  *
@@ -44,22 +65,30 @@ export async function handleMe(c: Context<AppEnv>): Promise<Response> {
       } | null>(),
     ensureBalance(c.env, userId),
     c.env.MUICV_API_DB.prepare(
-      'SELECT status, monthlyTokens, currentPeriodEnd, cancelAtPeriodEnd FROM subscription WHERE userId = ? LIMIT 1',
+      'SELECT status, stripePriceId, monthlyTokens, currentPeriodEnd, cancelAtPeriodEnd FROM subscription WHERE userId = ? LIMIT 1',
     )
       .bind(userId)
       .first<{
         status: string;
+        stripePriceId: string | null;
         monthlyTokens: number | null;
         currentPeriodEnd: number | null;
         cancelAtPeriodEnd: number;
       } | null>(),
   ]);
 
+  let plan: 'free' | 'pro' | 'max' = 'free';
+  if (sub && ACTIVE_SUB_STATUSES.has(sub.status) && sub.stripePriceId) {
+    const resolved = resolvePlanFromPriceId(c.env, sub.stripePriceId);
+    if (resolved) plan = resolved;
+  }
+
   return c.json({
     id: user.id,
     email: user.email,
     name: user.name ?? user.email.split('@')[0] ?? '朋友',
     image: user.image ?? null,
+    plan,
     hasBYOK: !!link,
     muirouter: link
       ? {

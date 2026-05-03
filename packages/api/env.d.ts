@@ -33,6 +33,15 @@ declare namespace Cloudflare {
     /** HSM 服务凭据，与 packages/website 共用同一个值。`wrangler secret put HSM_SECRET`。 */
     HSM_SECRET: string;
     HSM_BASE_URL?: string;
+    /**
+     * Stripe price IDs，与 packages/website 共用同一组值（vars 里给）。
+     * /me 推 plan 字段需要据此把 stripePriceId 反查成 'pro' / 'max'。
+     * 没配（dev / 老部署）时 /me 返回 plan='free'，等同于跳过订阅推断。
+     */
+    STRIPE_PRICE_PRO_MONTHLY?: string;
+    STRIPE_PRICE_PRO_YEARLY?: string;
+    STRIPE_PRICE_MAX_MONTHLY?: string;
+    STRIPE_PRICE_MAX_YEARLY?: string;
   }
 }
 

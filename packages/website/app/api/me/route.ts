@@ -3,7 +3,10 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { hashApiKey } from '@/lib/api-key';
 import { getDb, schema } from '@/lib/db';
+import { priceIdToPlanInterval } from '@/lib/stripe';
 import { ensureBalance } from '@/lib/wallet';
+
+const ACTIVE_SUB_STATUSES = new Set(['active', 'trialing', 'past_due']);
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +88,7 @@ export async function GET(request: Request) {
     db
       .select({
         status: schema.subscription.status,
+        stripePriceId: schema.subscription.stripePriceId,
         monthlyTokens: schema.subscription.monthlyTokens,
         currentPeriodEnd: schema.subscription.currentPeriodEnd,
         cancelAtPeriodEnd: schema.subscription.cancelAtPeriodEnd,
@@ -105,11 +109,20 @@ export async function GET(request: Request) {
 
   const sub = subRows[0];
   const link = linkRows[0];
+
+  // 推 plan：必须 status 在活跃集合 + stripePriceId 能映射到已知档位，否则免费。
+  let plan: 'free' | 'pro' | 'max' = 'free';
+  if (sub && ACTIVE_SUB_STATUSES.has(sub.status) && sub.stripePriceId) {
+    const meta = await priceIdToPlanInterval(sub.stripePriceId);
+    if (meta) plan = meta.plan;
+  }
+
   return Response.json({
     id: user.id,
     email: user.email,
     name: user.name || user.email.split('@')[0] || '朋友',
     image: user.image ?? null,
+    plan,
     hasBYOK: !!link,
     muirouter: link
       ? {

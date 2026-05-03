@@ -60,7 +60,13 @@
   ],
   "vars": {
     // packages/website 的公网 base URL，puppeteer.goto 用它拼出 /r/render/[token]
-    "RENDER_BASE_URL": "https://muicv.com"
+    "RENDER_BASE_URL": "https://muicv.com",
+    // Stripe price IDs（与 packages/website 同一组）。/me 把 subscription.stripePriceId
+    // 反查成 'pro'/'max' plan 字段返回给客户端。Stripe price ID 不是 secret。
+    "STRIPE_PRICE_PRO_MONTHLY": "price_1TRwa8EpkXm2vxXTYEgJaDVp",
+    "STRIPE_PRICE_PRO_YEARLY": "price_1TRwb4EpkXm2vxXTP56EkfBh",
+    "STRIPE_PRICE_MAX_MONTHLY": "price_1TRwcYEpkXm2vxXTolTABRBM",
+    "STRIPE_PRICE_MAX_YEARLY": "price_1TRwczEpkXm2vxXTxoxuOYjq"
   },
   "observability": {
     "enabled": true
