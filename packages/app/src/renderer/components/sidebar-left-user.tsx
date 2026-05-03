@@ -24,7 +24,9 @@ export function UserSection() {
   useClickOutside(ref, open, () => setOpen(false));
 
   if (!session) return null;
-  const planLabel = PLAN_LABEL[session.plan] ?? session.plan;
+  // server 漏返 plan 时兜底为免费，避免误显 Max。
+  const safePlan = session.plan ?? 'free';
+  const planLabel = PLAN_LABEL[safePlan] ?? safePlan;
 
   return (
     <div ref={ref} className="relative shrink-0">

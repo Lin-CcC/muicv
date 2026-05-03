@@ -240,6 +240,10 @@ ipcMain.handle('shell:openWorkspace', async () => {
   if (cfg.workspaceDir) await shell.openPath(cfg.workspaceDir);
 });
 
+// -------------------- IPC: app meta --------------------
+
+ipcMain.handle('app:getVersion', () => app.getVersion());
+
 // -------------------- IPC: agent --------------------
 
 ipcMain.handle(

@@ -57,6 +57,9 @@ const api: RendererApi = {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url) as Promise<void>,
     openWorkspace: () => ipcRenderer.invoke('shell:openWorkspace') as Promise<void>,
   },
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion') as Promise<string>,
+  },
   agent: {
     chat: (opts) => ipcRenderer.invoke('agent:chat', opts) as Promise<{ channelId: string }>,
     abort: (channelId: string) => ipcRenderer.invoke('agent:abort', channelId) as Promise<void>,

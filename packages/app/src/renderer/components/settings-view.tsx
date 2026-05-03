@@ -1,4 +1,5 @@
-import { ArrowClockwiseIcon, CheckIcon, WalletIcon } from '@phosphor-icons/react';
+import { ArrowClockwiseIcon, ArrowLeftIcon, CheckIcon, CpuIcon, WalletIcon } from '@phosphor-icons/react';
+import { LLM_DISPLAY_META, SUPPORTED_LLM_MODELS } from '@muicv/shared';
 import { useEffect, useState } from 'react';
 
 import type { MuirouterInfo } from '../../shared/types';
@@ -30,22 +31,41 @@ const PLAN_LABEL: Record<string, string> = {
 /**
  * 登录后的"账号控制台"。简历管理在顶栏 dropdown 完成，这里只放：
  *
- *   1. 账号头部 + 退出登录
- *   2. 会员档位（含同步按钮——升级 / 充值是在网页 dashboard 做的，回 app 后点同步刷新状态）
- *   3. muirouter 介绍卡（广告式，引导去 muirouter 了解 + dashboard 绑定）
- *   4. "用我自己的模型和额度"（折叠，给高级用户配 endpoint / key / 模型 + muicv API base）
+ *   1. 账号头部（含返回按钮 + 退出登录）
+ *   2. 会员档位 + token 余额（含同步按钮——升级 / 充值在网页 dashboard 做，回 app 点同步刷新）
+ *   3. 模型选择卡（4 个平台模型 + 价格；BYOK 时降级为提示）
+ *   4. muirouter 介绍卡（已绑显示余额；未绑引导去关联）
+ *   5. "用我自己的模型和额度"（折叠，给高级用户配 endpoint / key / 模型 + muicv API base）
+ *   6. footer 显示客户端版本号方便排查
  */
 export function SettingsView() {
   const session = useAppStore((s) => s.session);
   const refreshSession = useAppStore((s) => s.refreshSession);
   const logout = useAppStore((s) => s.logout);
+  const setView = useAppStore((s) => s.setView);
+  const config = useAppStore((s) => s.config);
+  const [version, setVersion] = useState<string>('');
+
+  useEffect(() => {
+    void window.muicv.app.getVersion().then(setVersion);
+  }, []);
 
   if (!session) return null;
+
+  const isBYOK = !!(config.customLlmBase && config.customLlmKey);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-2xl flex-col gap-6 overflow-y-auto px-6 py-10">
       <header className="flex items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setView('chat')}
+            title="返回对话"
+            className="rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink-soft hover:bg-fluff hover:text-ink"
+          >
+            <ArrowLeftIcon size={14} weight="bold" />
+          </button>
           <Avatar session={session} />
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">已登录</p>
@@ -62,7 +82,9 @@ export function SettingsView() {
         </button>
       </header>
 
-      <PlanCard plan={session.plan} onRefresh={refreshSession} />
+      <PlanCard plan={session.plan} balance={session.balance} onRefresh={refreshSession} />
+
+      <ModelCard isBYOK={isBYOK} currentModel={config.defaultModel} />
 
       <MuirouterCard hasBYOK={session.hasBYOK} muirouter={session.muirouter} onRefresh={refreshSession} />
 
@@ -71,6 +93,7 @@ export function SettingsView() {
       <footer className="flex items-center gap-2 text-[11px] text-mute">
         <CorgiMascot className="h-5 w-5" />
         <span>所有设置只存本地（macOS Keychain 加密），不上传服务器。</span>
+        {version && <span className="ml-auto font-mono text-[10px] tabular-nums text-mute">v{version}</span>}
       </footer>
     </div>
   );
@@ -78,9 +101,20 @@ export function SettingsView() {
 
 // -------------------- 会员档位 --------------------
 
-function PlanCard({ plan, onRefresh }: { plan: 'free' | 'pro' | 'max'; onRefresh: () => Promise<void> }) {
+function PlanCard({
+  plan,
+  balance,
+  onRefresh,
+}: {
+  plan: 'free' | 'pro' | 'max' | undefined;
+  balance: number;
+  onRefresh: () => Promise<void>;
+}) {
   const [refreshing, setRefreshing] = useState(false);
   const [justSynced, setJustSynced] = useState(false);
+
+  // server 漏返字段时兜底为免费版（不能像之前那样掉到 Max）。
+  const safePlan: 'free' | 'pro' | 'max' = plan ?? 'free';
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -94,23 +128,33 @@ function PlanCard({ plan, onRefresh }: { plan: 'free' | 'pro' | 'max'; onRefresh
     }
   }
 
-  const planLabel = PLAN_LABEL[plan] ?? plan;
+  const planLabel = PLAN_LABEL[safePlan] ?? safePlan;
   const hint =
-    plan === 'free'
+    safePlan === 'free'
       ? '免费版可以正常聊天和整理素材。升级 Pro 解锁 PDF 导出、招聘抓取、辅助投递等。'
-      : plan === 'pro'
+      : safePlan === 'pro'
         ? '已是 Pro 会员。需要无限制？升级 Max。'
         : '已是 Max 会员，所有功能无限制。';
 
   return (
     <section className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">会员档位</p>
-      <div className="mt-2 text-[15px] font-bold text-ink">
-        当前：<span className="rounded-md bg-fluff px-2 py-0.5">{planLabel}</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">会员档位</p>
+          <div className="mt-2 text-[15px] font-bold text-ink">
+            当前：<span className="rounded-md bg-fluff px-2 py-0.5">{planLabel}</span>
+          </div>
+        </div>
+        <div className="shrink-0 rounded-xl border-2 border-rule-strong bg-paper px-3 py-2 text-right">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-mute">余额</p>
+          <p className="mt-0.5 font-mono text-[15px] font-extrabold tabular-nums text-ink">{formatTokens(balance)}</p>
+          <p className="text-[10px] text-mute">tokens</p>
+        </div>
       </div>
-      <p className="mt-1.5 text-[12.5px] leading-[1.6] text-mute">{hint}</p>
+      <p className="mt-2 text-[12.5px] leading-[1.6] text-mute">{hint}</p>
       <div className="mt-3.5 flex flex-wrap items-center gap-2">
-        <ExternalButton href={`${DASHBOARD_URL}#plans`} label="去看会员权益 →" primary={plan === 'free'} />
+        <ExternalButton href={`${DASHBOARD_URL}#plans`} label="去看会员权益 →" primary={safePlan === 'free'} />
+        <ExternalButton href={`${DASHBOARD_URL}#wallet`} label="充值 →" />
         <button
           type="button"
           onClick={() => void handleRefresh()}
@@ -132,6 +176,87 @@ function PlanCard({ plan, onRefresh }: { plan: 'free' | 'pro' | 'max'; onRefresh
             </>
           )}
         </button>
+      </div>
+    </section>
+  );
+}
+
+function formatTokens(n: number): string {
+  if (!Number.isFinite(n)) return '—';
+  if (n >= 1) return Math.round(n).toLocaleString();
+  return n.toFixed(2);
+}
+
+// -------------------- 模型选择 --------------------
+
+function ModelCard({ isBYOK, currentModel }: { isBYOK: boolean; currentModel: string }) {
+  const patch = useAppStore((s) => s.patchConfig);
+
+  if (isBYOK) {
+    return (
+      <section className="rounded-2xl border-2 border-rule bg-paper p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-yellow-deep">
+            <CpuIcon size={18} weight="duotone" />
+          </div>
+          <div className="flex-1">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">模型</p>
+            <h3 className="mt-1 text-[14px] font-bold text-ink">正在用你自己的 endpoint</h3>
+            <p className="mt-1 text-[12.5px] leading-[1.6] text-mute">
+              已配置自带 OpenAI 兼容 endpoint，平台模型清单不生效。下方"用我自己的模型和额度"里改默认模型名。
+            </p>
+            <p className="mt-1.5 font-mono text-[12px] text-ink-soft">当前模型：{currentModel}</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">模型</p>
+      <h3 className="mt-1 text-[14px] font-bold text-ink">选默认模型</h3>
+      <p className="mt-1 text-[12.5px] leading-[1.6] text-mute">
+        所有对话用这个 model 调 LLM。token 价按上游差异不一样，按需切换；切了立刻生效。
+      </p>
+      <div className="mt-3 flex flex-col gap-2">
+        {SUPPORTED_LLM_MODELS.map((id) => {
+          const meta = LLM_DISPLAY_META[id];
+          if (!meta) return null;
+          const selected = currentModel === id;
+          return (
+            <button
+              type="button"
+              key={id}
+              onClick={() => void patch({ defaultModel: id })}
+              className={`flex items-start gap-3 rounded-xl border-2 px-3.5 py-2.5 text-left transition ${
+                selected
+                  ? 'border-ink bg-fluff shadow-[0_3px_0_0_var(--color-ink)]'
+                  : 'border-rule-strong bg-cream hover:bg-paper'
+              }`}
+            >
+              <span
+                className={`mt-1 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 ${
+                  selected ? 'border-ink bg-yellow' : 'border-rule-strong bg-cream'
+                }`}
+              >
+                {selected && <span className="h-1.5 w-1.5 rounded-full bg-ink" />}
+              </span>
+              <span className="flex-1">
+                <span className="flex flex-wrap items-baseline gap-1.5">
+                  <span className="text-[13.5px] font-bold text-ink">{meta.label}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-mute">
+                    {meta.vendor === 'openai' ? 'OpenAI' : 'Xiaomi'}
+                  </span>
+                  <span className="text-[11.5px] text-ink-soft">· {meta.hint}</span>
+                </span>
+                <span className="mt-1 block font-mono text-[11.5px] text-mute">
+                  输入 {meta.inputPrice} · 输出 {meta.outputPrice}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );

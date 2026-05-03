@@ -64,8 +64,13 @@ export type SessionInfo = {
   email: string;
   name: string;
   image: string | null;
-  /** 订阅档位（M4 起激活，目前所有人都是 free） */
-  plan: 'free' | 'pro' | 'max';
+  /**
+   * 订阅档位。server 根据 subscription.stripePriceId + status 推导。
+   * 老 server 可能没补这个字段；client 兜底当 'free'。
+   */
+  plan?: 'free' | 'pro' | 'max';
+  /** 当前 token 余额（显示 token；server 已 microToDisplay 过）。可能是小数。 */
+  balance: number;
   /** 是否在 dashboard 绑过 muirouter；muicv 余额耗尽且 hasBYOK=false 时 LLM 调不通 */
   hasBYOK: boolean;
   /** muirouter 绑定的快照——dashboard 改了模型 / 余额变化都在这里反映。null 表示未绑定。 */
@@ -306,6 +311,10 @@ export type RendererApi = {
   shell: {
     openExternal(url: string): Promise<void>;
     openWorkspace(): Promise<void>;
+  };
+  app: {
+    /** Electron app.getVersion()，用于在设置页 footer 显示版本号方便排查问题。 */
+    getVersion(): Promise<string>;
   };
   agent: {
     /**
