@@ -48,7 +48,7 @@ function DirNode({
     return () => {
       cancelled = true;
     };
-  }, [expanded, entries, loading, path]);
+  }, [expanded, entries, path]);
 
   return (
     <div>
