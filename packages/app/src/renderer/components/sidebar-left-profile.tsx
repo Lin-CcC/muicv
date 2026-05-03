@@ -27,6 +27,8 @@ export function ProfileSection() {
   const openInFinder = useAppStore((s) => s.openProfileInFinder);
   const createPick = useAppStore((s) => s.createProfilePickFolder);
   const openFileTree = useAppStore((s) => s.openFileTree);
+  const closeRightPanel = useAppStore((s) => s.closeRightPanel);
+  const treeOpen = useAppStore((s) => s.rightPanelTreeRoot !== null);
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -53,13 +55,17 @@ export function ProfileSection() {
             type="button"
             onClick={() => {
               setOpen(false);
-              openFileTree();
+              if (treeOpen) closeRightPanel();
+              else openFileTree();
             }}
-            title="查看文件"
-            aria-label="查看文件"
-            className="flex shrink-0 items-center justify-center rounded-md px-1.5 py-1 text-mute hover:bg-fluff hover:text-ink"
+            title={treeOpen ? '关闭文件浏览' : '查看文件'}
+            aria-label={treeOpen ? '关闭文件浏览' : '查看文件'}
+            aria-pressed={treeOpen}
+            className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-1 hover:bg-fluff ${
+              treeOpen ? 'bg-fluff text-yellow-deep' : 'text-mute hover:text-ink'
+            }`}
           >
-            <FolderSimpleIcon size={16} />
+            {treeOpen ? <FolderOpenIcon size={16} weight="fill" /> : <FolderSimpleIcon size={16} />}
           </button>
         )}
       </div>
