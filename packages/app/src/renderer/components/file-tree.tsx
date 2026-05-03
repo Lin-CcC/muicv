@@ -5,37 +5,29 @@ type Entry = { name: string; path: string; isDirectory: boolean };
 /**
  * 简易递归文件树。点目录展开/收起；点文件触发 onPickFile（一般转 right panel preview 模式）。
  *
- * 目录展开靠 expanded set 维护（路径作 key）。每个目录第一次展开时拉子项缓存；
+ * 根目录不再作为节点显示 —— FileTree 直接挂 DirChildren，平铺 rootPath 下的子项。
+ * 目录第一次展开后即使再收起，子树仍以 display:none 隐藏，entries 状态保留，
  * 关掉再开不会重新拉（避免抖动）。
  */
 export function FileTree({ rootPath, onPickFile }: { rootPath: string; onPickFile: (path: string) => void }) {
   return (
     <div className="font-mono text-[12.5px] leading-[1.6] text-ink-soft">
-      <DirNode path={rootPath} name={shortName(rootPath)} depth={0} startExpanded onPickFile={onPickFile} />
+      <DirChildren path={rootPath} depth={0} onPickFile={onPickFile} />
     </div>
   );
 }
 
-function DirNode({
-  path,
-  name,
-  depth,
-  startExpanded = false,
-  onPickFile,
-}: {
-  path: string;
-  name: string;
-  depth: number;
-  startExpanded?: boolean;
-  onPickFile: (path: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(startExpanded);
+/**
+ * 加载并平铺渲染 path 下的子项。
+ * 给 FileTree 根用（depth=0）也给 DirNode 展开后用（depth=parentDepth+1）。
+ */
+function DirChildren({ path, depth, onPickFile }: { path: string; depth: number; onPickFile: (path: string) => void }) {
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!expanded || entries !== null || loading) return;
+    if (entries !== null) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -48,13 +40,65 @@ function DirNode({
     return () => {
       cancelled = true;
     };
-  }, [expanded, entries, path]);
+  }, [entries, path]);
 
+  const padLeft = depth * 12 + 8;
+
+  if (loading) {
+    return (
+      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[11.5px] text-mute">
+        读取中…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[11.5px] text-tongue">
+        {error}
+      </div>
+    );
+  }
+  if (entries && entries.length === 0) {
+    return (
+      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[11.5px] text-mute">
+        (空)
+      </div>
+    );
+  }
+  return (
+    <>
+      {entries?.map((e) =>
+        e.isDirectory ? (
+          <DirNode key={e.path} path={e.path} name={e.name} depth={depth} onPickFile={onPickFile} />
+        ) : (
+          <FileNode key={e.path} path={e.path} name={e.name} depth={depth} onPickFile={onPickFile} />
+        ),
+      )}
+    </>
+  );
+}
+
+function DirNode({
+  path,
+  name,
+  depth,
+  onPickFile,
+}: {
+  path: string;
+  name: string;
+  depth: number;
+  onPickFile: (path: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [everExpanded, setEverExpanded] = useState(false);
   return (
     <div>
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => {
+          setEverExpanded(true);
+          setExpanded((v) => !v);
+        }}
         style={{ paddingLeft: depth * 12 + 8 }}
         className="flex w-full items-center gap-1 rounded py-0.5 pr-2 text-left hover:bg-fluff"
       >
@@ -62,30 +106,9 @@ function DirNode({
         <span className="text-[13px]">📁</span>
         <span className="truncate text-[12.5px] font-bold text-ink">{name}</span>
       </button>
-      {expanded && (
-        <div>
-          {loading && (
-            <div style={{ paddingLeft: (depth + 1) * 12 + 8 }} className="py-0.5 text-[11.5px] text-mute">
-              读取中…
-            </div>
-          )}
-          {error && (
-            <div style={{ paddingLeft: (depth + 1) * 12 + 8 }} className="py-0.5 text-[11.5px] text-tongue">
-              {error}
-            </div>
-          )}
-          {entries && entries.length === 0 && (
-            <div style={{ paddingLeft: (depth + 1) * 12 + 8 }} className="py-0.5 text-[11.5px] text-mute">
-              (空)
-            </div>
-          )}
-          {entries?.map((e) =>
-            e.isDirectory ? (
-              <DirNode key={e.path} path={e.path} name={e.name} depth={depth + 1} onPickFile={onPickFile} />
-            ) : (
-              <FileNode key={e.path} path={e.path} name={e.name} depth={depth + 1} onPickFile={onPickFile} />
-            ),
-          )}
+      {everExpanded && (
+        <div style={{ display: expanded ? undefined : 'none' }}>
+          <DirChildren path={path} depth={depth + 1} onPickFile={onPickFile} />
         </div>
       )}
     </div>
@@ -124,8 +147,4 @@ function fileIcon(name: string): string {
   if (/\.json$/i.test(name)) return '🔧';
   if (/\.(png|jpe?g|gif|webp|svg)$/i.test(name)) return '🖼';
   return '📃';
-}
-
-function shortName(path: string): string {
-  return path.split(/[/\\]/).pop() || path;
 }
