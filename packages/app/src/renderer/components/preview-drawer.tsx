@@ -1,64 +1,79 @@
-import { ArrowLeftIcon, FolderOpenIcon, XIcon } from '@phosphor-icons/react';
+import { FolderOpenIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useAppStore } from '../lib/store';
 import { MarkdownView } from './markdown-view';
 
+const TRANSITION_MS = 220;
+
 /**
  * 文件预览 drawer。从右侧滑入，覆盖整个窗口（含 titlebar）；ESC / 点 backdrop 关闭。
  *
- * 跟文件树 (SidebarRight) 解耦：
- *   - 触发条件 = rightPanelPreviewPath 不空（不再连带触发右栏展开）
- *   - 关闭 = closePreview()，treeRoot 不动
- *   - "← 文件树" = openFileTree() + closePreview()，确保关掉预览后用户能落到文件树上
+ * 跟文件树 (SidebarRight) 解耦：触发条件 = rightPanelPreviewPath 不空，
+ * 关闭只清 previewPath。需要看文件树的话用左上角 toggle 按钮。
+ *
+ * 进 / 出场动画：
+ *   - 进：mount 时立刻渲染 closed 状态（panel translate-x-full / backdrop
+ *     opacity-0），下一帧切到 open 触发 CSS transition。
+ *   - 出：先 set visible=false 走出场，TRANSITION_MS 后再 unmount，避免
+ *     直接卸载看不到动画。
  */
 export function PreviewDrawer() {
   const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
   const closePreview = useAppStore((s) => s.closePreview);
-  const openFileTree = useAppStore((s) => s.openFileTree);
+
+  const [mountedPath, setMountedPath] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!previewPath) return;
+    if (previewPath) {
+      setMountedPath(previewPath);
+      const id = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(id);
+    }
+    setVisible(false);
+    const t = setTimeout(() => setMountedPath(null), TRANSITION_MS);
+    return () => clearTimeout(t);
+  }, [previewPath]);
+
+  useEffect(() => {
+    if (!mountedPath) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') closePreview();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [previewPath, closePreview]);
+  }, [mountedPath, closePreview]);
 
-  if (!previewPath) return null;
-
-  function backToTree() {
-    openFileTree();
-    closePreview();
-  }
+  if (!mountedPath) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[90] flex justify-end">
-      <div className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" aria-hidden onClick={closePreview} />
+      <div
+        className={`absolute inset-0 bg-ink/30 backdrop-blur-[2px] transition-opacity duration-200 ease-out ${
+          visible ? 'opacity-100' : 'opacity-0'
+        }`}
+        aria-hidden
+        onClick={closePreview}
+      />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="文件预览"
-        className="relative flex h-full w-full max-w-[1100px] flex-col border-l-2 border-ink bg-paper shadow-[-5px_0_0_0_var(--color-ink)] sm:w-[80%]"
+        style={{ transitionDuration: `${TRANSITION_MS}ms` }}
+        className={`relative flex h-full w-full max-w-[1100px] flex-col border-l-2 border-ink bg-paper shadow-[-5px_0_0_0_var(--color-ink)] transition-transform ease-out sm:w-[80%] ${
+          visible ? 'translate-x-0' : 'translate-x-full'
+        }`}
       >
-        <PreviewContent path={previewPath} onBackToTree={backToTree} onClose={closePreview} />
+        <PreviewContent path={mountedPath} onClose={closePreview} />
       </aside>
     </div>,
     document.body,
   );
 }
 
-function PreviewContent({
-  path,
-  onBackToTree,
-  onClose,
-}: {
-  path: string;
-  onBackToTree: () => void;
-  onClose: () => void;
-}) {
+function PreviewContent({ path, onClose }: { path: string; onClose: () => void }) {
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,15 +108,6 @@ function PreviewContent({
   return (
     <>
       <header className="flex shrink-0 items-center gap-2 border-b border-rule bg-cream px-4 py-2">
-        <button
-          type="button"
-          onClick={onBackToTree}
-          title="返回文件树"
-          className="flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[12px] text-mute hover:bg-fluff hover:text-ink"
-        >
-          <ArrowLeftIcon size={12} weight="bold" />
-          <span>文件树</span>
-        </button>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-[10px] uppercase tracking-wider text-mute">预览</p>
           <p className="truncate text-[13px] font-bold text-ink" title={path}>
