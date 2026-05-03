@@ -46,7 +46,8 @@ function DirChildren({ path, depth, onPickFile }: { path: string; depth: number;
       if (cancelled) return;
       setLoading(false);
       if (res === null) setError('读不到');
-      else setEntries(res);
+      // 默认隐藏点开头的隐藏文件 / 目录（系统约定，.git / .DS_Store / .claude 等）
+      else setEntries(res.filter((e) => !e.name.startsWith('.')));
     });
     return () => {
       cancelled = true;
