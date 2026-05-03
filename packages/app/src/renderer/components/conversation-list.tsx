@@ -5,6 +5,7 @@ import { CONVERSATION_TYPE_META, type ConversationType } from '../../shared/type
 import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
 import { useClickOutside } from '../lib/use-click-outside';
+import { stripLeadingEmoji } from './chat-utils';
 import { ConfirmDialog } from './confirm-dialog';
 
 const ALL_TYPES: ConversationType[] = ['core', 'generate', 'critique', 'jobs', 'interview', 'coaching'];
@@ -148,7 +149,7 @@ function ConversationRow({
       <button type="button" onClick={onSwitch} className="flex min-w-0 flex-1 flex-col items-start text-left">
         <div className="flex w-full items-center gap-1.5">
           {active && <CircleIcon size={8} weight="fill" className="shrink-0 text-yellow-deep" />}
-          <span className="truncate text-[12.5px] font-bold text-ink">{title}</span>
+          <span className="truncate text-[12.5px] font-bold text-ink">{stripLeadingEmoji(title)}</span>
         </div>
         <span className="text-[10.5px] text-mute">{relTime(updatedAt)}</span>
       </button>

@@ -25,6 +25,17 @@ export function cryptoRandomId(): string {
 }
 
 /**
+ * 剥掉对话标题前面的 emoji 前缀（含 ZWJ / VS-16 组合）+ 紧随的空格。
+ * 历史 schema 默认标题是「[emoji] [label] · MM-DD」直接写盘的，新版本默认
+ * 标题已经不带 emoji（类型图标在 UI 层独立渲染），这个函数只是兼容旧数据，
+ * 不动磁盘 —— 用户改名想保留任何前导符号都不会被误剥。
+ */
+export function stripLeadingEmoji(s: string): string {
+  // \p{Extended_Pictographic} 主体 + ️ (VS-16) + ‍ (ZWJ)
+  return s.replace(/^(?:[\p{Extended_Pictographic}️‍]+\s*)+/u, '');
+}
+
+/**
  * 把 markdown 里出现的相对路径（如 "versions/xxx.md"）拼成绝对路径，
  * 配合 openRightPanel 在右栏打开预览。已经是绝对路径就直接返回。
  */

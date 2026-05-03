@@ -34,13 +34,13 @@ function profileDirById(profileId: string): string | null {
   return listProfiles().find((p) => p.id === profileId)?.dir ?? null;
 }
 
-/** 默认标题：「[emoji] [类型 label] · MM-DD」。 */
+/** 默认标题：「[类型 label] · MM-DD」。类型图标在 UI 层独立渲染。 */
 function defaultTitle(type: ConversationType): string {
   const meta = CONVERSATION_TYPE_META[type];
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  return `${meta.emoji} ${meta.label} · ${mm}-${dd}`;
+  return `${meta.label} · ${mm}-${dd}`;
 }
 
 export async function listConversations(profileId: string): Promise<ConversationSummary[]> {

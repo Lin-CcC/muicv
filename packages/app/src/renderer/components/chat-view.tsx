@@ -6,7 +6,7 @@ import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
 import { AiSetupCard, CenteredCard, EmptyConversation, NoConversationCard } from './chat-empty-states';
 import { MessageBubble } from './chat-message-bubble';
-import { classifyError, cryptoRandomId, resolveWorkspacePath, safeParseJson } from './chat-utils';
+import { classifyError, cryptoRandomId, resolveWorkspacePath, safeParseJson, stripLeadingEmoji } from './chat-utils';
 
 /**
  * 中栏：当前 activeConversation 的对话流 + 输入框。
@@ -163,7 +163,11 @@ export function ChatView() {
 
   return (
     <div className="flex h-full flex-col">
-      <ConversationHeader title={activeConversation.title} TypeIcon={TypeIcon} typeLabel={meta.label} />
+      <ConversationHeader
+        title={stripLeadingEmoji(activeConversation.title)}
+        TypeIcon={TypeIcon}
+        typeLabel={meta.label}
+      />
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
