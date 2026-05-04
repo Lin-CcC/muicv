@@ -108,21 +108,26 @@ jobs:
 
           # Fast-fail：electron-builder 在 cert 不可用时会 silently fall back 到
           # ad-hoc 签名，再走完整 notarize 才报错（浪费 ~1min + Apple quota）。
-          # 这里 (1) 验密码 (2) 验私钥确实在 .p12 里。坑过：Keychain 导出 .p12 时
-          # 如果只选了证书没选私钥，得到一个 1.5KB 左右的"半成品 .p12"——password
-          # 能解开但里面只有证书，签名时无身份用 → silently fall back。
+          # 用 macOS 原生 security import 到临时 keychain 验证——这是 electron-builder
+          # 后端实际用的同一个 API，验证它就等于验证真实签名能力。比 openssl pkcs12
+          # 可靠：security export 出的 .p12 用 RC2-40-CBC，OpenSSL 3.x 默认不解。
           P12_SIZE=$(wc -c <"$P12")
           echo "p12 size: $P12_SIZE bytes"
           echo "p8  size: $(wc -c <"$P8") bytes"
-          if ! openssl pkcs12 -in "$P12" -password "pass:$CSC_KEY_PASSWORD" -noout 2>/dev/null; then
-            echo "::error::cert.p12 无法用 CSC_KEY_PASSWORD 解开。检查 CSC_LINK base64 是否完整 + CSC_KEY_PASSWORD 是否对应这次 .p12。"
+          TMP_KEY="$RUNNER_TEMP/apple/build.keychain-db"
+          security create-keychain -p actions "$TMP_KEY" >/dev/null
+          if ! security import "$P12" -P "$CSC_KEY_PASSWORD" -k "$TMP_KEY" -A -T /usr/bin/codesign 2>&1; then
+            echo "::error::p12 导入失败——CSC_KEY_PASSWORD 不对 或 CSC_LINK base64 损坏。"
+            security delete-keychain "$TMP_KEY" 2>/dev/null || true
             exit 1
           fi
-          if ! openssl pkcs12 -in "$P12" -password "pass:$CSC_KEY_PASSWORD" -nocerts -nodes 2>/dev/null | grep -q "PRIVATE KEY"; then
-            echo "::error::cert.p12 不含私钥（size=$P12_SIZE bytes，正常 Developer ID 应 3-5KB）。从 Keychain Access 重新导出，确保同时选中证书 + 私钥两行（Cmd+click 多选）。"
+          IDS=$(security find-identity -v -p codesigning "$TMP_KEY" | grep -c "Developer ID Application" || true)
+          security delete-keychain "$TMP_KEY" 2>/dev/null || true
+          if [ "$IDS" -eq 0 ]; then
+            echo "::error::.p12 导入成功但无 Developer ID Application identity（size=$P12_SIZE bytes）。Keychain Access 重新导出时同时选中证书 + 私钥，或用 security export -t identities CLI 导出。"
             exit 1
           fi
-          echo "✓ p12 + password + 私钥 都 OK"
+          echo "✓ p12 imports OK + 含 $IDS 个 Developer ID Application identity"
 
           {
             echo "CSC_LINK=$P12"
