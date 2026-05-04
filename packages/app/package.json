@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "description": "Mui简历桌面端：electron + React，让不用 AI agent 的求职者也能跑完整简历工作流。",
+  "//productName": "Electron 在 runtime 用 productName 而不是 name 来确定 app.getName()——影响 userData 目录、keychain item 名称、dock 标题。不设的话 keychain 弹窗会显示 npm 包名 '@muicv/app' 吓到用户。改名后老用户的 userData 目录会失配，由 main/store.ts 顶部 migrateLegacyUserData() 一次性搬迁。",
+  "productName": "Mui简历",
   "main": "out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -37,7 +39,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.5.0",
     "electron": "^41.3.0",
-    "electron-builder": "^26.8.1",
+    "electron-builder": "^26.8.2",
     "electron-vite": "^5.0.0",
     "png-to-ico": "^2.1.8",
     "postcss": "^8.5.10",

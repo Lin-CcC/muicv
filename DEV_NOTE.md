@@ -63,6 +63,23 @@
   渲染进程进入 onboarding。完整流程见 `packages/app/src/main/deep-link.ts`。
 - 电脑端通过 GitHub Releases 分发 .dmg / .zip，tag `v*` 自动触发
   `.github/workflows/release.yml`（electron-builder）。详见 DEPLOYMENT.md。
+- **workspace 包必须从 externalizeDepsPlugin exclude 掉**：electron-vite 默认把所有
+  dependencies 标 external，workspace 包（如 `@muicv/shared`）会被原样（含 .ts 源码）
+  拷进 packaged app 的 `node_modules/`。Electron 内置 Node 拒绝 strip node_modules 下
+  的 `.ts` → 启动直接 `ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING` 崩溃。
+  dev 模式不会暴露（vite 内联编译走另一条路径）。配置见
+  `electron.vite.config.ts` 里 main / preload 的 `externalizeDepsPlugin({ exclude: [...] })`。
+  以后新增任何 `@muicv/*` workspace 包到 main/preload 都得加进 exclude。
+- **electron-builder ≥ 26.8.2 + pnpm ≥ 10.29.3 是绑定关系**：pnpm 10.29.3 起把
+  `pnpm ls --json --depth Infinity --prod` 输出改成 dedup 形式（transitive 复用节点
+  只输出 `{ deduped: true, dedupedDependenciesCount: N }` 不再展开子树，OOM 修复，
+  pnpm 不会回滚）。electron-builder ≤ 26.8.1 的 `pnpmNodeModulesCollector` 假设永远
+  完全展开，照旧递归 walk → dedup'd transitive 全漏 → asar 缺包，packaged app 启动报
+  `Cannot find module 'fast-deep-equal'` / `'json-schema-traverse'` / `'ms'` 之类。
+  electron-builder 26.8.2（2026-03-11）已修。以后升级 pnpm 同时记得 electron-builder
+  也保持 ≥ 26.8.2。参见 [pnpm/pnpm#10601](https://github.com/pnpm/pnpm/issues/10601)。
+  **不要走 `node-linker=hoisted` 绕**——它只把根 node_modules 扁平化，不解决 workspace
+  子包的 transitive，治标不治本。
 
 ## packages/app UI 架构（IDE 三栏 + 多 profile）
 
@@ -325,3 +342,46 @@ dashboard 或 app 点关联
 - `packages/app` 测纯逻辑 helper（chat-utils 等），不测 React 组件 / IPC —— 投入
   比回报大，留给手测和 dogfood。
 - D1 binding 在测试里用极简 mock（`prepare/bind/run/first` 全部返回 stub）。
+
+## packages/app macOS 签名 + 公证
+
+> 不签 → 用户下载装完直接「已损坏」打不开。本节记录决策依据 + 凭据怎么拿、放哪、丢了怎么办。
+> 实际配置见 `packages/app/electron-builder.yml` mac 段、`packages/app/build/entitlements.mac.plist`、
+> `.github/workflows/release.yml` mac job。
+
+- **三件套缺一不可**：codesign（盖章）→ notarize（让 Apple 扫描）→ staple（票据钉到 .app）。
+  electron-builder 26 把 staple 自动做掉，前两步靠环境变量驱动。
+- **identity 字段陷阱**：`mac.identity: null` 是「显式跳过签名」，**不是**「自动选」。
+  要 auto-discover 必须**整个字段不存在**。多个 Developer ID Application 共存时，
+  用 `CSC_NAME` 环境变量或 `identity: "Developer ID Application: 名字 (TEAMID)"` 显式锁定。
+- **证书选 Developer ID Application**，不是 Mac App Distribution（那是上架 App Store 的）。
+  Xcode → Settings → Accounts → Manage Certificates → + 一键装到 login keychain。
+  `security find-identity -v -p codesigning` 能看到就行。
+- **公证鉴权用 App Store Connect API Key**（不用 Apple ID + app-specific password）：
+  CI 友好、不绑个人 2FA、可独立轮换。在 App Store Connect → Users and Access →
+  Integrations → Team Keys 生成，角色 Developer 即够。**.p8 只能下载一次**，丢了重新生成。
+- **凭据备份**：证书 .p12（导出时设密码）+ API Key .p8 都进密码管理器（1Password / 同等）。
+  本机 keychain 重装系统会丢，没备份就只能重申请。
+- **GitHub Secrets**（5 条）：`CSC_LINK`（.p12 base64）/ `CSC_KEY_PASSWORD` /
+  `APPLE_API_KEY_BASE64`（.p8 base64）/ `APPLE_API_KEY_ID` / `APPLE_API_ISSUER`。
+  Team ID 写死在 yml 里不算敏感。
+- **hardenedRuntime + entitlements 的关系**：开 hardenedRuntime 是公证硬性要求，
+  但开了之后默认禁用 JIT / 未签名可执行内存 / dyld 环境变量 / 网络访问。entitlements
+  必须显式声明 `allow-jit` / `allow-unsigned-executable-memory` /
+  `allow-dyld-environment-variables` / `network.client` 这 4 条，缺一项 Electron 启动直接 crash。
+- **改 entitlements 必须重新公证**：ticket 是和文件哈希绑定的，entitlements 一变 hash 变，
+  老 ticket 就废了。
+- **本地手动验证**：
+  ```bash
+  codesign --verify --deep --strict --verbose=2 release/mac-arm64/Mui简历.app
+  spctl -a -vvv -t install release/mac-arm64/Mui简历.app
+  # 期望：accepted, source=Notarized Developer ID
+  ```
+- **公证排队**：第一次 5-15 分钟，之后通常 1-3 分钟。出错用
+  `xcrun notarytool log <submission-id> --key ... --key-id ... --issuer ...` 查具体原因，
+  也可以看 `~/Library/Logs/electron-builder/notarize.log`。
+- **常见踩坑**：证书类型选错（Mac App Distribution 不能用于 dmg）/ entitlements 漏 JIT
+  导致启动 crash / hardenedRuntime 没开导致公证拒绝 / dmg 复制 .app 后没 staple
+  导致离线打开仍报错（electron-builder 自动 staple，不用手动）。
+- **Windows / Linux**：Linux AppImage 不需要签名；Windows SmartScreen 是软警告（用户能点
+  Run anyway），Authenticode 证书要钱（OV 便宜但要养信誉，EV 贵但秒生效），暂未做。

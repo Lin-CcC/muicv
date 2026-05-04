@@ -1,9 +1,37 @@
 import { randomUUID } from 'node:crypto';
+import { cpSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 
-import { safeStorage } from 'electron';
+import { app, safeStorage } from 'electron';
 import Store from 'electron-store';
 
 import { type AppConfig, DEFAULT_CONFIG, type Profile } from '../shared/types.ts';
+
+/**
+ * v0.1.5 一次性 userData 迁移。
+ * 原因：v0.1.5 给 package.json 加了 productName: "Mui简历"，让 keychain 弹窗显示
+ * 「Mui简历 Safe Storage」而不是「@muicv/app Safe Storage」。
+ * 副作用：app.getPath('userData') 路径从 .../@muicv/app/ 变成 .../Mui简历/，
+ * 旧用户存在老路径下的 muicv-config.json / 对话历史目录全部失配。
+ * 这里在 store 实例化之前同步搬迁。idempotent：新路径已存在就跳过。
+ *
+ * 注意：迁移过去的 muicv-config.json 里加密字段（muicvApiKeyCipher）解不开——
+ * safeStorage 的对称密钥跟 productName 绑定，老 cipher 是用旧密钥加的，新进程
+ * 用新密钥解 → decrypt() catch 里 return null → session check 失败 → 用户回到
+ * 登录页重新登录。这是单次迁移代价，比代码兜底简单可靠。
+ */
+(function migrateLegacyUserData() {
+  const newDir = app.getPath('userData');
+  if (existsSync(newDir)) return;
+  const oldDir = join(app.getPath('appData'), '@muicv', 'app');
+  if (!existsSync(oldDir)) return;
+  try {
+    cpSync(oldDir, newDir, { recursive: true });
+    console.log('[store] migrated userData', oldDir, '→', newDir);
+  } catch (err) {
+    console.error('[store] userData migrate failed', err);
+  }
+})();
 
 /**
  * 持久化配置 —— profile 列表 / 激活 profile / API base / 模型 / 加密 mui_ key。

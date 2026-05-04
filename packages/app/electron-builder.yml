@@ -20,11 +20,22 @@ extraMetadata:
 # ============ macOS ============
 mac:
   category: public.app-category.productivity
-  # 不签名（unsigned）。用户首次安装时需要右键 → 打开 → 允许。
-  # M5+ 申请 Apple Developer ID 后改成具体身份。
-  identity: null
-  hardenedRuntime: false
+  # 已签名 + 公证（notarize）。
+  # 不设 identity 字段 → electron-builder 自动 discover：本地从 login keychain 找
+  # Developer ID Application 证书；CI 从 CSC_LINK 解出 .p12 导入临时 keychain。
+  # ⚠️ identity: null 是「显式跳过签名」，不是 auto，别加。
+  # 如果 keychain 里有多个 Developer ID Application，可用 CSC_NAME 环境变量
+  # 或在此处显式 identity: "Developer ID Application: 名字 (TEAMID)" 锁定。
+  # hardenedRuntime 是公证硬性要求；entitlements 给 Electron 解禁 JIT / dyld / network。
+  # 公证依赖环境变量：APPLE_API_KEY (路径) / APPLE_API_KEY_ID / APPLE_API_ISSUER。
+  # 详见 DEV_NOTE.md「packages/app macOS 签名 + 公证」一节。
+  hardenedRuntime: true
   gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # v26 schema：notarize 是 boolean，team / 凭据全走环境变量
+  # (APPLE_API_KEY 路径 / APPLE_API_KEY_ID / APPLE_API_ISSUER)。
+  notarize: true
   # 强制 arch 后缀，让 x64 也带显式 arch（默认 x64 不带后缀，会让 landing page
   # 解析时分不清架构，v0.1.0 已踩过这个坑）。
   artifactName: "MuiCV-${version}-${arch}.${ext}"

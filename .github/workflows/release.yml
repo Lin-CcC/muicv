@@ -84,12 +84,32 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      # electron-builder 不签名 build。后续申请 Apple Developer ID / Authenticode
-      # 后再加 CSC_LINK / CSC_KEY_PASSWORD secrets 启用签名 + notarize。
+      # mac 公证用 App Store Connect API Key：把 base64 secret 解码到 runner
+      # 临时目录，把绝对路径写到 $GITHUB_ENV 让下一步 electron-builder 读到。
+      # non-mac runner 跳过此步。
+      - name: Decode Apple API key (mac only)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/apple"
+          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/apple/AuthKey.p8"
+          echo "APPLE_API_KEY=$RUNNER_TEMP/apple/AuthKey.p8" >> "$GITHUB_ENV"
+
+      # mac 签名 + 公证依赖以下 secret（Windows Authenticode 待后续）：
+      #   CSC_LINK / CSC_KEY_PASSWORD                → Developer ID Application 证书 .p12
+      #   APPLE_API_KEY_BASE64 / APPLE_API_KEY_ID    → App Store Connect API Key
+      #   APPLE_API_ISSUER                           → 同上 issuer
+      # win/linux runner 这些 env 是空字符串，electron-builder 自动跳过签名逻辑。
+      # 详见 DEV_NOTE.md「packages/app macOS 签名 + 公证」。
       - name: Build & package
         env:
           # disable auto-publish；我们自己 upload
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          # APPLE_API_KEY 路径已由上一步写到 $GITHUB_ENV
         run: pnpm --filter @muicv/app package:${{ matrix.target }}
 
       - name: List output

@@ -11,7 +11,10 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
  */
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // workspace 包必须 exclude 掉，让 vite 把 .ts 源码编进 main bundle。
+    // 否则 packaged app 会把 .ts 原样拷进 node_modules/，
+    // Electron 内置 Node 拒绝 strip node_modules 下的 .ts 直接 crash。
+    plugins: [externalizeDepsPlugin({ exclude: ['@muicv/shared'] })],
     build: {
       rollupOptions: {
         input: { index: resolve(__dirname, 'src/main/index.ts') },

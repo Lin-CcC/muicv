@@ -96,6 +96,10 @@ export function LoginView() {
                   在浏览器里完成登录…
                 </div>
                 <p className="text-[12.5px] leading-[1.6] text-ink-soft">登录完成后浏览器会自动回到这个 app。</p>
+                <p className="rounded-md border border-rule/60 bg-cream/60 px-2.5 py-1.5 text-[11.5px] leading-[1.55] text-ink-soft">
+                  完成登录时，macOS 可能会弹出钥匙串密码框——是为了把你的登录凭证加密保存在系统钥匙串里。 请点{' '}
+                  <strong className="font-bold">"始终允许"</strong>，之后不会再弹。
+                </p>
                 <div className="flex items-center justify-center gap-3 text-[12px]">
                   <button type="button" onClick={() => setWaitingCallback(false)} className="text-mute hover:text-ink">
                     取消
