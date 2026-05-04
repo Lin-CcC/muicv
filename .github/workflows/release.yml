@@ -84,32 +84,38 @@ jobs:
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
-      # mac 公证用 App Store Connect API Key：把 base64 secret 解码到 runner
-      # 临时目录，把绝对路径写到 $GITHUB_ENV 让下一步 electron-builder 读到。
-      # non-mac runner 跳过此步。
-      - name: Decode Apple API key (mac only)
+      # mac 签名 + 公证：把两个 base64 secret（.p12 证书 + .p8 API key）解码到
+      # runner 临时目录，把路径和其它凭据通过 $GITHUB_ENV 注入下一步。
+      # ⚠️ 必须 mac-only：CSC_LINK 在 win runner 上会被识别为 WIN_CSC_LINK 触发
+      # Authenticode 流程，而我们暂未做 Win 签名，会失败。
+      # 用 $GITHUB_ENV 而不是 step env: 块——因为 electron-builder 的 CSC_LINK 期望
+      # 「文件路径 / data URL / https URL」，裸 base64 会被当文件路径报 ENAMETOOLONG。
+      - name: Setup macOS signing (mac only)
         if: matrix.os == 'macos-latest'
         shell: bash
-        run: |
-          mkdir -p "$RUNNER_TEMP/apple"
-          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/apple/AuthKey.p8"
-          echo "APPLE_API_KEY=$RUNNER_TEMP/apple/AuthKey.p8" >> "$GITHUB_ENV"
-
-      # mac 签名 + 公证依赖以下 secret（Windows Authenticode 待后续）：
-      #   CSC_LINK / CSC_KEY_PASSWORD                → Developer ID Application 证书 .p12
-      #   APPLE_API_KEY_BASE64 / APPLE_API_KEY_ID    → App Store Connect API Key
-      #   APPLE_API_ISSUER                           → 同上 issuer
-      # win/linux runner 这些 env 是空字符串，electron-builder 自动跳过签名逻辑。
-      # 详见 DEV_NOTE.md「packages/app macOS 签名 + 公证」。
-      - name: Build & package
         env:
-          # disable auto-publish；我们自己 upload
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_LINK_B64: ${{ secrets.CSC_LINK }}
+          APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          # APPLE_API_KEY 路径已由上一步写到 $GITHUB_ENV
+        run: |
+          mkdir -p "$RUNNER_TEMP/apple"
+          printf '%s' "$CSC_LINK_B64" | base64 --decode > "$RUNNER_TEMP/apple/cert.p12"
+          printf '%s' "$APPLE_API_KEY_B64" | base64 --decode > "$RUNNER_TEMP/apple/AuthKey.p8"
+          {
+            echo "CSC_LINK=$RUNNER_TEMP/apple/cert.p12"
+            echo "CSC_KEY_PASSWORD=$CSC_KEY_PASSWORD"
+            echo "APPLE_API_KEY=$RUNNER_TEMP/apple/AuthKey.p8"
+            echo "APPLE_API_KEY_ID=$APPLE_API_KEY_ID"
+            echo "APPLE_API_ISSUER=$APPLE_API_ISSUER"
+          } >> "$GITHUB_ENV"
+
+      # 签名相关 env 全走上面 mac-only 那步注入。这里只设跨平台共用的 GH_TOKEN。
+      # win/linux runner 没有任何 CSC_*/APPLE_* 环境变量，electron-builder 自动跳签名。
+      - name: Build & package
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm --filter @muicv/app package:${{ matrix.target }}
 
       - name: List output
