@@ -58,12 +58,17 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # darwin-x64 在 macos-14 (arm64) runner 上跑——Apple toolchain 双架构 SDK 自带
+      # 跨架构编译能力，CMAKE_OSX_ARCHITECTURES 决定输出 binary 架构。
+      # 不再用 macos-13：GitHub Actions 已下线 Intel Mac runner（2025-12 EOL）。
       matrix:
         include:
           - os: macos-14
             target: darwin-arm64
-          - os: macos-13
+            mac_arch: arm64
+          - os: macos-14
             target: darwin-x64
+            mac_arch: x86_64
           - os: ubuntu-latest
             target: linux-x64
           - os: windows-latest
@@ -84,15 +89,30 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         working-directory: whisper.cpp
+        env:
+          MAC_ARCH: ${{ matrix.mac_arch || '' }}
         run: |
+          EXTRA=""
+          if [ -n "$MAC_ARCH" ]; then
+            # 显式锁定 macOS 输出架构。darwin-arm64 也要锁——避免 macOS runner 默认 universal
+            # build（fat binary 体积翻倍且 codesign 后 lipo 切片不一定干净）。
+            EXTRA="-DCMAKE_OSX_ARCHITECTURES=$MAC_ARCH"
+          fi
           cmake -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
             -DGGML_NATIVE=OFF \
+            $EXTRA \
             -DWHISPER_BUILD_EXAMPLES=ON \
             -DWHISPER_BUILD_TESTS=OFF
           cmake --build build --config Release -j --target whisper-cli
           ls -lah build/bin/
+          # macOS：验证 binary 架构跟 target 对得上（防 cross compile 失败默默 fallback 到 host arch）
+          if [ -n "$MAC_ARCH" ]; then
+            ARCH_REPORT=$(lipo -info build/bin/whisper-cli)
+            echo "$ARCH_REPORT"
+            echo "$ARCH_REPORT" | grep -q "$MAC_ARCH" || { echo "::error::binary 架构不是 $MAC_ARCH"; exit 1; }
+          fi
 
       - name: Configure & build (Windows)
         if: runner.os == 'Windows'
