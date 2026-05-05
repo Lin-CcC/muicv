@@ -8,6 +8,7 @@ import { BrowserWindow, app, dialog, ipcMain, protocol, shell } from 'electron';
 import type { AppConfig, ChatMessage, ConversationType, Profile } from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
 import { MicPermissionDenied, RecordingCancelled, recordAndTranscribe, type TranscribeResult } from './audio.ts';
+import { registerWhisperEngineIpc } from './whisper-engine/index.ts';
 import {
   createConversation,
   deleteConversation,
@@ -370,6 +371,9 @@ ipcMain.handle(
     }
   },
 );
+
+// 本地 whisper.cpp 引擎插件（issue #1 M3）。进度事件用 mainWindow.webContents 推送。
+registerWhisperEngineIpc(() => mainWindow?.webContents ?? null);
 
 // -------------------- App lifecycle --------------------
 

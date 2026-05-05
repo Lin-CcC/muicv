@@ -8,6 +8,7 @@ import { CustomLlmCard } from './settings/custom-llm-card';
 import { ModelCard } from './settings/model-card';
 import { MuirouterCard } from './settings/muirouter-card';
 import { PlanCard } from './settings/plan-card';
+import { WhisperEngineCard } from './settings/whisper-engine-card';
 
 /**
  * 登录后的"账号控制台"。简历管理在顶栏 dropdown 完成，这里只放：
@@ -72,6 +73,8 @@ export function SettingsView() {
       <MuirouterCard hasBYOK={session.hasBYOK} muirouter={session.muirouter} onRefresh={refreshSession} />
 
       <CustomLlmCard />
+
+      <WhisperEngineCard />
 
       <footer className="flex items-center gap-2 text-[11px] text-mute">
         <CorgiMascot className="h-5 w-5" />

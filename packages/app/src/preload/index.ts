@@ -14,6 +14,11 @@ import type {
   Profile,
   RendererApi,
   SessionCheckResult,
+  SttPreference,
+  WhisperEngineStatus,
+  WhisperInstallOutcome,
+  WhisperModelName,
+  WhisperProgressEvent,
 } from '../shared/types.ts';
 
 ipcRenderer.on('agent:chunk', (_e, channelId: string, payload: AgentChunk) => {
@@ -98,6 +103,26 @@ const api: RendererApi = {
       ipcRenderer.invoke('audio:cancel', requestId, reason) as Promise<void>,
     recordAndTranscribe: (opts: { durationLimitSec?: number }) =>
       ipcRenderer.invoke('audio:recordAndTranscribe', opts) as Promise<AudioRecordOutcome>,
+  },
+  whisperEngine: {
+    status: () => ipcRenderer.invoke('whisperEngine:status') as Promise<WhisperEngineStatus>,
+    setPreference: (pref: SttPreference) =>
+      ipcRenderer.invoke('whisperEngine:setPreference', pref) as Promise<WhisperEngineStatus>,
+    setDefaultModel: (name: WhisperModelName) =>
+      ipcRenderer.invoke('whisperEngine:setDefaultModel', name) as Promise<WhisperEngineStatus>,
+    installEngine: (engineVersion: string) =>
+      ipcRenderer.invoke('whisperEngine:installEngine', engineVersion) as Promise<WhisperInstallOutcome>,
+    installModel: (name: WhisperModelName) =>
+      ipcRenderer.invoke('whisperEngine:installModel', name) as Promise<WhisperInstallOutcome>,
+    uninstallEngine: () => ipcRenderer.invoke('whisperEngine:uninstallEngine') as Promise<WhisperEngineStatus>,
+    uninstallModel: (name: WhisperModelName) =>
+      ipcRenderer.invoke('whisperEngine:uninstallModel', name) as Promise<WhisperEngineStatus>,
+    uninstallAll: () => ipcRenderer.invoke('whisperEngine:uninstallAll') as Promise<WhisperEngineStatus>,
+    onProgress: (handler: (e: WhisperProgressEvent) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, ev: WhisperProgressEvent) => handler(ev);
+      ipcRenderer.on('whisperEngine:progress', listener);
+      return () => ipcRenderer.removeListener('whisperEngine:progress', listener);
+    },
   },
 };
 

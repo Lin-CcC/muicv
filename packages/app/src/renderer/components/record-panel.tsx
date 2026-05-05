@@ -1,6 +1,7 @@
 import { type ReactElement, useEffect, useRef, useState } from 'react';
 
 import type { AudioRecordingPayload, AudioRecordingRequest } from '../../shared/types.ts';
+import { encodeWav16kMono } from '../lib/wav-encoder.ts';
 
 /**
  * 模拟面试 / 录音复盘的录音面板。issue #1 M2。
@@ -151,12 +152,25 @@ export function RecordPanel(): ReactElement | null {
       silenceStartRef.current = null;
     }
 
-    const mimeType = recorderRef.current?.mimeType ?? 'audio/webm';
-    const blob = new Blob(chunksRef.current, { type: mimeType });
+    const recordedMime = recorderRef.current?.mimeType ?? 'audio/webm';
+    const recordedBlob = new Blob(chunksRef.current, { type: recordedMime });
+
+    // 转 16kHz mono WAV：whisper.cpp 强制要求；云端 Whisper 也能吃；统一一份格式。
+    let wavBlob: Blob;
+    try {
+      wavBlob = await encodeWav16kMono(recordedBlob);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setErrorMsg(`音频转码失败：${msg}`);
+      setPhase('error');
+      void window.muicv.audio.cancel(request.requestId, `encode-failed: ${msg}`);
+      cleanup();
+      return;
+    }
 
     let audioBase64: string;
     try {
-      audioBase64 = await blobToBase64(blob);
+      audioBase64 = await blobToBase64(wavBlob);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMsg(`录音编码失败：${msg}`);
@@ -168,7 +182,7 @@ export function RecordPanel(): ReactElement | null {
 
     const payload: AudioRecordingPayload = {
       audioBase64,
-      mimeType,
+      mimeType: 'audio/wav',
       durationMs,
       pauses: pausesRef.current.slice(),
     };

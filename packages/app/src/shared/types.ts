@@ -278,6 +278,34 @@ export type AudioRecordOutcome =
   | { ok: true; result: AudioTranscribeResult }
   | { ok: false; reason: 'mic-denied' | 'cancel' | 'error'; message: string };
 
+/**
+ * 本地 whisper.cpp 引擎插件状态（issue #1 M3）。
+ * 引擎 + 模型按需下载，存 <userData>/whisper-engine/，跟主 app 解耦升版。
+ */
+export type WhisperModelName = 'base' | 'small';
+
+export type SttPreference = 'cloud' | 'local-preferred' | 'always-ask';
+
+export type WhisperEngineStatus = {
+  engine: { installed: boolean; version: string | null; binPath: string | null };
+  models: Array<{ name: WhisperModelName; installed: boolean; bytes: number; path: string | null }>;
+  preference: SttPreference;
+  defaultModel: WhisperModelName;
+};
+
+export type WhisperProgressEvent = {
+  kind: 'engine' | 'model';
+  target: string;
+  event: {
+    phase: 'download' | 'extract' | 'verify' | 'done';
+    fraction: number;
+    receivedBytes?: number;
+    totalBytes?: number;
+  };
+};
+
+export type WhisperInstallOutcome = { ok: true; status: WhisperEngineStatus } | { ok: false; message: string };
+
 export type SessionCheckResult =
   | { status: 'ok'; session: SessionInfo }
   | { status: 'no-key' }
@@ -394,5 +422,17 @@ export type RendererApi = {
     cancel(requestId: string, reason: string): Promise<void>;
     /** chatbox 麦克风按钮：renderer 主动触发一次录音 → 转写。 */
     recordAndTranscribe(opts: { durationLimitSec?: number }): Promise<AudioRecordOutcome>;
+  };
+  whisperEngine: {
+    status(): Promise<WhisperEngineStatus>;
+    setPreference(pref: SttPreference): Promise<WhisperEngineStatus>;
+    setDefaultModel(name: WhisperModelName): Promise<WhisperEngineStatus>;
+    installEngine(engineVersion: string): Promise<WhisperInstallOutcome>;
+    installModel(name: WhisperModelName): Promise<WhisperInstallOutcome>;
+    uninstallEngine(): Promise<WhisperEngineStatus>;
+    uninstallModel(name: WhisperModelName): Promise<WhisperEngineStatus>;
+    uninstallAll(): Promise<WhisperEngineStatus>;
+    /** 订阅安装进度。返回 unsubscribe。 */
+    onProgress(handler: (e: WhisperProgressEvent) => void): () => void;
   };
 };

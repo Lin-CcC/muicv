@@ -5,6 +5,7 @@ import { ipcMain, type WebContents, systemPreferences } from 'electron';
 
 import type { AppConfig, AudioRecordingPayload, AudioRecordingRequest } from '../shared/types.ts';
 import { countFillers } from './lib/filler-count.ts';
+import { getDefaultModel, getPreference, getStatus, transcribeLocal } from './whisper-engine/index.ts';
 
 /**
  * 录音中转 IPC（issue #1 M2）：
@@ -94,8 +95,16 @@ export type TranscribeResult = {
 };
 
 /**
- * 一站式：弹录音面板 → POST 后端转写 → 算 filler/pause → 返回结构化结果。
+ * 一站式：弹录音面板 → 按偏好选 provider（本地 / 云端）→ 算 filler/pause → 返回结果。
  * agent tool 和 chatbox 麦克风按钮共用这个公共流程。
+ *
+ * Provider 选择规则（issue #1 M3）：
+ *   - 偏好 'local-preferred' 且本地引擎 + 默认模型都装好 → 走本地 whisper-cli
+ *   - 否则 → 走云端 POST /audio/transcribe
+ *   - 偏好 'always-ask' 暂时按 'cloud' 处理（UI 弹询问留给 P2）
+ *
+ * 本地失败时**不**自动 fallback 云端：本地用户多半在意隐私 / 离线，悄悄上云违背预期。
+ * 报错让 agent / 用户决定下一步。
  */
 export async function recordAndTranscribe(opts: {
   durationLimitSec: number;
@@ -104,6 +113,22 @@ export async function recordAndTranscribe(opts: {
 }): Promise<TranscribeResult> {
   await ensureMicrophoneAccess();
   const payload = await requestRecording({ durationLimitSec: opts.durationLimitSec, sender: opts.sender });
+
+  const useLocal = await shouldUseLocal();
+  if (useLocal) {
+    const local = await transcribeLocal({
+      wavBase64: payload.audioBase64,
+      modelName: getDefaultModel(),
+    });
+    return {
+      transcript: local.transcript,
+      durationMs: local.durationMs || payload.durationMs,
+      language: local.language,
+      fillerCount: countFillers(local.transcript),
+      pauseCount: payload.pauses.length,
+    };
+  }
+
   const res = await postTranscribe(opts.config, payload);
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -124,6 +149,13 @@ export async function recordAndTranscribe(opts: {
     fillerCount: countFillers(body.transcript),
     pauseCount: payload.pauses.length,
   };
+}
+
+async function shouldUseLocal(): Promise<boolean> {
+  if (getPreference() !== 'local-preferred') return false;
+  const status = await getStatus();
+  if (!status.engine.installed) return false;
+  return status.models.some((m) => m.name === getDefaultModel() && m.installed);
 }
 
 async function postTranscribe(config: AppConfig, payload: AudioRecordingPayload): Promise<Response> {
