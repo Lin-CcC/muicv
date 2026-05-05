@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import { useAudioTranscoder } from '../lib/use-audio-transcoder';
 import { useAppStore } from '../lib/store';
 import { ChatView } from './chat-view';
 import { PreviewDrawer } from './preview-drawer';
@@ -22,6 +23,10 @@ export function AppShell() {
   const rightCollapsed = useAppStore((s) => s.rightCollapsed);
   const treeRoot = useAppStore((s) => s.rightPanelTreeRoot);
   const rightWidth = useAppStore((s) => s.rightPanelWidth);
+
+  // M4：监听 main 端 transcribe_audio_file 工具发起的转码请求，
+  // 把任意音频转成 16k mono WAV 回传。无 UI。
+  useAudioTranscoder();
 
   const showRight = !rightCollapsed && treeRoot !== null;
 

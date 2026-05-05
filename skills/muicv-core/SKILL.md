@@ -70,6 +70,8 @@ description: 管理本地 Markdown 简历素材库。帮用户在工作目录下
 │   └── .gitkeep
 ├── interviews/           # muicv-interview 产出的模拟面试题目反馈（👍/👎 题库迭代）
 │   └── .gitkeep
+├── audio-reviews/        # muicv-audio-review 产出的录音复盘（STT 转写 + 分析）
+│   └── .gitkeep
 ├── match/                # muicv-jobs:match 产出的匹配度报告
 │   └── .gitkeep
 ├── education.md          # 带占位说明的骨架
@@ -257,6 +259,7 @@ url: https://example.com
 | `applications/*.md` | `application` | `target`, `company`, `title`, `prepared_at` | — |
 | `debriefs/*.md` | `debrief` | `company`, `title`, `date` | `round`, `round_label`, `interviewer`, `outcome`, `duration_min` |
 | `interviews/*.md` | `interview_feedback` | `company`, `title`, `round`, `level`, `category`, `date`, `mode` | `round_label`, `target`, `version` |
+| `audio-reviews/*.md` | `audio_review` | `scenario`, `source`, `duration_min`, `date` | `language`, `related_target`, `related_version` |
 
 日期格式：`start` / `end` 用 `YYYY-MM`，`end` 也可以是 `'present'`。其他时间戳用 ISO-8601。
 

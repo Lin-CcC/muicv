@@ -3,7 +3,13 @@ import type { WebContents } from 'electron';
 import { z } from 'zod';
 
 import type { AppConfig } from '../../shared/types.ts';
-import { MicPermissionDenied, RecordingCancelled, recordAndTranscribe } from '../audio.ts';
+import {
+  FileTranscribeError,
+  MicPermissionDenied,
+  RecordingCancelled,
+  recordAndTranscribe,
+  transcribeFile,
+} from '../audio.ts';
 
 /**
  * STT 工具集（issue #1 M2）。
@@ -50,5 +56,31 @@ export function buildSttTools(config: AppConfig, sender: WebContents) {
     },
   });
 
-  return [recordAndTranscribeResponse];
+  const transcribeAudioFile = tool({
+    name: 'transcribe_audio_file',
+    description:
+      '把用户本地的一段已有音频文件（mp3 / m4a / wav / webm / ogg / flac 等）转写成文字。返回 JSON 字符串，含 transcript / durationMs / language / fillerCount / pauseCount。**仅在 muicv 桌面 app 内可用**——给 muicv-audio-review skill 用。',
+    parameters: z.object({
+      filePath: z.string().describe('音频文件路径。支持绝对路径（/Users/.../foo.mp3）/ ~ 开头 / 工作目录相对路径'),
+      language: z
+        .string()
+        .nullable()
+        .describe('音频主语言提示（zh / en / ja 等）。null = 让 Whisper 自动检测，中英文混说推荐 null'),
+    }),
+    execute: async ({ filePath }) => {
+      try {
+        const result = await transcribeFile({
+          filePath,
+          sender,
+          config,
+        });
+        return JSON.stringify(result);
+      } catch (err) {
+        if (err instanceof FileTranscribeError) return `转写失败：${err.message}`;
+        return `转写失败：${err instanceof Error ? err.message : String(err)}`;
+      }
+    },
+  });
+
+  return [recordAndTranscribeResponse, transcribeAudioFile];
 }

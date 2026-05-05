@@ -111,6 +111,28 @@ export type InterviewFeedbackFrontmatter = {
   version?: string; // 指向 versions/*.md 的相对路径
 };
 
+/**
+ * audio-reviews/*.md —— 录音复盘，由 muicv-audio-review 产出（issue #1 M4）。
+ * 用户拖一段已有录音 → STT 转写 → 按场景分析 → 写到这里。跟 debriefs/ 区别：
+ * debrief 是用户口述写下来；audio-review 是直接转写音频。
+ */
+export type AudioReviewFrontmatter = {
+  type: 'audio_review';
+  /** 复盘场景，决定分析维度。详见 skills/muicv-audio-review/SKILL.md。 */
+  scenario: 'interview' | 'client' | 'pitch' | 'meeting' | 'other';
+  /** 原音频文件路径（用户视角，方便回放对照），通常是绝对路径。 */
+  source: string;
+  /** 音频时长（分钟，向上取整），来自 transcribe_audio_file 工具。 */
+  duration_min: number;
+  /** 复盘当天 YYYY-MM-DD。 */
+  date: string;
+  /** Whisper 检测到的主语言，例：zh / en / ja。 */
+  language?: string;
+  /** 可选关联：面试录音通常对应一个 target / version。 */
+  related_target?: string;
+  related_version?: string;
+};
+
 export type MuiCvFrontmatter =
   | ProfileFrontmatter
   | ExperienceFrontmatter
@@ -119,4 +141,5 @@ export type MuiCvFrontmatter =
   | VersionFrontmatter
   | ApplicationFrontmatter
   | DebriefFrontmatter
-  | InterviewFeedbackFrontmatter;
+  | InterviewFeedbackFrontmatter
+  | AudioReviewFrontmatter;

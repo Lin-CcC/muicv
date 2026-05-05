@@ -279,6 +279,25 @@ export type AudioRecordOutcome =
   | { ok: false; reason: 'mic-denied' | 'cancel' | 'error'; message: string };
 
 /**
+ * 文件转码 IPC（issue #1 M4）：main 端 transcribe_audio_file 工具读完文件
+ * 把字节交给 renderer，renderer 用 OfflineAudioContext 转 16k mono WAV 回传。
+ */
+export type AudioTranscodeRequest = {
+  requestId: string;
+  /** 原音频 bytes 的 base64（不含 data: 前缀）。 */
+  audioBase64: string;
+  /** 原 mime（按文件扩展名推断；让 OfflineAudioContext.decodeAudioData 用）。 */
+  mimeType: string;
+};
+
+export type AudioTranscodedPayload = {
+  /** 转完的 16k mono PCM WAV bytes 的 base64。 */
+  wavBase64: string;
+  /** 解码后的实际音频时长。 */
+  durationMs: number;
+};
+
+/**
  * 本地 whisper.cpp 引擎插件状态（issue #1 M3）。
  * 引擎 + 模型按需下载，存 <userData>/whisper-engine/，跟主 app 解耦升版。
  */
@@ -422,6 +441,12 @@ export type RendererApi = {
     cancel(requestId: string, reason: string): Promise<void>;
     /** chatbox 麦克风按钮：renderer 主动触发一次录音 → 转写。 */
     recordAndTranscribe(opts: { durationLimitSec?: number }): Promise<AudioRecordOutcome>;
+    /** 监听 main 端 transcribe_audio_file 工具发起的转码请求。返回 unsubscribe。 */
+    onTranscodeRequest(handler: (req: AudioTranscodeRequest) => void | Promise<void>): () => void;
+    /** 转码完成回传 wav。 */
+    transcodeComplete(requestId: string, payload: AudioTranscodedPayload): Promise<void>;
+    /** 转码失败回传错误信息。 */
+    transcodeError(requestId: string, message: string): Promise<void>;
   };
   whisperEngine: {
     status(): Promise<WhisperEngineStatus>;

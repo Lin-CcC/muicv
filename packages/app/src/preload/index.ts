@@ -6,6 +6,8 @@ import type {
   AudioRecordOutcome,
   AudioRecordingPayload,
   AudioRecordingRequest,
+  AudioTranscodeRequest,
+  AudioTranscodedPayload,
   ChatMessage,
   Conversation,
   ConversationSummary,
@@ -103,6 +105,17 @@ const api: RendererApi = {
       ipcRenderer.invoke('audio:cancel', requestId, reason) as Promise<void>,
     recordAndTranscribe: (opts: { durationLimitSec?: number }) =>
       ipcRenderer.invoke('audio:recordAndTranscribe', opts) as Promise<AudioRecordOutcome>,
+    onTranscodeRequest: (handler: (req: AudioTranscodeRequest) => void | Promise<void>) => {
+      const listener = (_e: Electron.IpcRendererEvent, req: AudioTranscodeRequest) => {
+        void handler(req);
+      };
+      ipcRenderer.on('audio:transcode-request', listener);
+      return () => ipcRenderer.removeListener('audio:transcode-request', listener);
+    },
+    transcodeComplete: (requestId: string, payload: AudioTranscodedPayload) =>
+      ipcRenderer.invoke('audio:transcode-complete', requestId, payload) as Promise<void>,
+    transcodeError: (requestId: string, message: string) =>
+      ipcRenderer.invoke('audio:transcode-error', requestId, message) as Promise<void>,
   },
   whisperEngine: {
     status: () => ipcRenderer.invoke('whisperEngine:status') as Promise<WhisperEngineStatus>,
