@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import { AppShell } from './components/app-shell';
+import { AppSkeleton } from './components/app-skeleton';
 import { LoginView } from './components/login-view';
 import { bootstrap, useAppStore } from './lib/store';
 
@@ -13,7 +14,7 @@ export function App() {
   }, []);
 
   if (bootstrapping) {
-    return <div className="flex h-screen items-center justify-center bg-cream text-mute">加载中…</div>;
+    return <AppSkeleton />;
   }
 
   if (view === 'login') {
