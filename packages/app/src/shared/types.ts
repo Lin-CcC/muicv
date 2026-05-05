@@ -266,6 +266,18 @@ export type AudioRecordingPayload = {
   pauses: Array<[number, number]>;
 };
 
+export type AudioTranscribeResult = {
+  transcript: string;
+  durationMs: number;
+  language: string;
+  fillerCount: number;
+  pauseCount: number;
+};
+
+export type AudioRecordOutcome =
+  | { ok: true; result: AudioTranscribeResult }
+  | { ok: false; reason: 'mic-denied' | 'cancel' | 'error'; message: string };
+
 export type SessionCheckResult =
   | { status: 'ok'; session: SessionInfo }
   | { status: 'no-key' }
@@ -380,5 +392,7 @@ export type RendererApi = {
     complete(requestId: string, payload: AudioRecordingPayload): Promise<void>;
     /** 录音取消（用户取消 / 设备错误 / 权限拒绝）。 */
     cancel(requestId: string, reason: string): Promise<void>;
+    /** chatbox 麦克风按钮：renderer 主动触发一次录音 → 转写。 */
+    recordAndTranscribe(opts: { durationLimitSec?: number }): Promise<AudioRecordOutcome>;
   };
 };

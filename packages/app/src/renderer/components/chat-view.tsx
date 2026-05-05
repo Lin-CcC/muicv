@@ -1,4 +1,4 @@
-import { StopIcon } from '@phosphor-icons/react';
+import { MicrophoneIcon, StopIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 import { type AgentChunk, type ArtifactRef, CONVERSATION_TYPE_META, type ToolCallRecord } from '../../shared/types.ts';
@@ -35,6 +35,24 @@ export function ChatView() {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [needsAiSetup, setNeedsAiSetup] = useState(false);
+  const [recording, setRecording] = useState(false);
+
+  async function onMicClick(): Promise<void> {
+    if (recording) return;
+    setRecording(true);
+    setError(null);
+    try {
+      const outcome = await window.muicv.audio.recordAndTranscribe({ durationLimitSec: 180 });
+      if (!outcome.ok) {
+        if (outcome.reason !== 'cancel') setError(outcome.message);
+        return;
+      }
+      // 默认填入 textarea 让用户编辑后再按发送；空 input 直接放，已有内容追加
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${outcome.result.transcript}` : outcome.result.transcript));
+    } finally {
+      setRecording(false);
+    }
+  }
 
   function handleErrorChunk(message: string, assistantId: string) {
     const kind = classifyError(message);
@@ -200,6 +218,16 @@ export function ChatView() {
             </p>
           )}
           <div className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink">
+            <button
+              type="button"
+              onClick={() => void onMicClick()}
+              disabled={busy || recording}
+              title={recording ? '录音中，点击录音面板上的按钮结束' : '语音输入（最长 3 分钟）'}
+              className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="语音输入"
+            >
+              <MicrophoneIcon size={18} weight={recording ? 'fill' : 'regular'} />
+            </button>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}

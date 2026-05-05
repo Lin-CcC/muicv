@@ -7,6 +7,7 @@ import { BrowserWindow, app, dialog, ipcMain, protocol, shell } from 'electron';
 
 import type { AppConfig, ChatMessage, ConversationType, Profile } from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
+import { MicPermissionDenied, RecordingCancelled, recordAndTranscribe, type TranscribeResult } from './audio.ts';
 import {
   createConversation,
   deleteConversation,
@@ -340,6 +341,35 @@ ipcMain.handle('fs:showInFolder', async (_e, path: string) => {
   if (!cfg.workspaceDir || !path.startsWith(cfg.workspaceDir)) return;
   shell.showItemInFolder(path);
 });
+
+// -------------------- IPC: audio --------------------
+
+/**
+ * 让 renderer chatbox 也能主动触发录音 → 转写（issue #1 M2 增补）。
+ * 跟 agent tool record_and_transcribe_response 共用 main/audio.ts 的 recordAndTranscribe。
+ */
+ipcMain.handle(
+  'audio:recordAndTranscribe',
+  async (
+    e,
+    opts: { durationLimitSec?: number },
+  ): Promise<
+    { ok: true; result: TranscribeResult } | { ok: false; reason: 'mic-denied' | 'cancel' | 'error'; message: string }
+  > => {
+    try {
+      const result = await recordAndTranscribe({
+        durationLimitSec: opts?.durationLimitSec ?? 180,
+        sender: e.sender,
+        config: getConfig(),
+      });
+      return { ok: true, result };
+    } catch (err) {
+      if (err instanceof MicPermissionDenied) return { ok: false, reason: 'mic-denied', message: err.message };
+      if (err instanceof RecordingCancelled) return { ok: false, reason: 'cancel', message: err.message };
+      return { ok: false, reason: 'error', message: err instanceof Error ? err.message : String(err) };
+    }
+  },
+);
 
 // -------------------- App lifecycle --------------------
 

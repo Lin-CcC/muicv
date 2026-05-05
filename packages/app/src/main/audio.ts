@@ -1,8 +1,10 @@
+import { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
 
 import { ipcMain, type WebContents, systemPreferences } from 'electron';
 
-import type { AudioRecordingPayload, AudioRecordingRequest } from '../shared/types.ts';
+import type { AppConfig, AudioRecordingPayload, AudioRecordingRequest } from '../shared/types.ts';
+import { countFillers } from './lib/filler-count.ts';
 
 /**
  * 录音中转 IPC（issue #1 M2）：
@@ -81,6 +83,68 @@ export function requestRecording(opts: RequestRecordingOpts): Promise<AudioRecor
     }
     opts.sender.send('audio:recording-request', request);
   });
+}
+
+export type TranscribeResult = {
+  transcript: string;
+  durationMs: number;
+  language: string;
+  fillerCount: number;
+  pauseCount: number;
+};
+
+/**
+ * 一站式：弹录音面板 → POST 后端转写 → 算 filler/pause → 返回结构化结果。
+ * agent tool 和 chatbox 麦克风按钮共用这个公共流程。
+ */
+export async function recordAndTranscribe(opts: {
+  durationLimitSec: number;
+  sender: WebContents;
+  config: AppConfig;
+}): Promise<TranscribeResult> {
+  await ensureMicrophoneAccess();
+  const payload = await requestRecording({ durationLimitSec: opts.durationLimitSec, sender: opts.sender });
+  const res = await postTranscribe(opts.config, payload);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`muicv /audio/transcribe 返回 ${res.status}：${text.slice(0, 300) || '未知错误'}`);
+  }
+  const body = (await res.json().catch(() => null)) as {
+    transcript?: string;
+    duration_ms?: number;
+    language?: string;
+  } | null;
+  if (!body || typeof body.transcript !== 'string') {
+    throw new Error('muicv /audio/transcribe 响应不含 transcript');
+  }
+  return {
+    transcript: body.transcript,
+    durationMs: body.duration_ms ?? payload.durationMs,
+    language: body.language ?? 'unknown',
+    fillerCount: countFillers(body.transcript),
+    pauseCount: payload.pauses.length,
+  };
+}
+
+async function postTranscribe(config: AppConfig, payload: AudioRecordingPayload): Promise<Response> {
+  const audio = Buffer.from(payload.audioBase64, 'base64');
+  const blob = new Blob([audio], { type: payload.mimeType });
+  const form = new FormData();
+  form.append('file', blob, fileNameForMime(payload.mimeType));
+  const headers: Record<string, string> = config.muicvApiKey ? { authorization: `Bearer ${config.muicvApiKey}` } : {};
+  return await fetch(`${config.muicvApiBase.replace(/\/$/, '')}/audio/transcribe`, {
+    method: 'POST',
+    headers,
+    body: form,
+  });
+}
+
+function fileNameForMime(mime: string): string {
+  if (mime.includes('webm')) return 'recording.webm';
+  if (mime.includes('ogg')) return 'recording.ogg';
+  if (mime.includes('mp4') || mime.includes('m4a')) return 'recording.m4a';
+  if (mime.includes('wav')) return 'recording.wav';
+  return 'recording.bin';
 }
 
 function ensureRegistered(): void {

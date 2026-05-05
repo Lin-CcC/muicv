@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   AgentChunk,
   AppConfig,
+  AudioRecordOutcome,
   AudioRecordingPayload,
   AudioRecordingRequest,
   ChatMessage,
@@ -95,6 +96,8 @@ const api: RendererApi = {
       ipcRenderer.invoke('audio:complete', requestId, payload) as Promise<void>,
     cancel: (requestId: string, reason: string) =>
       ipcRenderer.invoke('audio:cancel', requestId, reason) as Promise<void>,
+    recordAndTranscribe: (opts: { durationLimitSec?: number }) =>
+      ipcRenderer.invoke('audio:recordAndTranscribe', opts) as Promise<AudioRecordOutcome>,
   },
 };
 
