@@ -1,4 +1,4 @@
-import { MicrophoneIcon, StopIcon } from '@phosphor-icons/react';
+import { MicrophoneIcon, SpinnerGapIcon, StopIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 import { type AgentChunk, type ArtifactRef, CONVERSATION_TYPE_META, type ToolCallRecord } from '../../shared/types.ts';
@@ -222,11 +222,15 @@ export function ChatView() {
               type="button"
               onClick={() => void onMicClick()}
               disabled={busy || recording}
-              title={recording ? '录音中，点击录音面板上的按钮结束' : '语音输入（最长 3 分钟）'}
+              title={recording ? '录音 / 转写中…' : '语音输入（最长 3 分钟）'}
               className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
               aria-label="语音输入"
             >
-              <MicrophoneIcon size={18} weight={recording ? 'fill' : 'regular'} />
+              {recording ? (
+                <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+              ) : (
+                <MicrophoneIcon size={18} weight="regular" />
+              )}
             </button>
             <textarea
               value={input}
