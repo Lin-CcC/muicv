@@ -18,6 +18,11 @@
   "browser": {
     "binding": "BROWSER"
   },
+  // Cloudflare Workers AI：跑 STT（@cf/openai/whisper-large-v3-turbo）给 /audio/transcribe 用。
+  // issue #1 M1。详见 https://developers.cloudflare.com/workers-ai/
+  "ai": {
+    "binding": "AI"
+  },
   // BrowserContainer 已彻底下线。上一次 deploy 完成「无 binding 引用」的过渡状态，
   // 这次 deploy 加 v2 deleted_classes 真正把 class 从 Cloudflare 卸掉。
   "migrations": [

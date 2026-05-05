@@ -40,6 +40,12 @@ export const PDF_RENDER_COST = 200;
 export const JD_FETCH_COST = 300;
 
 /**
+ * STT 转写按音频时长扣 token（显示 token / 分钟，向上取整到分钟）。
+ * 草案值：跑一段时间（issue #1 M1）观察 Workers AI Whisper 真实账单后再校准。
+ */
+export const STT_TRANSCRIBE_RATE_PER_MIN = 100;
+
+/**
  * LLM 计费表。每个 model 一项：
  *   - inputRate：1 上游 prompt token 折合多少显示 token
  *   - outputRate：1 上游 completion token 折合多少显示 token
@@ -188,6 +194,7 @@ export type LedgerType =
   | 'llm'
   | 'pdf_render'
   | 'jd_fetch'
+  | 'stt_transcribe'
   | 'admin_grant'
   | 'admin_deduct';
 

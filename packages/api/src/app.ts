@@ -15,6 +15,7 @@ import {
   handleResumeSnapshotGet,
   handleResumeSync,
 } from './routes/resume-sync.ts';
+import { handleTranscribe } from './routes/transcribe.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
 
 type AppBindings = {
@@ -57,6 +58,7 @@ app.get('/', (c) =>
       'GET /health',
       'POST /render',
       'POST /jobs/fetch',
+      'POST /audio/transcribe（multipart/form-data，字段 file）',
       'POST /waitlist',
       'GET /me（拿当前登录用户信息）',
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
@@ -214,6 +216,18 @@ app.post('/jobs/fetch', requireApiKey, async (c) => {
     );
   }
 });
+
+/**
+ * POST /audio/transcribe —— STT 转写（issue #1 M1）。
+ *
+ * Body: multipart/form-data，字段 `file`（音频，< 25MB / < 10min）
+ * 响应：200 application/json { transcript, duration_ms, language, segments? } / 400 / 402 / 502
+ *
+ * 走 Cloudflare Workers AI `@cf/openai/whisper-large-v3-turbo`。
+ * 计费：成功才扣，按返回 duration 实际时长向上取整到分钟 × STT_TRANSCRIBE_RATE_PER_MIN。
+ * 详见 src/routes/transcribe.ts。
+ */
+app.post('/audio/transcribe', requireApiKey, handleTranscribe);
 
 /**
  * /resume/* —— 简历素材云同步（skill 用 Bearer key 调用）。详见 src/routes/resume-sync.ts。
