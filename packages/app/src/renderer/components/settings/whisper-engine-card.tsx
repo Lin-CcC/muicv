@@ -25,12 +25,12 @@ const PREFERENCE_OPTIONS: Array<{ id: SttPreference; label: string; hint: string
   {
     id: 'local-preferred',
     label: '本地优先',
-    hint: '装好引擎 + 模型后走本地 whisper.cpp，离线 / 隐私 / 免 token；缺装件时报错。',
+    hint: '装好引擎 + 默认模型才走本地 whisper.cpp（离线 / 隐私 / 免 token）；缺装件时自动回退云端。',
   },
 ];
 
 const MODEL_OPTIONS: Array<{ id: WhisperModelName; label: string; hint: string }> = [
-  { id: 'base', label: 'base（~140 MB）', hint: '中等准确率，CPU 跑得飞快' },
+  { id: 'base', label: 'base（~140 MB）', hint: '入门级，CPU 跑得飞快' },
   { id: 'small', label: 'small（~470 MB）', hint: '中英文准确率高，推荐' },
 ];
 
@@ -160,7 +160,13 @@ export function WhisperEngineCard() {
       {engineInstalled && (
         <div className="mt-3 rounded-xl border-2 border-rule-strong bg-paper p-3">
           <p className="text-[13px] font-bold text-ink">模型</p>
-          <p className="mt-0.5 text-[11.5px] text-mute">至少装一个模型才能跑本地。HuggingFace 直接下载，不扣 token。</p>
+          <p className="mt-0.5 text-[11.5px] text-mute">
+            至少装一个模型才能跑本地。HuggingFace 直接下载，不扣 token。
+            <br />
+            <span className="text-mute/80">
+              注：whisper 上游命名按从小到大是 base &lt; small &lt; medium，命名 OpenAI 定的，反直觉。
+            </span>
+          </p>
           <div className="mt-2 flex flex-col gap-2">
             {MODEL_OPTIONS.map((opt) => {
               const m = status.models.find((x) => x.name === opt.id);
@@ -227,19 +233,28 @@ export function WhisperEngineCard() {
         <div className="mt-2 flex flex-col gap-2">
           {PREFERENCE_OPTIONS.map((opt) => {
             const selected = status.preference === opt.id;
+            const localReady = engineInstalled && status.models.some((m) => m.installed);
+            const disabled = opt.id === 'local-preferred' && !localReady;
             return (
               <button
                 type="button"
                 key={opt.id}
-                onClick={() => void onChangePref(opt.id)}
-                className={`flex items-start gap-3 rounded-lg border-2 px-3 py-2 text-left transition ${
+                onClick={() => {
+                  if (!disabled) void onChangePref(opt.id);
+                }}
+                disabled={disabled}
+                title={disabled ? '先下载引擎和至少一个模型' : ''}
+                className={`flex items-start gap-3 rounded-lg border-2 px-3 py-2 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                   selected
                     ? 'border-ink bg-fluff shadow-[0_2px_0_0_var(--color-ink)]'
-                    : 'border-rule-strong bg-cream hover:bg-paper'
+                    : 'border-rule-strong bg-cream enabled:hover:bg-paper'
                 }`}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12.5px] font-bold text-ink">{opt.label}</p>
+                  <p className="text-[12.5px] font-bold text-ink">
+                    {opt.label}
+                    {disabled && <span className="ml-2 text-[10.5px] font-normal text-mute">需先装引擎和模型</span>}
+                  </p>
                   <p className="mt-0.5 text-[11.5px] text-mute">{opt.hint}</p>
                 </div>
               </button>
