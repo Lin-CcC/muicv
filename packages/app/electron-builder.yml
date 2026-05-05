@@ -50,6 +50,8 @@ mac:
       - CFBundleURLName: com.meathill.muicv.oauth
         CFBundleURLSchemes:
           - muicv
+    # 模拟面试 / 录音复盘需要麦克风。文案直接展示给用户，要清楚说明用途。
+    NSMicrophoneUsageDescription: Mui简历 用麦克风录下你的模拟面试回答，转写后给反馈（含时长 / 流利度 / 填充词）。录音不会上传到 muicv 服务器之外的任何地方。
 
 # 顶层 protocols 给 Windows / Linux 用
 # （macOS 走 mac.extendInfo.CFBundleURLTypes，与之不冲突）

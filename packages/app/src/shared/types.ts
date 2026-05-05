@@ -248,6 +248,24 @@ export type AgentChunk =
    */
   | { type: 'artifact'; kind: ArtifactKind; path: string; title: string; source: 'read' | 'write' };
 
+/**
+ * 录音 IPC 数据契约（issue #1 M2）。
+ * main 端 agent tool 触发录音 → renderer RecordPanel 接收 → 录完回传。
+ */
+export type AudioRecordingRequest = {
+  requestId: string;
+  durationLimitSec: number;
+};
+
+export type AudioRecordingPayload = {
+  /** webm/opus blob 转 base64（不含 data: 前缀）。 */
+  audioBase64: string;
+  mimeType: string;
+  durationMs: number;
+  /** 静音段时间戳（毫秒），由 renderer 实时算出，后端不绕一圈再算。 */
+  pauses: Array<[number, number]>;
+};
+
 export type SessionCheckResult =
   | { status: 'ok'; session: SessionInfo }
   | { status: 'no-key' }
@@ -354,5 +372,13 @@ export type RendererApi = {
     listDir(path: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }> | null>;
     /** 在文件管理器里打开。 */
     showInFolder(path: string): Promise<void>;
+  };
+  audio: {
+    /** 监听 main 端 agent tool 发起的录音请求。返回 unsubscribe。 */
+    onRecordingRequest(handler: (req: AudioRecordingRequest) => void): () => void;
+    /** 录音完成回传。 */
+    complete(requestId: string, payload: AudioRecordingPayload): Promise<void>;
+    /** 录音取消（用户取消 / 设备错误 / 权限拒绝）。 */
+    cancel(requestId: string, reason: string): Promise<void>;
   };
 };

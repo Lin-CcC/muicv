@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   AgentChunk,
   AppConfig,
+  AudioRecordingPayload,
+  AudioRecordingRequest,
   ChatMessage,
   Conversation,
   ConversationSummary,
@@ -82,6 +84,17 @@ const api: RendererApi = {
         isDirectory: boolean;
       }> | null>,
     showInFolder: (path) => ipcRenderer.invoke('fs:showInFolder', path) as Promise<void>,
+  },
+  audio: {
+    onRecordingRequest: (handler: (req: AudioRecordingRequest) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, req: AudioRecordingRequest) => handler(req);
+      ipcRenderer.on('audio:recording-request', listener);
+      return () => ipcRenderer.removeListener('audio:recording-request', listener);
+    },
+    complete: (requestId: string, payload: AudioRecordingPayload) =>
+      ipcRenderer.invoke('audio:complete', requestId, payload) as Promise<void>,
+    cancel: (requestId: string, reason: string) =>
+      ipcRenderer.invoke('audio:cancel', requestId, reason) as Promise<void>,
   },
 };
 

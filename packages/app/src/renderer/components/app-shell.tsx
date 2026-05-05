@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { ChatView } from './chat-view';
 import { PreviewDrawer } from './preview-drawer';
+import { RecordPanel } from './record-panel';
 import { SettingsView } from './settings-view';
 import { SidebarLeft } from './sidebar-left';
 import { SidebarRight } from './sidebar-right';
@@ -44,6 +45,7 @@ export function AppShell() {
         )}
       </div>
       <PreviewDrawer />
+      <RecordPanel />
     </div>
   );
 }

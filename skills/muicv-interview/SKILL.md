@@ -33,7 +33,7 @@ description: 模拟面试。基于用户的 JD（target）+ 简历（version）+
 4. **每轮时长**：30 / 45 / 60 / 90 min 任选（绑死题量映射，看 round-recipes.md）
 5. **想重点练什么**（可选）：用户能说"我系统设计弱"或"上次挂在 BQ"
 6. **★ 输入方式**（关键）：
-   - "你在 muicv 桌面 app 里吗？" → **语音模式**（agent 调 STT 工具，按完整维度反馈）
+   - "你在 muicv 桌面 app 里吗？" → **语音模式**（agent 调 `record_and_transcribe_response` 工具，弹录音面板让用户口头答；返回 transcript / durationMs / fillerCount / pauseCount，按完整维度反馈）
    - 在 Claude Code / Codex / Cursor 等 terminal → **打字降级模式**
 
    如果是打字模式，**显式告知**：
@@ -42,6 +42,10 @@ description: 模拟面试。基于用户的 JD（target）+ 简历（version）+
    > 你也可以坚持打字，我会只评内容质量、不评时长。要继续吗？
 
    用户坚持 → 不挡，标记本场为打字模式，反馈时按 question-design-framework.md 的"打字模式"列。
+
+   语音模式的工具语义：抛题后调 `record_and_transcribe_response`（默认 180s 上限）；
+   工具返回字符串若以 `录音失败：` 开头说明麦克风权限 / 网络异常等问题，**告诉用户**
+   并询问是改打字回答还是修复后重试。**不要**在没有调用工具的情况下假装拿到了语音数据。
 
 ### 第二步：审查素材（硬阻断 / 软警告 / 通过 三档）
 

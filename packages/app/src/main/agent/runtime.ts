@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { AgentChunk, AppConfig, ChatMessage, ConversationType, ToolCallRecord } from '../../shared/types.ts';
 import { getConversation, saveConversation } from '../conversations.ts';
+import { buildSttTools } from './api-tools-stt.ts';
 import { buildSyncTools } from './api-tools-sync.ts';
 import { buildApiTools } from './api-tools.ts';
 import { buildSystemPrompt } from './skills.ts';
@@ -107,6 +108,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     ...buildFileTools(config.workspaceDir, emitArtifact),
     ...buildApiTools(config, emitArtifact),
     ...buildSyncTools(config),
+    ...buildSttTools(config, sender),
   ];
   const agent = new Agent({
     name: 'Mui简历',
