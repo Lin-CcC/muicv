@@ -225,33 +225,33 @@ export function RecordPanel(): ReactElement | null {
   const remainSec = Math.max(0, limitSec - elapsedSec);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="w-[420px] rounded-2xl bg-white p-6 shadow-xl dark:bg-zinc-900">
-        <h2 className="text-lg font-semibold mb-2">模拟面试录音</h2>
-        <p className="text-sm text-zinc-500 mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
+      <div className="w-[420px] rounded-2xl border-2 border-rule-strong bg-cream p-6 shadow-xl">
+        <h2 className="mb-2 text-lg font-bold text-ink">模拟面试录音</h2>
+        <p className="mb-4 text-sm text-mute">
           {phase === 'preparing' && '准备录音…'}
           {phase === 'recording' && `已录 ${formatTime(elapsedMs)} / 最长 ${formatTime(limitSec * 1000)}`}
           {phase === 'finishing' && '正在保存…'}
           {phase === 'error' && (errorMsg || '录音失败')}
         </p>
 
-        <div className="h-16 w-full rounded-md bg-zinc-100 dark:bg-zinc-800 mb-4 overflow-hidden">
+        <div className="mb-4 h-16 w-full overflow-hidden rounded-md border border-rule bg-paper">
           <div
-            className="h-full bg-blue-500 transition-all duration-100"
+            className="h-full bg-yellow transition-all duration-100"
             style={{ width: `${Math.min(100, rms * 500)}%` }}
           />
         </div>
 
-        <div className="flex justify-between text-xs text-zinc-400 mb-4">
+        <div className="mb-4 flex justify-between text-xs text-mute">
           <span>静音自动停 {AUTO_STOP_SILENCE_MS / 1000}s</span>
           <span>剩余 {remainSec}s</span>
         </div>
 
-        <div className="flex gap-2 justify-end">
+        <div className="flex justify-end gap-2">
           <button
             type="button"
             onClick={userCancel}
-            className="px-4 py-2 rounded-md text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="press-ink rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2 text-[13px] font-bold text-ink hover:border-ink"
           >
             取消
           </button>
@@ -259,7 +259,7 @@ export function RecordPanel(): ReactElement | null {
             <button
               type="button"
               onClick={stopRecording}
-              className="px-4 py-2 rounded-md text-sm bg-blue-600 text-white hover:bg-blue-700"
+              className="press rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink"
             >
               完成
             </button>
