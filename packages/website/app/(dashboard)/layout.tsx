@@ -8,6 +8,20 @@ import { getAuth } from '@/lib/auth';
 import { DashboardNav } from './_components/dashboard-nav';
 import { SignOutButton } from './sign-out-button';
 
+function DownloadIcon({ className = 'h-3.5 w-3.5' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3v12m0 0l-5-5m5 5l5-5M5 21h14"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 // 整个 dashboard 段是 per-user 的，强制 SSR
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +53,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </span>
           </Link>
           <div className="flex items-center gap-3">
+            <Link
+              href="/download"
+              className="press inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[13px] font-bold text-ink"
+            >
+              <DownloadIcon />
+              <span className="hidden sm:inline">下载桌面 app</span>
+              <span className="sm:hidden">桌面 app</span>
+            </Link>
             <span className="hidden text-[13px] text-ink-soft sm:inline">
               👋 <span className="font-semibold text-ink">{userName}</span>
             </span>

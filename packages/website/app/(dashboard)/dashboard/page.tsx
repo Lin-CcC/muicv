@@ -44,28 +44,14 @@ export default async function DashboardPage() {
         />
       </section>
 
-      <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
-        <h2 className="text-[18px] font-extrabold text-ink">下一步</h2>
-        <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">余额到位后，你已经能：</p>
-        <ol className="mt-4 space-y-2 text-[14px] leading-[1.7] text-ink-soft">
-          <li>
-            🐾 在自己 terminal 里安装 skill：
-            <code className="ml-1 rounded bg-fluff px-1.5 py-0.5 font-mono text-[12.5px] text-yellow-deep ring-1 ring-corgi/40">
-              npx skills add muicv -g
-            </code>
-          </li>
-          <li>🐾 跟 Claude / Codex 说"帮我准备简历"，skill 会接管引导</li>
-          <li>🐾 用桌面 app 直接调云端 LLM、导出 PDF、抓 JD —— 全部从这个余额里扣</li>
-        </ol>
-      </section>
-
       <section className="rounded-2xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_oklch(0.62_0.14_70)]">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 App</p>
-            <h2 className="mt-2 text-[18px] font-extrabold text-ink">不想装 skill？下载桌面 app 直接开始</h2>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 App · 推荐</p>
+            <h2 className="mt-2 text-[18px] font-extrabold text-ink">下载桌面 app 直接开始</h2>
             <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
-              macOS / Windows / Linux 全平台可用。云端 LLM、PDF 导出、JD 抓取，全部从这个余额扣。
+              macOS / Windows / Linux 全平台可用。简历、岗位、面试、求职信全部在一个 app 里完成； 云端能力（LLM、PDF
+              导出、JD 抓取）按 token 从余额扣。
             </p>
           </div>
           <a
@@ -75,6 +61,23 @@ export default async function DashboardPage() {
             下载桌面 app
           </a>
         </div>
+      </section>
+
+      <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+        <h2 className="text-[18px] font-extrabold text-ink">已经在用 AI agent？走 skill 路径</h2>
+        <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
+          Claude Code / Codex / Cursor / OpenCode 等支持 skill 协议的 agent 都能直接接入：
+        </p>
+        <ol className="mt-4 space-y-2 text-[14px] leading-[1.7] text-ink-soft">
+          <li>
+            🐾 在自己 terminal 里安装 skill：
+            <code className="ml-1 rounded bg-fluff px-1.5 py-0.5 font-mono text-[12.5px] text-yellow-deep ring-1 ring-corgi/40">
+              npx skills add muicv -g
+            </code>
+          </li>
+          <li>🐾 跟 Claude / Codex 说"帮我准备简历"，skill 会接管引导</li>
+          <li>🐾 云端调用都从这个余额里扣，跟桌面 app 共用一个钱包</li>
+        </ol>
       </section>
     </div>
   );

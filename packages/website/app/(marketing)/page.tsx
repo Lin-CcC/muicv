@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 
 import { getAuth } from '@/lib/auth';
 
+import { DesktopApp } from './_sections/desktop-app';
 import { FaqAndWaitlist } from './_sections/faq';
 import { KeyFeatures } from './_sections/features';
 import { Footer } from './_sections/footer';
@@ -25,6 +26,7 @@ export default async function WebsiteHomePage() {
       <Hero isLoggedIn={isLoggedIn} />
       <KeyFeatures />
       <Workflow />
+      <DesktopApp />
       <Install />
       <FaqAndWaitlist />
       <Footer />
