@@ -186,6 +186,9 @@ importers:
       '@muicv/ui':
         specifier: workspace:*
         version: link:../ui
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       better-auth:
         specifier: ^1.6.9
         version: 1.6.9(@cloudflare/workers-types@4.20260426.1)(@opentelemetry/api@1.9.0)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260426.1)(@opentelemetry/api@1.9.0)(kysely@0.28.16))(next@16.2.4(@opentelemetry/api@1.9.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
