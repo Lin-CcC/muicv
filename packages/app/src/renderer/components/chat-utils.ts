@@ -1,3 +1,5 @@
+import type { AttachmentKind, AttachmentRef } from '../../shared/types.ts';
+
 /**
  * agent runtime 上来的错误分三类，决定 UI 怎么展示：
  *   - ai-not-configured：让用户去 settings 接 AI（402 / muirouter 没绑）
@@ -45,4 +47,24 @@ export function resolveWorkspacePath(workspaceDir: string | null, p: string): st
   if (!workspaceDir) return p;
   const sep = workspaceDir.includes('\\') ? '\\' : '/';
   return workspaceDir.replace(/[/\\]+$/, '') + sep + p.replace(/^[/\\]+/, '');
+}
+
+const KIND_LABEL: Record<AttachmentKind, string> = {
+  pdf: 'PDF',
+  docx: 'DOCX',
+  markdown: 'Markdown',
+  text: '纯文本',
+};
+
+/**
+ * 把附件列表拼成 user message footer。agent 拿到后 `read_file` 这些路径即可。
+ * PDF / DOCX 已经在 main 进程提取出 sidecar，明确告知 agent 走哪个 .txt。
+ */
+export function formatAttachmentsFooter(refs: AttachmentRef[]): string {
+  if (refs.length === 0) return '';
+  const lines = refs.map((r) => {
+    const head = `- ${r.path}（${KIND_LABEL[r.kind]}`;
+    return r.textPath ? `${head}，已提取文本：${r.textPath}）` : `${head}）`;
+  });
+  return `\n\n---\n[附件]\n${lines.join('\n')}`;
 }

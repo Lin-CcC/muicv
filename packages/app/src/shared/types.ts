@@ -120,7 +120,49 @@ export type ChatMessage = {
   toolCalls?: ToolCallRecord[];
   /** assistant 完成时附带的 artifact 卡片（用户写的文件 / 读的关键资料）。 */
   artifacts?: ArtifactRef[];
+  /** 用户消息附带的上传附件（落到 inbox/，agent 用 read_file 读）。 */
+  attachments?: AttachmentRef[];
   createdAt: number;
+};
+
+/** 附件支持的文件种类。新增类型时同步更新 main/attachments.ts 的白名单。 */
+export type AttachmentKind = 'pdf' | 'docx' | 'markdown' | 'text';
+
+/**
+ * 附件引用 —— 由 main 进程在 'attachments:save' 中写盘后返给 renderer。
+ *
+ * `path` 是相对工作目录的路径（如 `inbox/20260506-143022-resume.pdf`），
+ * 跟 agent 工具调用看到的路径同一坐标系，可以直接拼到 user message footer
+ * 里给 agent。`textPath`：PDF / DOCX 解析出来的 .txt sidecar，agent 用现有
+ * `read_file` 读它就拿到纯文本，不用单独 parse 工具。
+ */
+export type AttachmentRef = {
+  path: string;
+  name: string;
+  kind: AttachmentKind;
+  mimeType: string;
+  size: number;
+  textPath?: string;
+};
+
+export type AttachmentSaveFailureReason =
+  | 'too-large'
+  | 'unsupported'
+  | 'parse-failed'
+  | 'parse-empty'
+  | 'workspace-missing'
+  | 'profile-mismatch'
+  | 'io-error';
+
+export type AttachmentSaveResult =
+  | { ok: true; ref: AttachmentRef }
+  | { ok: false; reason: AttachmentSaveFailureReason; message: string };
+
+/** 上传 IPC 单文件 payload —— renderer 把 File 拆成 ArrayBuffer 传过去。 */
+export type AttachmentUploadInput = {
+  name: string;
+  mimeType: string;
+  bytes: ArrayBuffer;
 };
 
 /**
@@ -431,6 +473,13 @@ export type RendererApi = {
     listDir(path: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }> | null>;
     /** 在文件管理器里打开。 */
     showInFolder(path: string): Promise<void>;
+  };
+  attachments: {
+    /**
+     * 把 chat box 里上传 / 拖入的文件落到 `<workspace>/inbox/`，PDF / DOCX 同时
+     * 在 main 进程提取文本写到同名 `.txt` sidecar，agent 直接 `read_file` 读 sidecar。
+     */
+    save(profileId: string, file: AttachmentUploadInput): Promise<AttachmentSaveResult>;
   };
   audio: {
     /** 监听 main 端 agent tool 发起的录音请求。返回 unsubscribe。 */

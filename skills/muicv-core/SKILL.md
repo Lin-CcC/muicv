@@ -151,6 +151,78 @@ type: achievements
 
 ---
 
+## 子任务：import-resume（用户上传现成简历）
+
+**触发**：
+
+- user message 末尾出现 prelude 描述的 `[附件]` block 且至少一个附件是 PDF / DOCX / Markdown / 文本（路径在 `inbox/` 下），**或**
+- 用户明说 "我上传了一份简历你帮我导入"、"按这个简历建素材库"、"解析这个 PDF" 等等。
+
+**流程**：
+
+### 1. 把附件读完
+
+- PDF / DOCX：`read_file` 那个 `.txt` sidecar（路径就在 `[附件]` block 里写明了）
+- Markdown / 文本：`read_file` 原文件
+- 多个附件全部读完再开始分析，不要边读边写
+
+### 2. 抽取结构化字段
+
+按下面这个 schema 在心里把简历内容拆开：
+
+- profile：姓名、目标岗位方向、城市、邮箱、电话、链接
+- experience[]：每段经历的 company / title / start / end / location / stack / 职责 / 亮点
+- projects[]：每个项目的 name / role / start / end / stack / url / 描述 / 亮点
+- education：学校 / 专业 / 学历 / 起止
+- skills：分类整理
+- achievements：奖项 / 证书 / 公开作品
+
+**绝不编造**：解析不出来的字段宁可空着或在 frontmatter 里写 `?`，等用户后面补。日期解析模糊（比如只有 "2023" 没月份）就保留原值并标记 `start: 2023-?`。
+
+### 3. 跟现有素材库比对
+
+- `glob_files("**/profile.md")` 已经在 prelude 跑过，知道有没有素材库
+- 已有素材库：再 `glob_files("experience/*.md")` / `glob_files("projects/*.md")` 看看有没有同名/同公司同年份的条目，**避免覆盖**
+- 没素材库：第一次用，等下要走完整 init
+
+### 4. 给用户一份"行动清单"等他点头
+
+**这一步是硬规则：没拿到用户明确确认前，禁止 `write_file`。**
+
+清单格式示例：
+
+```
+准备改这些（请确认 / 调整 / 跳过）：
+
+新建：
+✚ profile.md
+✚ experience/acme-2023.md（ACME Corp · Senior Frontend · 2023-03 ~ present）
+✚ experience/foobar-2021.md（FooBar · Frontend · 2021-08 ~ 2023-02）
+✚ projects/mui-cms.md（Mui CMS · Tech Lead）
+✚ education.md
+✚ skills.md
+✚ achievements.md
+
+可能冲突（已存在，需要你决定）：
+⚠ experience/acme-2023.md 已存在，要 [覆盖] / [合并] / [跳过]？
+```
+
+把待写文件路径 + 关键字段（公司 / 职位 / 时间）一起列，让用户能一眼看明白。
+
+### 5. 用户确认后再 write_file
+
+- 全部确认 → 按 add-experience / add-project 的 frontmatter schema 一一 `write_file`
+- 部分跳过 → 只写用户确认那几个
+- 全部取消 → 啥也不写，提示"附件已经在 inbox/，你随时可以让我重新解析"
+
+### 6. 收尾
+
+- 列出最终落盘的文件路径（host 自动出工件卡片）
+- 告诉用户："导入完了。建议你打开 profile.md 检查日期 / 联系方式有没有偏差，
+  也可以让我『整理一下我的素材』（organize 子任务）做去重和润色。"
+
+---
+
 ## 子任务：add-experience
 
 **触发**：用户说"加一段工作经历"、"我在 X 公司做过"、"我 2023 年在 Y 做前端"等。

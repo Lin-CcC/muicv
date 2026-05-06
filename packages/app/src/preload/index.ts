@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type {
   AgentChunk,
   AppConfig,
+  AttachmentSaveResult,
+  AttachmentUploadInput,
   AudioRecordOutcome,
   AudioRecordingPayload,
   AudioRecordingRequest,
@@ -92,6 +94,10 @@ const api: RendererApi = {
         isDirectory: boolean;
       }> | null>,
     showInFolder: (path) => ipcRenderer.invoke('fs:showInFolder', path) as Promise<void>,
+  },
+  attachments: {
+    save: (profileId: string, file: AttachmentUploadInput) =>
+      ipcRenderer.invoke('attachments:save', profileId, file) as Promise<AttachmentSaveResult>,
   },
   audio: {
     onRecordingRequest: (handler: (req: AudioRecordingRequest) => void) => {

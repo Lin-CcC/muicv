@@ -5,8 +5,16 @@ import { fileURLToPath } from 'node:url';
 
 import { BrowserWindow, app, dialog, ipcMain, protocol, shell } from 'electron';
 
-import type { AppConfig, ChatMessage, ConversationType, Profile } from '../shared/types.ts';
+import type {
+  AppConfig,
+  AttachmentSaveResult,
+  AttachmentUploadInput,
+  ChatMessage,
+  ConversationType,
+  Profile,
+} from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
+import { saveAttachment } from './attachments.ts';
 import { MicPermissionDenied, RecordingCancelled, recordAndTranscribe, type TranscribeResult } from './audio.ts';
 import { registerWhisperEngineIpc } from './whisper-engine/index.ts';
 import {
@@ -342,6 +350,20 @@ ipcMain.handle('fs:showInFolder', async (_e, path: string) => {
   if (!cfg.workspaceDir || !path.startsWith(cfg.workspaceDir)) return;
   shell.showItemInFolder(path);
 });
+
+// -------------------- IPC: attachments (chat box 上传) --------------------
+
+ipcMain.handle(
+  'attachments:save',
+  async (_e, profileId: string, file: AttachmentUploadInput): Promise<AttachmentSaveResult> => {
+    const cfg = getConfig();
+    // profile 必须跟激活态对得上：renderer 切 profile 时未及时清空附件 → 这里挡住
+    if (!profileId || profileId !== cfg.activeProfileId) {
+      return { ok: false, reason: 'profile-mismatch', message: '请先选中职业档案' };
+    }
+    return saveAttachment(cfg.workspaceDir, file);
+  },
+);
 
 // -------------------- IPC: audio --------------------
 

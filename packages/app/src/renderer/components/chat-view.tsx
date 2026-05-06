@@ -1,12 +1,30 @@
-import { MicrophoneIcon, SpinnerGapIcon, StopIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { MicrophoneIcon, PaperclipIcon, SpinnerGapIcon, StopIcon, XIcon } from '@phosphor-icons/react';
+import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react';
 
-import { type AgentChunk, type ArtifactRef, CONVERSATION_TYPE_META, type ToolCallRecord } from '../../shared/types.ts';
+import {
+  type AgentChunk,
+  type ArtifactRef,
+  type AttachmentRef,
+  CONVERSATION_TYPE_META,
+  type ToolCallRecord,
+} from '../../shared/types.ts';
 import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
 import { AiSetupCard, CenteredCard, EmptyConversation, NoConversationCard } from './chat-empty-states';
 import { MessageBubble } from './chat-message-bubble';
-import { classifyError, cryptoRandomId, resolveWorkspacePath, safeParseJson, stripLeadingEmoji } from './chat-utils';
+import {
+  classifyError,
+  cryptoRandomId,
+  formatAttachmentsFooter,
+  resolveWorkspacePath,
+  safeParseJson,
+  stripLeadingEmoji,
+} from './chat-utils';
+
+const ATTACHMENT_ACCEPT =
+  '.pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain';
+const MAX_ATTACHMENTS_PER_SEND = 5;
+const ATTACHMENT_ERROR_TTL_MS = 4000;
 
 /**
  * 中栏：当前 activeConversation 的对话流 + 输入框。
@@ -36,6 +54,115 @@ export function ChatView() {
   const [error, setError] = useState<string | null>(null);
   const [needsAiSetup, setNeedsAiSetup] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<AttachmentRef[]>([]);
+  const [attachmentErrors, setAttachmentErrors] = useState<Array<{ id: string; message: string }>>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dragDepthRef = useRef(0);
+
+  // 切 profile / 换对话 → 清空已选附件，避免跨上下文污染
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在切 profile / 对话时清
+  useEffect(() => {
+    setPendingAttachments([]);
+    setAttachmentErrors([]);
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+  }, [activeProfile?.id, activeConversation?.id]);
+
+  function pushAttachmentError(message: string): void {
+    const id = cryptoRandomId();
+    setAttachmentErrors((prev) => [...prev, { id, message }]);
+    setTimeout(() => {
+      setAttachmentErrors((prev) => prev.filter((e) => e.id !== id));
+    }, ATTACHMENT_ERROR_TTL_MS);
+  }
+
+  async function handleFiles(files: FileList | File[]): Promise<void> {
+    if (!activeProfile) {
+      pushAttachmentError('先选中一份职业档案再上传');
+      return;
+    }
+    const list = Array.from(files);
+    if (list.length === 0) return;
+
+    const remaining = MAX_ATTACHMENTS_PER_SEND - pendingAttachments.length;
+    if (remaining <= 0) {
+      pushAttachmentError(`一次最多 ${MAX_ATTACHMENTS_PER_SEND} 个附件，先发一轮再传`);
+      return;
+    }
+    const accepted = list.slice(0, remaining);
+    if (list.length > remaining) {
+      pushAttachmentError(`一次最多 ${MAX_ATTACHMENTS_PER_SEND} 个附件，多余的 ${list.length - remaining} 个跳过`);
+    }
+
+    setUploadingCount((n) => n + accepted.length);
+    try {
+      await Promise.allSettled(
+        accepted.map(async (file) => {
+          try {
+            const bytes = await file.arrayBuffer();
+            const result = await window.muicv.attachments.save(activeProfile.id, {
+              name: file.name,
+              mimeType: file.type,
+              bytes,
+            });
+            if (result.ok) {
+              setPendingAttachments((prev) => [...prev, result.ref]);
+            } else {
+              pushAttachmentError(`${file.name}：${result.message}`);
+            }
+          } catch (err) {
+            pushAttachmentError(`${file.name}：${err instanceof Error ? err.message : String(err)}`);
+          } finally {
+            setUploadingCount((n) => Math.max(0, n - 1));
+          }
+        }),
+      );
+    } catch {
+      // allSettled 不会抛，这里兜底防止状态计数泄漏
+      setUploadingCount(0);
+    }
+  }
+
+  function removeAttachment(path: string): void {
+    setPendingAttachments((prev) => prev.filter((a) => a.path !== path));
+  }
+
+  function onPickFiles(): void {
+    fileInputRef.current?.click();
+  }
+
+  function onFileInputChange(e: ChangeEvent<HTMLInputElement>): void {
+    if (e.target.files) void handleFiles(e.target.files);
+    e.target.value = ''; // 同一文件再选要触发 change
+  }
+
+  function onDragEnter(e: DragEvent<HTMLDivElement>): void {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragging(true);
+  }
+  function onDragOver(e: DragEvent<HTMLDivElement>): void {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  }
+  function onDragLeave(e: DragEvent<HTMLDivElement>): void {
+    if (!hasFiles(e)) return;
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setIsDragging(false);
+  }
+  function onDrop(e: DragEvent<HTMLDivElement>): void {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      void handleFiles(e.dataTransfer.files);
+    }
+  }
 
   async function onMicClick(): Promise<void> {
     if (recording) return;
@@ -90,16 +217,22 @@ export function ChatView() {
 
   async function onSend() {
     const text = input.trim();
-    if (!text || busy) return;
+    const attachments = pendingAttachments;
+    // 允许"光发附件不打字"——附件 footer 已经能让 agent 知道做啥
+    if (!text && attachments.length === 0) return;
+    if (busy) return;
     if (!activeProfile || !activeConversation) return;
     setError(null);
     setNeedsAiSetup(false);
 
+    const footer = formatAttachmentsFooter(attachments);
+    const userContent = text ? `${text}${footer}` : footer.replace(/^\n\n/, '');
     const userMsg = {
       id: cryptoRandomId(),
       role: 'user' as const,
-      content: text,
+      content: userContent,
       createdAt: Date.now(),
+      ...(attachments.length > 0 ? { attachments } : {}),
     };
     const assistantId = cryptoRandomId();
     const assistantMsg = {
@@ -113,6 +246,7 @@ export function ChatView() {
     pushMessage(userMsg);
     pushMessage(assistantMsg);
     setInput('');
+    setPendingAttachments([]);
 
     try {
       const { channelId } = await window.muicv.agent.chat({
@@ -179,8 +313,16 @@ export function ChatView() {
 
   const TypeIcon = CONVERSATION_TYPE_ICON[activeConversation.type];
 
+  const canSend = (input.trim().length > 0 || pendingAttachments.length > 0) && uploadingCount === 0;
+
   return (
-    <div className="flex h-full flex-col">
+    <div
+      className="relative flex h-full flex-col"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <ConversationHeader
         title={stripLeadingEmoji(activeConversation.title)}
         TypeIcon={TypeIcon}
@@ -217,6 +359,36 @@ export function ChatView() {
               {error}
             </p>
           )}
+          {attachmentErrors.length > 0 && (
+            <div className="flex flex-col gap-1">
+              {attachmentErrors.map((e) => (
+                <p key={e.id} role="alert" className="text-[12px] text-tongue">
+                  {e.message}
+                </p>
+              ))}
+            </div>
+          )}
+          {(pendingAttachments.length > 0 || uploadingCount > 0) && (
+            <div className="flex flex-wrap gap-1.5">
+              {pendingAttachments.map((a) => (
+                <AttachmentChip key={a.path} attachment={a} onRemove={() => removeAttachment(a.path)} />
+              ))}
+              {uploadingCount > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-paper px-2.5 py-1 text-[12px] text-ink-soft">
+                  <SpinnerGapIcon size={12} weight="bold" className="animate-spin" />
+                  上传中…（{uploadingCount}）
+                </span>
+              )}
+            </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept={ATTACHMENT_ACCEPT}
+            className="hidden"
+            onChange={onFileInputChange}
+          />
           <div className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink">
             <button
               type="button"
@@ -231,6 +403,16 @@ export function ChatView() {
               ) : (
                 <MicrophoneIcon size={18} weight="regular" />
               )}
+            </button>
+            <button
+              type="button"
+              onClick={onPickFiles}
+              disabled={busy || pendingAttachments.length >= MAX_ATTACHMENTS_PER_SEND}
+              title={`上传附件（PDF / DOCX / Markdown / 文本，单文件 ≤ 20MB，单次最多 ${MAX_ATTACHMENTS_PER_SEND} 个）`}
+              className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="上传附件"
+            >
+              <PaperclipIcon size={18} weight="regular" />
             </button>
             <textarea
               value={input}
@@ -256,7 +438,7 @@ export function ChatView() {
               <button
                 type="button"
                 onClick={() => void onSend()}
-                disabled={!input.trim()}
+                disabled={!canSend}
                 className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
               >
                 发送 ⌘↵
@@ -265,8 +447,45 @@ export function ChatView() {
           </div>
         </div>
       </div>
+
+      {isDragging && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-cream/85 backdrop-blur-sm">
+          <div className="rounded-2xl border-4 border-dashed border-yellow-deep bg-cream/90 px-8 py-6 text-center">
+            <p className="text-[15px] font-bold text-ink">把文件松开就行 📎</p>
+            <p className="mt-1 text-[12px] text-ink-soft">
+              支持 PDF / DOCX / Markdown / 文本，单次最多 {MAX_ATTACHMENTS_PER_SEND} 个
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function AttachmentChip({ attachment: a, onRemove }: { attachment: AttachmentRef; onRemove: () => void }) {
+  const kindLabel = a.kind === 'pdf' ? 'PDF' : a.kind === 'docx' ? 'DOCX' : a.kind === 'markdown' ? 'MD' : 'TXT';
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-paper px-2.5 py-1 text-[12px] text-ink">
+      <span className="font-mono text-[10px] font-semibold text-ink-soft">{kindLabel}</span>
+      <span className="max-w-[180px] truncate" title={a.path}>
+        {a.name}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="rounded-full p-0.5 text-ink-soft transition hover:bg-rule hover:text-ink"
+        aria-label={`移除 ${a.name}`}
+      >
+        <XIcon size={11} weight="bold" />
+      </button>
+    </span>
+  );
+}
+
+function hasFiles(e: DragEvent): boolean {
+  const types = e.dataTransfer?.types;
+  if (!types) return false;
+  return Array.from(types).includes('Files');
 }
 
 function ConversationHeader({

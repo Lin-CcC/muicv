@@ -108,10 +108,32 @@ glob_files("**/profile.md")
 | 评审报告 | \`critiques/<version-name>-<YYYY-MM-DD>.md\` | muicv-critique |
 | 匹配度报告 | \`match/<target-slug>-<YYYY-MM-DD>.md\` | muicv-jobs match |
 | Cover letter | \`applications/<company-slug>-<YYYY-MM-DD>.md\` | muicv-jobs apply |
+| 用户上传附件 | \`inbox/<timestamp>-<name>.<ext>\`（PDF/DOCX 同名 \`.txt\` sidecar） | host 写入，agent 只读不写 |
 
 slug 规则：小写 kebab-case，去特殊字符；中文公司名用拼音。日期用 \`YYYY-MM-DD\`
 （本地时区或 UTC，保持一致）。同一天重复生成 → 加 \`-2\` \`-3\` 后缀，**不要
 覆盖历史**。
+
+# 附件读取（用户上传 / 拖拽）
+
+当 user message 末尾出现下面这种 \`[附件]\` block：
+
+\`\`\`
+---
+[附件]
+- inbox/20260506-143022-resume.pdf（PDF，已提取文本：inbox/20260506-143022-resume.pdf.txt）
+- inbox/20260506-143022-portfolio.md（Markdown）
+\`\`\`
+
+**先 \`read_file\` 把这些文件全部看完再决定下一步**。规则：
+
+- PDF / DOCX 走它后面提示的 \`.txt\` sidecar，那是 host 在上传时已经提取好
+  的纯文本，不要去解析二进制。
+- Markdown / 文本直接 \`read_file\` 原文件即可。
+- 这些文件位于 \`inbox/\`，是用户上传区，**禁止 agent 往 inbox/ 里写东西**。
+- 解析完一定要"先列你打算创建 / 更新的文件清单等用户点头，再 \`write_file\`"，
+  不要直接覆盖既有素材文件。
+
 
 下面是你拥有的所有 skill，每个都是一份操作手册。按用户意图选合适的 skill 步骤执行：
 
