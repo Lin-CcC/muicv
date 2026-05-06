@@ -31,14 +31,14 @@ export function Install() {
               agent，用下面这条命令，5 秒装完。
             </p>
             <p className="mt-4 max-w-md text-[13px] leading-[1.7] text-mute">
-              不熟悉 AI agent？等桌面 app 上线即可，
+              不熟悉 AI agent？{' '}
               <a
-                href="/#waitlist"
+                href="/download"
                 className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
               >
-                留下邮箱
-              </a>
-              第一时间收到通知。
+                下载桌面 app
+              </a>{' '}
+              直接开始，macOS / Windows / Linux 全平台可用。
             </p>
           </div>
 

@@ -205,19 +205,18 @@ function Platform({ title, subtitle, assets }: { title: string; subtitle: string
 function NoRelease() {
   return (
     <section className="mt-12 rounded-2xl border-2 border-rule bg-paper p-6 text-[14px] text-ink-soft">
-      <p>🐾 桌面 app 还没有正式发布版本。在那之前你可以：</p>
+      <p>🐾 桌面 app 暂时拉不到发布版本。在那之前你可以：</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px]">
+        <li>已经在用 Claude Code、Codex、Cursor 等 AI agent 的话，回首页看 skill 安装命令，5 秒就能接入</li>
         <li>
-          在首页{' '}
+          有问题或想反馈，{' '}
           <Link
-            href="/#waitlist"
+            href="/contact"
             className="underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep"
           >
-            留下邮箱
-          </Link>{' '}
-          加入 Waitlist，发布时第一时间通知你
+            联系我们
+          </Link>
         </li>
-        <li>已经在用 Claude Code、Codex、Cursor 等 AI agent 的话，回首页看 skill 安装命令，5 秒就能接入</li>
       </ul>
     </section>
   );

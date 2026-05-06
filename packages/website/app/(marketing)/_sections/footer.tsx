@@ -36,7 +36,6 @@ export function Footer() {
             links={[
               ['关于我们', '/about'],
               ['联系我们', '/contact'],
-              ['Waitlist', '/#waitlist'],
             ]}
           />
           <FooterCol
@@ -50,7 +49,7 @@ export function Footer() {
       </div>
       <div className="border-t border-rule">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-[12px] text-mute md:flex-row md:items-center md:justify-between md:px-8">
-          <span>© 2026 Mui简历 · 保留所有权利</span>
+          <span>© 2026 Meathill LLC · Mui简历 · 保留所有权利</span>
           <span className="font-mono text-[11px] uppercase tracking-wider">Made with 🐾 in 中国</span>
         </div>
       </div>

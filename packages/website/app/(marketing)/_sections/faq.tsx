@@ -1,6 +1,5 @@
 import { CorgiMascot } from '@/components/corgi-mascot';
 
-import { WaitlistForm } from '../waitlist-form';
 import { FAQ_ITEMS } from '../_data';
 import { ArrowUpRight, Highlight } from '../_icons';
 
@@ -42,27 +41,28 @@ export function FaqAndWaitlist() {
         </div>
 
         <aside className="space-y-6 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
-          <div
-            id="waitlist"
-            className="relative overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)]"
+          <a
+            href="/download"
+            className="group relative block overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)] transition-transform hover:-translate-y-1"
           >
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl" aria-hidden />
             <div className="absolute right-3 top-3">
               <CorgiMascot className="h-10 w-10" />
             </div>
             <div className="relative">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— Waitlist</p>
-              <h3 className="mt-3 max-w-[220px] text-2xl font-extrabold leading-tight text-ink">
-                桌面 app <span className="text-yellow-deep">开发中</span>。
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 App</p>
+              <h3 className="mt-3 max-w-[260px] text-2xl font-extrabold leading-tight text-ink">
+                桌面 app <span className="text-yellow-deep">已上线</span>。
               </h3>
               <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">
-                独立 desktop app，让不用 AI agent 的求职者也能用。 留个邮箱，发布时第一时间通知你。
+                macOS / Windows / Linux 全平台可用。 不想装 skill 也能用上同一套云端能力。
               </p>
-              <div className="mt-5">
-                <WaitlistForm source="landing-hero" />
-              </div>
+              <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+                下载桌面 app
+                <ArrowUpRight />
+              </span>
             </div>
-          </div>
+          </a>
 
           <a
             href="/pricing"

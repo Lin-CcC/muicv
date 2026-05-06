@@ -34,7 +34,7 @@ export const KEY_FEATURES: KeyFeature[] = [
   },
   {
     title: '持续进化',
-    desc: '求职追踪、薪酬谈判、内推网络……更多能力还在路上。订阅 waitlist，第一时间体验新模块。',
+    desc: '求职追踪、薪酬谈判、内推网络……更多能力还在路上，关注更新第一时间体验新模块。',
     status: 'soon',
     highlights: ['求职追踪看板', '薪酬谈判助手', '内推网络对接'],
   },
@@ -129,9 +129,15 @@ export const FAQ_ITEMS: { q: string; a: ReactNode }[] = [
     q: '桌面 app 什么时候发布？',
     a: (
       <>
-        基于 Agent SDK 的桌面端正在规划中，让不用 AI agent 的求职者也能用上同一套能力。 没有具体时间表，
-        <strong>留下邮箱进 waitlist</strong>，发布会第一时间通知你。 在那之前，已经在用 AI agent（Claude Code / Codex /
-        Cursor 等）的用户可以通过 skill 套件直接接入。
+        <strong>已经上线</strong>，macOS / Windows / Linux 全平台可用。 去{' '}
+        <a
+          href="/download"
+          className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
+        >
+          下载页
+        </a>{' '}
+        获取最新版本。 已经在用 AI agent（Claude Code / Codex / Cursor 等）的用户也可以通过 skill
+        套件直接接入，二选一即可。
       </>
     ),
   },

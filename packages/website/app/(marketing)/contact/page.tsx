@@ -84,14 +84,14 @@ export default async function ContactPage() {
 
           <div className="mt-10 rounded-2xl border-2 border-rule bg-paper/50 p-6 text-[14px] leading-[1.7] text-ink-soft md:p-8">
             <p>
-              <strong className="text-ink">不想发邮件？</strong> 还可以在首页{' '}
+              <strong className="text-ink">想直接试用？</strong>{' '}
               <a
-                href="/#waitlist"
+                href="/download"
                 className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"
               >
-                留下邮箱
+                下载桌面 app
               </a>{' '}
-              加入 Waitlist——发布会和重要更新会第一时间通知你。
+              立即开始，macOS / Windows / Linux 全平台可用。
             </p>
           </div>
         </div>

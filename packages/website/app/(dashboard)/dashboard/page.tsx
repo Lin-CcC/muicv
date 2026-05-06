@@ -58,6 +58,24 @@ export default async function DashboardPage() {
           <li>🐾 用桌面 app 直接调云端 LLM、导出 PDF、抓 JD —— 全部从这个余额里扣</li>
         </ol>
       </section>
+
+      <section className="rounded-2xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_oklch(0.62_0.14_70)]">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 App</p>
+            <h2 className="mt-2 text-[18px] font-extrabold text-ink">不想装 skill？下载桌面 app 直接开始</h2>
+            <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
+              macOS / Windows / Linux 全平台可用。云端 LLM、PDF 导出、JD 抓取，全部从这个余额扣。
+            </p>
+          </div>
+          <a
+            href="/download"
+            className="press inline-flex shrink-0 items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[14px] font-bold text-ink"
+          >
+            下载桌面 app
+          </a>
+        </div>
+      </section>
     </div>
   );
 }

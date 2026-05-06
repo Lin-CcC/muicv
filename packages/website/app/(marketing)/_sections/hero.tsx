@@ -38,7 +38,8 @@ export function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
 
           <p className="mt-7 max-w-xl text-[17px] leading-[1.7] text-ink-soft">
             简历、岗位发现、模拟面试、就业辅导——一站式 AI 求职平台。
-            <span className="text-mute">在你熟悉的 AI agent 里跑，或者用我们的桌面 app。</span>
+            <span className="text-ink">下载桌面 app 立即开始</span>
+            <span className="text-mute">，或者在你熟悉的 AI agent 里跑。</span>
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -50,10 +51,10 @@ export function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
               <ArrowUpRight />
             </a>
             <a
-              href="/pricing"
+              href="/download"
               className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
             >
-              查看价格
+              下载桌面 app
               <ArrowUpRight />
             </a>
             <a
