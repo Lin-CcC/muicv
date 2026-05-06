@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@muicv/shared": "workspace:*",
-    "@openai/agents": "^0.8.5",
+    "@openai/agents": "^0.9.1",
     "@phosphor-icons/react": "^2.1.10",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
