@@ -3,10 +3,12 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
 import { getAuth } from '@/lib/auth';
+import { getActiveSubscription } from '@/lib/subscription';
 
 import { ArrowUpRight, Highlight, Sparkle } from '../_icons';
 import { Footer } from '../_sections/footer';
 import { Header } from '../_sections/header';
+import { BuyButton } from './_buy-button';
 
 export const metadata: Metadata = {
   title: '定价',
@@ -87,6 +89,8 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
   const auth = await getAuth();
   const session = await auth.api.getSession({ headers: await headers() });
   const isLoggedIn = !!session?.user;
+  const activeSub = await getActiveSubscription(session?.user?.id);
+  const hasActiveSub = !!activeSub;
 
   const params = await props.searchParams;
   const interval: BillingInterval = params.interval === 'yearly' ? 'yearly' : 'monthly';
@@ -120,7 +124,13 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
           <div className="grid gap-5 md:grid-cols-3">
             <FreeCard isLoggedIn={isLoggedIn} />
             {SUB_TIERS.map((tier) => (
-              <SubscriptionCard key={tier.key} tier={tier} interval={interval} isLoggedIn={isLoggedIn} />
+              <SubscriptionCard
+                key={tier.key}
+                tier={tier}
+                interval={interval}
+                isLoggedIn={isLoggedIn}
+                hasActiveSub={hasActiveSub}
+              />
             ))}
           </div>
 
@@ -131,17 +141,27 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
               {(['small', 'medium', 'large'] as const).map((key) => {
                 const pack = TOPUP_PACKS[key];
                 return (
-                  <div key={key} className="rounded-2xl border-2 border-rule bg-cream p-5">
+                  <div key={key} className="flex flex-col rounded-2xl border-2 border-rule bg-cream p-5">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-mute">{key}</p>
                     <p className="mt-2 text-[20px] font-extrabold text-ink tabular-nums">
                       {pack.tokens.toLocaleString()} tokens
                     </p>
                     <p className="mt-1 font-mono text-[12px] tabular-nums text-yellow-deep">{pack.priceCnyDisplay}</p>
+                    {isLoggedIn ? (
+                      <BuyButton kind="topup" pack={key} label="立即购买" />
+                    ) : (
+                      <a
+                        href="/sign-up"
+                        className="press-ink mt-5 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-4 py-2 text-[13px] font-bold text-ink"
+                      >
+                        注册后购买
+                        <ArrowUpRight />
+                      </a>
+                    )}
                   </div>
                 );
               })}
             </div>
-            <p className="mt-3 font-mono text-[11px] text-mute">在 dashboard 点"补充包"完成支付。</p>
           </div>
         </div>
       </section>
@@ -251,15 +271,15 @@ function SubscriptionCard({
   tier,
   interval,
   isLoggedIn,
+  hasActiveSub,
 }: {
   tier: SubTier;
   interval: BillingInterval;
   isLoggedIn: boolean;
+  hasActiveSub: boolean;
 }) {
   const plan = SUBSCRIPTION_PLANS[tier.key];
   const cycle = plan[interval];
-  const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
-  const ctaLabel = isLoggedIn ? '在 Dashboard 升级' : '注册后开通';
 
   return (
     <article
@@ -296,17 +316,23 @@ function SubscriptionCard({
           </li>
         ))}
       </ul>
-      <a
-        href={ctaHref}
-        className={
-          tier.highlight
-            ? 'press mt-6 inline-flex items-center justify-center gap-1.5 rounded-xl bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink'
-            : 'press-ink mt-6 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-4 py-2.5 text-[14px] font-bold text-ink'
-        }
-      >
-        {ctaLabel}
-        <ArrowUpRight />
-      </a>
+      {!isLoggedIn && (
+        <a
+          href="/sign-up"
+          className={
+            tier.highlight
+              ? 'press mt-6 inline-flex items-center justify-center gap-1.5 rounded-xl bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink'
+              : 'press-ink mt-6 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-4 py-2.5 text-[14px] font-bold text-ink'
+          }
+        >
+          注册后开通
+          <ArrowUpRight />
+        </a>
+      )}
+      {isLoggedIn && hasActiveSub && <BuyButton kind="portal" label="管理订阅" primary={!!tier.highlight} />}
+      {isLoggedIn && !hasActiveSub && (
+        <BuyButton kind="subscription" plan={tier.key} interval={interval} label="立即订阅" primary={!!tier.highlight} />
+      )}
     </article>
   );
 }

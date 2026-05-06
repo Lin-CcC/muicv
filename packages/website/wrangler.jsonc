@@ -68,6 +68,9 @@
     "STRIPE_PRICE_MAX_YEARLY": "price_1TRwczEpkXm2vxXTxoxuOYjq",
     "STRIPE_PRICE_TOPUP_SMALL": "price_1TRwg5EpkXm2vxXTIrzLM9nv",
     "STRIPE_PRICE_TOPUP_MEDIUM": "price_1TRwgREpkXm2vxXTrfyins5N",
-    "STRIPE_PRICE_TOPUP_LARGE": "price_1TRwgtEpkXm2vxXTa6IdtcQC"
+    "STRIPE_PRICE_TOPUP_LARGE": "price_1TRwgtEpkXm2vxXTa6IdtcQC",
+    // 管理员邮箱白名单（逗号分隔，大小写无关）。控制 /admin 访问与 /api/admin/* 接口。
+    // 命中走 /admin 后台；不命中访问 /admin 直接返回 404，不暴露后台存在。
+    "ADMIN_EMAILS": "meathill@gmail.com"
   }
 }

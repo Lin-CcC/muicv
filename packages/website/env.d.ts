@@ -30,6 +30,8 @@ declare global {
     HSM_SECRET: string;
     /** HSM 服务 base URL，缺省 https://hsm.meathill.com，本地联调可指向 mock。 */
     HSM_BASE_URL?: string;
+    /** 管理员邮箱白名单，逗号分隔。控制 /admin 与 /api/admin/* 访问。 */
+    ADMIN_EMAILS?: string;
   }
 }
 

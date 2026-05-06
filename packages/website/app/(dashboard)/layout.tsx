@@ -31,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen bg-cream">
       <header className="sticky top-0 z-30 border-b border-rule bg-cream/85 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 md:px-8">
-          <Link href="/dashboard" className="flex items-center gap-2.5 text-ink no-underline">
+          <Link href="/" className="flex items-center gap-2.5 text-ink no-underline">
             <CorgiMascot className="h-8 w-8" />
             <span className="text-[17px] font-bold tracking-tight">Mui简历</span>
             <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-wider text-mute sm:inline">
