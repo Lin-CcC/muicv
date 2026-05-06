@@ -10,6 +10,7 @@ import {
 } from '../../shared/types.ts';
 import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
+import { useSlashCommand } from '../lib/use-slash-command.ts';
 import { AiSetupCard, CenteredCard, EmptyConversation, NoConversationCard } from './chat-empty-states';
 import { MessageBubble } from './chat-message-bubble';
 import {
@@ -20,6 +21,7 @@ import {
   safeParseJson,
   stripLeadingEmoji,
 } from './chat-utils';
+import { SlashCommandMenu } from './slash-command-menu.tsx';
 
 const ATTACHMENT_ACCEPT =
   '.pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain';
@@ -60,10 +62,15 @@ export function ChatView() {
   const [uploadingCount, setUploadingCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const inputContainerRef = useRef<HTMLDivElement | null>(null);
+  const slash = useSlashCommand({ value: input, onChange: setInput, textareaRef });
 
-  // 切 profile / 换对话 → 清空已选附件，避免跨上下文污染
+  // 切 profile / 换对话 → 清空已选附件 + 输入草稿，避免跨上下文污染
+  // （否则残留的 `/critique` 会让新对话一加载就误弹斜杠面板）
   // biome-ignore lint/correctness/useExhaustiveDependencies: 只在切 profile / 对话时清
   useEffect(() => {
+    setInput('');
     setPendingAttachments([]);
     setAttachmentErrors([]);
     dragDepthRef.current = 0;
@@ -389,7 +396,10 @@ export function ChatView() {
             className="hidden"
             onChange={onFileInputChange}
           />
-          <div className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink">
+          <div
+            ref={inputContainerRef}
+            className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink"
+          >
             <button
               type="button"
               onClick={() => void onMicClick()}
@@ -415,9 +425,12 @@ export function ChatView() {
               <PaperclipIcon size={18} weight="regular" />
             </button>
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
+                if (slash.handleKeyDown(e)) return;
+                if (e.nativeEvent.isComposing) return;
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') void onSend();
               }}
               placeholder={meta.placeholder}
@@ -445,6 +458,17 @@ export function ChatView() {
               </button>
             )}
           </div>
+          <SlashCommandMenu
+            open={slash.menuOpen}
+            anchor={inputContainerRef.current}
+            items={slash.items}
+            activeIndex={slash.activeIndex}
+            onPick={slash.pick}
+            onHover={slash.setActiveIndex}
+            onOpenChange={(open) => {
+              if (!open) slash.closeAndKeep();
+            }}
+          />
         </div>
       </div>
 
