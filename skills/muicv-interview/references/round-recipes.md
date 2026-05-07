@@ -62,9 +62,11 @@
 
 **信号是什么**：面试官在评"能不能干活 + 是不是麻烦"。具体看：
 - 技术决策有没有逻辑、有没有真实经历支撑
-- BQ 故事有没有 STAR、有没有量化、有没有 self-awareness
+- BQ 故事有没有 STAR、有没有 **outcome 量化**（成果/效率/收益变化，不是 scope 数字）、有没有 self-awareness
 - 在追问压力下的反应（防御 vs 开放）
 - 能不能跟我（manager）相处（沟通节奏、是否倾听）
+
+> 这里说的"量化"是 **Action 之后产出的 outcome 指标**（✅ 转化率 +12% / P75 800ms→320ms / GMV ¥80k→¥260k / 排名 #1），不是 scope/编制（❌ "覆盖 3 个站点" / "带 4 人团队"）。完整定义见 [docs/quantification-guideline.md](../../../docs/quantification-guideline.md)。
 
 **示范题**：
 - "我看你简历说在 ACME Corp 主导 dashboard 重构，这个项目的 scope 是怎么定的？为什么不是渐进改造？" → 项目深挖

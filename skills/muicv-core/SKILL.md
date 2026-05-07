@@ -237,7 +237,15 @@ type: achievements
    - `location`（可选）
    - `stack`（技术栈数组，可选）
    - 职责（多条）
-   - 亮点（动词开头，可量化则量化，可选）
+   - 亮点（动词开头；如果有 **outcome 量化指标**——成果/效率/收益的变化——就补上；
+     仅有"3 个站点"这类 scope 数字时，**不要单独标"量化"**，写进 Action 描述里就行。可选）
+
+> **「量化」= Action 之后产出的 outcome 指标**（成果/效率/收益变化），不是 scope/编制/时长/件数。
+> ✅ 转化率 +12% · 退货率 8%→3% · P75 800ms→320ms · GMV ¥80k→¥260k · 排名 #1（绑结果）
+> ❌ "覆盖 3 个站点" · "带 4 人团队" · "维护 30+ 仓库" · "做了 3 年"——这些是 scope，写进 Action，**不要单独标"量化"**
+> 素材里没有 outcome 数字时，保留定性描述，**不要为了凑量化而编数字、也不要把 scope 升格成量化**。
+> 完整定义见 [docs/quantification-guideline.md](../../docs/quantification-guideline.md)。
+
 3. 生成文件名：`experience/<company-slug>-<start-year>.md`
    - company-slug：公司英文名小写 kebab-case；如果只有中文名则用拼音
    - 例：`ACME Corp` + 2023-03 → `experience/acme-2023.md`
@@ -258,7 +266,7 @@ type: achievements
    - ...
 
    ## 亮点
-   - ...（STAR：情境/任务/动作/结果，量化优先）
+   - ...（STAR：情境/任务/动作/结果；R 优先写 outcome 量化（成果/效率/收益变化），没有就保留定性描述，不要把 scope 数字升格成"量化"）
    ```
 
 5. 告诉用户文件路径，问要不要继续加下一段。

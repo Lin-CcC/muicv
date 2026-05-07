@@ -62,9 +62,15 @@ description: 模拟面试。基于用户的 JD（target）+ 简历（version）+
 **软警告**（提示后允许继续，最多列 3 条；超过 3 条升格成硬阻断）：
 - version 没 frontmatter `target` 字段
 - version 跟当前 target 不一致（用了为别的岗位写的简历）
-- 量化指标比例 < 20%
+- **outcome 量化指标**比例 < 20%（只数 % / 倍数 / 前后对比 / 收益变化 / 排名；**不数** scope 数字如"3 个站点"、"4 人团队"）
 - ≥ 3 处空话动词（负责 / 参与 / 协助 / 帮忙 / 支持）且没 Result
 - JD 高频关键词（Top 10）覆盖率 < 50%
+
+> **「量化」= Action 之后产出的 outcome 指标**（成果/效率/收益变化），不是 scope/编制/时长/件数。
+> ✅ 转化率 +12% · 退货率 8%→3% · P75 800ms→320ms · GMV ¥80k→¥260k · 排名 #1（绑结果）
+> ❌ "覆盖 3 个站点" · "带 4 人团队" · "维护 30+ 仓库" · "做了 3 年"——这些是 scope，**不算量化**，应当出现在 Action 描述里。
+> 素材里没有 outcome 数字时，保留定性描述，**不要为了凑量化而编数字、也不要把 scope 升格成量化**。
+> 完整定义见 [docs/quantification-guideline.md](../../docs/quantification-guideline.md)。
 
 每条软警告要伴随明确的 next step：
 > "你这份简历 Kubernetes 完全没提，但 JD 第一栏要求 5 年 K8s 经验。我可以照样面，但**面到第 3 题左右肯定会卡**。要不先 muicv-critique 看看，或者跟我说你确实有 K8s 经验只是没写进简历？"
