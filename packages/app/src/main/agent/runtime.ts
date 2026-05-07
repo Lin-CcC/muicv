@@ -10,6 +10,7 @@ import { getConversation, saveConversation } from '../conversations.ts';
 import { buildSttTools } from './api-tools-stt.ts';
 import { buildSyncTools } from './api-tools-sync.ts';
 import { buildApiTools } from './api-tools.ts';
+import { buildAgentInput, getModelBudget } from './history.ts';
 import { buildSystemPrompt } from './skills.ts';
 import { type ArtifactEmitter, buildFileTools } from './tools.ts';
 
@@ -124,13 +125,16 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     return;
   }
 
-  // OpenAI Agents SDK 的 input：完整对话历史 array of items（assistant + user 交替）
-  // MVP：直接传上一条 user 文本 + 把历史压成 string context。后续可改为 AgentInputItem[]。
-  const history = messages
-    .slice(0, -1)
-    .map((m) => `${m.role === 'user' ? '【用户】' : '【助手】'} ${m.content}`)
-    .join('\n\n');
-  const input = history ? `${history}\n\n【用户】 ${lastUser.content}` : lastUser.content;
+  // 把历史按 SDK 原生 AgentInputItem[] 组装，并按 token budget 做滑动窗口裁剪。
+  // 超长对话会丢最早的非必要消息，最后一条 user 永远保留。详见 history.ts。
+  const { items: input, droppedCount, estimatedTokens } = buildAgentInput(messages, {
+    budgetTokens: getModelBudget(config.defaultModel),
+  });
+  if (droppedCount > 0) {
+    console.log(
+      `[agent runtime] context trimmed: dropped ${droppedCount} oldest messages, ~${estimatedTokens} tokens kept`,
+    );
+  }
 
   const abort = new AbortController();
   activeRuns.set(channelId, abort);
