@@ -11,24 +11,30 @@ import type { AgentInputItem } from '@openai/agents';
 import type { ChatMessage } from '../../shared/types.ts';
 
 /**
- * 默认 token 预算。100k 是相对保守的值——大多数 muicv 在用的模型
- * （gpt-5.4 / mimo-v2.5 系列）的 context window 都 >= 128k，预留
- * ~30% 给 system prompt + tool schema + 模型输出。
+ * 模型 context window 上限（显示 token）。当前给所有模型走同一个保守值
+ * 256k——主流模型都 >= 200k（gpt-5.x、mimo-v2.5-pro 等）。
  *
  * 不做 per-model 表，因为：
  *   - muicv 后端可能随时加新模型，硬编码表会过期；
  *   - 保守值在所有情况下都安全，代价是大 context 模型不能完全榨干。
  */
-const DEFAULT_BUDGET_TOKENS = 100_000;
+const MODEL_CONTEXT_LIMIT = 256_000;
+
+/**
+ * 触发自动压缩（裁剪）的阈值，占 MODEL_CONTEXT_LIMIT 的比例。
+ * 留 20% 给 system prompt + tool schema + 模型本轮输出。
+ * 历史 token 一旦超过 limit * threshold，就开始丢最早的非必要消息。
+ */
+const COMPACT_THRESHOLD = 0.8;
 
 /** 估算 token 数：char/2.5。中文密集场景偏保守（实际 ~1 token/汉字），英文略低估。 */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 2.5);
 }
 
-/** 给定模型 id 的 token 预算。目前所有模型走同一个保守默认值。 */
+/** 给定模型 id 的 token 预算 = context 上限 × 触发阈值。所有模型走同一保守值。 */
 export function getModelBudget(_modelId: string): number {
-  return DEFAULT_BUDGET_TOKENS;
+  return Math.floor(MODEL_CONTEXT_LIMIT * COMPACT_THRESHOLD);
 }
 
 export type BuildAgentInputResult = {
@@ -52,7 +58,7 @@ export type BuildAgentInputResult = {
  * 被忽略，跟 MVP 字符串拼接版本行为一致。
  */
 export function buildAgentInput(messages: ChatMessage[], opts?: { budgetTokens?: number }): BuildAgentInputResult {
-  const budget = opts?.budgetTokens ?? DEFAULT_BUDGET_TOKENS;
+  const budget = opts?.budgetTokens ?? Math.floor(MODEL_CONTEXT_LIMIT * COMPACT_THRESHOLD);
   if (messages.length === 0) {
     return { items: [], droppedCount: 0, estimatedTokens: 0 };
   }
