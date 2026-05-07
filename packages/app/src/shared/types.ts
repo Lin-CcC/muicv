@@ -373,6 +373,34 @@ export type SessionCheckResult =
   | { status: 'invalid-key'; message: string }
   | { status: 'network-error'; message: string };
 
+/**
+ * 自动更新状态机（基于 electron-updater 事件）。
+ * - idle：空闲（启动初值 / 检查完发现已是最新 / dev 模式）。
+ * - checking：正在请求 latest-*.yml manifest。
+ * - downloading：找到新版本，正在拉 zip / nsis / AppImage。
+ * - ready：已下载完，等用户点重启安装。
+ * - error：网络 / 签名校验等错误。
+ */
+export type UpdaterPhase = 'idle' | 'checking' | 'downloading' | 'ready' | 'error';
+
+export type UpdaterStatus = {
+  phase: UpdaterPhase;
+  /** 目标新版本号（downloading / ready 时有）。 */
+  version?: string;
+  /** 下载进度 0–100。 */
+  percent?: number;
+  transferredBytes?: number;
+  totalBytes?: number;
+  /** error phase 的错误描述。 */
+  message?: string;
+  /** idle 时——上一次检查到的最新版本（可能等于当前已安装版本）。 */
+  latestVersion?: string;
+  /** 上一次完成检查的时间，Unix ms。 */
+  lastCheckedAt?: number;
+  /** 未打包（dev）模式下整体跳过更新；renderer 看到 true 直接不渲染卡片。 */
+  skipped?: boolean;
+};
+
 /** preload 注入到 window.muicv 的 API 形状。 */
 export type RendererApi = {
   config: {
@@ -519,6 +547,16 @@ export type RendererApi = {
     transcodeComplete(requestId: string, payload: AudioTranscodedPayload): Promise<void>;
     /** 转码失败回传错误信息。 */
     transcodeError(requestId: string, message: string): Promise<void>;
+  };
+  updater: {
+    /** 拉取主进程持有的最新一次状态（renderer 后挂载也能拿到当前状态）。 */
+    getStatus(): Promise<UpdaterStatus>;
+    /** 用户手动点「检查更新」。错误会被转成 error phase 状态返回，不抛。 */
+    checkNow(): Promise<UpdaterStatus>;
+    /** 仅在 phase === 'ready' 时调用：app 退出 + 安装新版本 + 重启。 */
+    quitAndInstall(): Promise<void>;
+    /** 订阅状态变更（每次 autoUpdater 事件都会推一次）。返回 unsubscribe。 */
+    onStatus(handler: (status: UpdaterStatus) => void): () => void;
   };
   whisperEngine: {
     status(): Promise<WhisperEngineStatus>;

@@ -17,6 +17,7 @@ import { abortRun, runAgent } from './agent/runtime.ts';
 import { saveAttachment } from './attachments.ts';
 import { type WriteResult, writeFileToWorkspace } from './fs-edit.ts';
 import { MicPermissionDenied, RecordingCancelled, recordAndTranscribe, type TranscribeResult } from './audio.ts';
+import { setupUpdater, triggerInitialCheck } from './updater.ts';
 import { registerWhisperEngineIpc } from './whisper-engine/index.ts';
 import {
   createConversation,
@@ -517,6 +518,11 @@ app.whenReady().then(() => {
   }
 
   createWindow();
+
+  // 自动更新：注册 IPC + 事件监听；延迟 10s 触发首次检查，让登录 / OAuth /
+  // workspace 加载先跑完。dev 模式下 setupUpdater 内部直接 short-circuit。
+  setupUpdater(() => mainWindow);
+  setTimeout(triggerInitialCheck, 10_000);
 
   const cold = process.argv.find((a) => typeof a === 'string' && a.startsWith('muicv://'));
   if (cold) {

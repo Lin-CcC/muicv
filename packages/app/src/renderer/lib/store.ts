@@ -10,6 +10,7 @@ import type {
   Profile,
   SessionInfo,
   ToolCallRecord,
+  UpdaterStatus,
 } from '../../shared/types.ts';
 import { DEFAULT_CONFIG } from '../../shared/types.ts';
 
@@ -123,6 +124,12 @@ type AppStore = {
   saveEditor: () => Promise<{ ok: boolean }>;
   /** 关掉当前文件，清状态（不带 dirty 检查，调用方应先确认）。 */
   closeEditorFile: () => void;
+
+  // -------------------- Auto updater --------------------
+
+  /** electron-updater 推过来的最新状态。dev 模式下 skipped=true，UI 不渲染。 */
+  updaterStatus: UpdaterStatus;
+  setUpdaterStatus: (status: UpdaterStatus) => void;
 };
 
 /** 路由：未登录 → login；已登录 → chat（默认）/ settings / editor（用户主动切）。 */
@@ -454,6 +461,9 @@ export const useAppStore = create<AppStore>((set, get) => ({
       editorLastSavedAt: null,
       editorError: null,
     }),
+
+  updaterStatus: { phase: 'idle' },
+  setUpdaterStatus: (status) => set({ updaterStatus: status }),
 }));
 
 /**
@@ -488,6 +498,14 @@ export async function bootstrap(): Promise<void> {
     } else {
       console.warn('[muirouter-linked] failed', result);
     }
+  });
+
+  // 自动更新：先订阅推送，再拉一次当前快照——dev 模式下 skipped=true 让卡片不渲染。
+  window.muicv.updater.onStatus((status) => {
+    useAppStore.getState().setUpdaterStatus(status);
+  });
+  void window.muicv.updater.getStatus().then((status) => {
+    useAppStore.getState().setUpdaterStatus(status);
   });
 
   useAppStore.setState({ bootstrapping: false });

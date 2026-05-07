@@ -19,6 +19,7 @@ import type {
   RendererApi,
   SessionCheckResult,
   SttPreference,
+  UpdaterStatus,
   WhisperEngineStatus,
   WhisperInstallOutcome,
   WhisperModelName,
@@ -128,6 +129,16 @@ const api: RendererApi = {
       ipcRenderer.invoke('audio:transcode-complete', requestId, payload) as Promise<void>,
     transcodeError: (requestId: string, message: string) =>
       ipcRenderer.invoke('audio:transcode-error', requestId, message) as Promise<void>,
+  },
+  updater: {
+    getStatus: () => ipcRenderer.invoke('updater:getStatus') as Promise<UpdaterStatus>,
+    checkNow: () => ipcRenderer.invoke('updater:checkNow') as Promise<UpdaterStatus>,
+    quitAndInstall: () => ipcRenderer.invoke('updater:quitAndInstall') as Promise<void>,
+    onStatus: (handler: (status: UpdaterStatus) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, status: UpdaterStatus) => handler(status);
+      ipcRenderer.on('updater:status', listener);
+      return () => ipcRenderer.removeListener('updater:status', listener);
+    },
   },
   whisperEngine: {
     status: () => ipcRenderer.invoke('whisperEngine:status') as Promise<WhisperEngineStatus>,
