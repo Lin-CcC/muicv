@@ -156,23 +156,41 @@ export async function credit(
   return { balance: cur?.balance ?? 0, deduped: false };
 }
 
+export type ListLedgerOptions = {
+  limit?: number;
+  offset?: number;
+  order?: 'asc' | 'desc';
+  type?: string;
+};
+
 /**
- * 列最近 N 条流水。dashboard 用。
+ * 列流水。支持分页、排序、按 type 过滤。
+ *
+ * - dashboard 调用：`listLedger(userId, { limit: 15 })`
+ * - admin 详情页：`listLedger(userId, { limit, offset, order, type })`
  */
 export async function listLedger(
   userId: string,
-  limit = 20,
+  options: ListLedgerOptions = {},
 ): Promise<Array<{ id: string; delta: number; type: string; meta: string | null; createdAt: number }>> {
+  const limit = options.limit ?? 20;
+  const offset = options.offset ?? 0;
+  const order = options.order === 'asc' ? 'ASC' : 'DESC';
   const db = await getDb();
-  const result = await db
-    .prepare(
-      `SELECT id, delta, type, meta, createdAt
+  const sql = options.type
+    ? `SELECT id, delta, type, meta, createdAt
          FROM tokenLedger
-        WHERE userId = ?
-        ORDER BY createdAt DESC
-        LIMIT ?`,
-    )
-    .bind(userId, limit)
-    .all<{ id: string; delta: number; type: string; meta: string | null; createdAt: number }>();
+        WHERE userId = ?1 AND type = ?2
+        ORDER BY createdAt ${order}
+        LIMIT ?3 OFFSET ?4`
+    : `SELECT id, delta, type, meta, createdAt
+         FROM tokenLedger
+        WHERE userId = ?1
+        ORDER BY createdAt ${order}
+        LIMIT ?2 OFFSET ?3`;
+  const stmt = options.type
+    ? db.prepare(sql).bind(userId, options.type, limit, offset)
+    : db.prepare(sql).bind(userId, limit, offset);
+  const result = await stmt.all<{ id: string; delta: number; type: string; meta: string | null; createdAt: number }>();
   return result.results ?? [];
 }

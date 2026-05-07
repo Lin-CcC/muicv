@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const limit = Math.min(50, Math.max(1, Number(url.searchParams.get('limit') ?? '20') || 20));
 
   const wallet = await ensureBalance(session.user.id);
-  const ledger = await listLedger(session.user.id, limit);
+  const ledger = await listLedger(session.user.id, { limit });
 
   return Response.json({
     balance: microToDisplay(wallet.balance),

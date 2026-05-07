@@ -74,7 +74,7 @@ export async function PlansSection() {
   const subMeta = sub?.stripePriceId ? await priceIdToPlanInterval(sub.stripePriceId) : null;
   const cycleLabel = subMeta?.interval === 'yearly' ? '年' : '月';
 
-  const ledger = await listLedger(userId, 15);
+  const ledger = await listLedger(userId, { limit: 15 });
 
   return (
     <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">

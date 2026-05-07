@@ -8,8 +8,11 @@ import { listLedger, readBalance } from '@/lib/wallet';
 
 import { AdminNav } from '../../_components/admin-nav';
 import { GrantForm } from '../../_components/grant-form';
+import { LocalTime } from '../../_components/local-time';
 
 export const dynamic = 'force-dynamic';
+
+const PAGE_SIZE = 30;
 
 const LEDGER_TYPE_LABEL: Record<string, string> = {
   signup_bonus: '注册赠送',
@@ -33,16 +36,6 @@ const SUB_STATUS_LABEL: Record<string, string> = {
   unpaid: '欠费',
 };
 
-function formatTimestamp(ms: number): string {
-  return new Date(ms).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function parseMeta(meta: string | null): Record<string, unknown> | null {
   if (!meta) return null;
   try {
@@ -52,8 +45,30 @@ function parseMeta(meta: string | null): Record<string, unknown> | null {
   }
 }
 
-export default async function AdminUserDetailPage(props: { params: Promise<{ userId: string }> }) {
+function normalizeType(raw: string | undefined): string {
+  if (!raw || raw === 'all') return 'all';
+  return raw in LEDGER_TYPE_LABEL ? raw : 'all';
+}
+
+function normalizeOrder(raw: string | undefined): 'asc' | 'desc' {
+  return raw === 'asc' ? 'asc' : 'desc';
+}
+
+function normalizePage(raw: string | undefined): number {
+  const n = Number.parseInt(raw ?? '1', 10);
+  return Math.max(1, Number.isFinite(n) ? n : 1);
+}
+
+export default async function AdminUserDetailPage(props: {
+  params: Promise<{ userId: string }>;
+  searchParams: Promise<{ p?: string; order?: string; type?: string }>;
+}) {
   const { userId } = await props.params;
+  const sp = await props.searchParams;
+  const page = normalizePage(sp.p);
+  const order = normalizeOrder(sp.order);
+  const type = normalizeType(sp.type);
+
   const db = await getDb();
 
   const userRows = await db
@@ -83,7 +98,28 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ use
     .limit(1);
   const sub = subRows[0];
 
-  const ledger = await listLedger(userId, 30);
+  const ledger = await listLedger(userId, {
+    limit: PAGE_SIZE,
+    offset: (page - 1) * PAGE_SIZE,
+    order,
+    ...(type === 'all' ? {} : { type }),
+  });
+  const hasNext = ledger.length === PAGE_SIZE;
+  const hasFilter = type !== 'all' || order !== 'desc';
+
+  function buildQuery(overrides: { p?: number; order?: 'asc' | 'desc'; type?: string }) {
+    const usp = new URLSearchParams();
+    const nextP = overrides.p ?? page;
+    if (nextP > 1) usp.set('p', String(nextP));
+    const nextOrder = overrides.order ?? order;
+    if (nextOrder !== 'desc') usp.set('order', nextOrder);
+    const nextType = overrides.type ?? type;
+    if (nextType !== 'all') usp.set('type', nextType);
+    const s = usp.toString();
+    return s ? `?${s}` : '';
+  }
+
+  const basePath = `/admin/users/${user.id}`;
 
   return (
     <div className="space-y-6">
@@ -100,7 +136,7 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ use
         <h1 className="mt-2 text-[20px] font-extrabold text-ink">{user.name || user.email.split('@')[0]}</h1>
         <p className="mt-1 font-mono text-[13px] text-ink-soft">{user.email}</p>
         <p className="mt-1 font-mono text-[11px] text-mute">
-          ID {user.id} · 注册于 {formatTimestamp(user.createdAt.getTime())}
+          ID {user.id} · 注册于 <LocalTime ms={user.createdAt.getTime()} />
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -132,7 +168,7 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ use
             </p>
             {sub.currentPeriodEnd && (
               <p className="mt-1 text-ink-soft">
-                下次{sub.cancelAtPeriodEnd ? '到期' : '续费'}：{formatTimestamp(sub.currentPeriodEnd.getTime())}
+                下次{sub.cancelAtPeriodEnd ? '到期' : '续费'}：<LocalTime ms={sub.currentPeriodEnd.getTime()} />
                 {sub.monthlyTokens != null && (
                   <span className="ml-1">（+{sub.monthlyTokens.toLocaleString()} tokens / 周期）</span>
                 )}
@@ -153,14 +189,67 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ use
       </section>
 
       <section>
-        <h2 className="text-[16px] font-extrabold text-ink">最近交易（30 条）</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="text-[16px] font-extrabold text-ink">交易流水</h2>
+          <p className="font-mono text-[11px] text-mute">每页 {PAGE_SIZE} 条</p>
+        </div>
+
+        <form action={basePath} method="get" className="mt-3 flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[12px] text-ink-soft">
+            类型
+            <select
+              name="type"
+              defaultValue={type}
+              className="rounded-lg border-2 border-rule bg-cream px-2 py-1.5 text-[12.5px] text-ink focus:border-ink focus:outline-none"
+            >
+              <option value="all">全部</option>
+              {Object.entries(LEDGER_TYPE_LABEL).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 text-[12px] text-ink-soft">
+            排序
+            <select
+              name="order"
+              defaultValue={order}
+              className="rounded-lg border-2 border-rule bg-cream px-2 py-1.5 text-[12.5px] text-ink focus:border-ink focus:outline-none"
+            >
+              <option value="desc">最新优先</option>
+              <option value="asc">最早优先</option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="press-ink rounded-lg border-2 border-ink bg-yellow px-3 py-1.5 text-[12.5px] font-bold text-ink"
+          >
+            应用
+          </button>
+          {hasFilter && (
+            <Link
+              href={basePath}
+              className="press-ink inline-flex items-center rounded-lg border-2 border-rule bg-cream px-3 py-1.5 text-[12.5px] font-bold text-ink-soft"
+            >
+              重置
+            </Link>
+          )}
+        </form>
+
         {ledger.length === 0 ? (
-          <p className="mt-2 text-[13px] text-mute">还没有任何流水。</p>
+          <p className="mt-3 rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[13px] text-mute">
+            {hasFilter || page > 1 ? '当前筛选下没有流水。' : '还没有任何流水。'}
+          </p>
         ) : (
           <ul className="mt-3 divide-y divide-rule rounded-xl border-2 border-rule bg-cream">
             {ledger.map((row) => {
               const meta = parseMeta(row.meta);
               const isAdminAction = row.type === 'admin_grant' || row.type === 'admin_deduct';
+              const isLlm = row.type === 'llm';
+              const llmModel = isLlm ? (typeof meta?.model === 'string' ? meta.model : '—') : null;
+              const llmPrompt = isLlm && typeof meta?.promptTokens === 'number' ? meta.promptTokens : null;
+              const llmCompletion = isLlm && typeof meta?.completionTokens === 'number' ? meta.completionTokens : null;
               return (
                 <li
                   key={row.id}
@@ -169,8 +258,18 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ use
                   }`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-ink">{LEDGER_TYPE_LABEL[row.type] ?? row.type}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-mute">{formatTimestamp(row.createdAt)}</p>
+                    <p className="font-medium text-ink">
+                      {LEDGER_TYPE_LABEL[row.type] ?? row.type}
+                      {isLlm && <span className="ml-1.5 font-mono text-[12px] text-ink-soft">· {llmModel}</span>}
+                    </p>
+                    <p className="mt-0.5 font-mono text-[11px] text-mute">
+                      <LocalTime ms={row.createdAt} />
+                    </p>
+                    {isLlm && llmPrompt != null && llmCompletion != null && (
+                      <p className="mt-0.5 font-mono text-[11px] text-mute">
+                        prompt {llmPrompt.toLocaleString()} / completion {llmCompletion.toLocaleString()}
+                      </p>
+                    )}
                     {isAdminAction && meta && (
                       <p className="mt-1 text-[12px] text-ink-soft">
                         操作人：<span className="font-mono">{String(meta.grantedBy ?? '—')}</span>
@@ -192,6 +291,30 @@ export default async function AdminUserDetailPage(props: { params: Promise<{ use
             })}
           </ul>
         )}
+
+        <div className="mt-3 flex items-center justify-between text-[13px] text-ink-soft">
+          <span>
+            第 {page} 页 · {ledger.length} 条
+          </span>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link
+                href={`${basePath}${buildQuery({ p: page - 1 })}`}
+                className="press-ink rounded-lg border-2 border-rule bg-cream px-3 py-1.5 font-bold"
+              >
+                ← 上一页
+              </Link>
+            )}
+            {hasNext && (
+              <Link
+                href={`${basePath}${buildQuery({ p: page + 1 })}`}
+                className="press-ink rounded-lg border-2 border-rule bg-cream px-3 py-1.5 font-bold"
+              >
+                下一页 →
+              </Link>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );
