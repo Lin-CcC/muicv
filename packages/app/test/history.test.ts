@@ -51,10 +51,9 @@ test('buildAgentInput 多条混合保持时间顺序 + 角色映射', () => {
 
 test('buildAgentInput budget 极小时只剩最后一条 + ellipsis 提示', () => {
   const long = 'X'.repeat(1000);
-  const r = buildAgentInput(
-    [msg('user', long), msg('assistant', long), msg('user', '最新的一句')],
-    { budgetTokens: 10 },
-  );
+  const r = buildAgentInput([msg('user', long), msg('assistant', long), msg('user', '最新的一句')], {
+    budgetTokens: 10,
+  });
 
   assert.equal(r.droppedCount, 2);
   // 第 1 条是 ellipsis，第 2 条是最新 user
@@ -88,13 +87,7 @@ test('buildAgentInput 中间裁剪：保留最近的、丢最早的', () => {
   // 每条估算 ~40 token；budget=120 应该恰好留最近 3 条（含最后 user）
   const each = '内容'.repeat(50); // 100 chars → ~40 tokens
   const r = buildAgentInput(
-    [
-      msg('user', each),
-      msg('assistant', each),
-      msg('user', each),
-      msg('assistant', each),
-      msg('user', '最新'),
-    ],
+    [msg('user', each), msg('assistant', each), msg('user', each), msg('assistant', each), msg('user', '最新')],
     { budgetTokens: 120 },
   );
 

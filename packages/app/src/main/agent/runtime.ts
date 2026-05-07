@@ -127,7 +127,11 @@ export async function runAgent(opts: RunOpts): Promise<void> {
 
   // 把历史按 SDK 原生 AgentInputItem[] 组装，并按 token budget 做滑动窗口裁剪。
   // 超长对话会丢最早的非必要消息，最后一条 user 永远保留。详见 history.ts。
-  const { items: input, droppedCount, estimatedTokens } = buildAgentInput(messages, {
+  const {
+    items: input,
+    droppedCount,
+    estimatedTokens,
+  } = buildAgentInput(messages, {
     budgetTokens: getModelBudget(config.defaultModel),
   });
   if (droppedCount > 0) {
@@ -222,7 +226,10 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       console.error('[agent runtime] error:', error);
       if (cause !== undefined) console.error('[agent runtime] error.cause:', cause);
       const baseMsg = error instanceof Error ? error.message : String(error);
-      const msg = causeMsg ? `${baseMsg} (cause: ${causeMsg})` : baseMsg;
+      const rawMsg = causeMsg ? `${baseMsg} (cause: ${causeMsg})` : baseMsg;
+      const msg = isContextLengthError(rawMsg)
+        ? '本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。'
+        : rawMsg;
       send({ type: 'error', message: msg });
       send({ type: 'finish', reason: 'error' });
     }
@@ -260,4 +267,18 @@ export function abortRun(channelId: string): void {
 
 function cryptoRandomShort(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * 判断 OpenAI / 兼容 endpoint 抛出的错误是否属于 context length 溢出。
+ * OpenAI 的标准 code 是 'context_length_exceeded'；兜底也匹配中英文常见措辞。
+ */
+function isContextLengthError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('context_length_exceeded') ||
+    lower.includes('maximum context length') ||
+    lower.includes('context length') ||
+    lower.includes('too many tokens')
+  );
 }

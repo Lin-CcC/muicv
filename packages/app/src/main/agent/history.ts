@@ -51,10 +51,7 @@ export type BuildAgentInputResult = {
  * 不还原 tool_call / tool_result 链：assistant.toolCalls 字段在送 LLM 时
  * 被忽略，跟 MVP 字符串拼接版本行为一致。
  */
-export function buildAgentInput(
-  messages: ChatMessage[],
-  opts?: { budgetTokens?: number },
-): BuildAgentInputResult {
+export function buildAgentInput(messages: ChatMessage[], opts?: { budgetTokens?: number }): BuildAgentInputResult {
   const budget = opts?.budgetTokens ?? DEFAULT_BUDGET_TOKENS;
   if (messages.length === 0) {
     return { items: [], droppedCount: 0, estimatedTokens: 0 };
