@@ -16,21 +16,34 @@ pnpm install
 
 ## 运行测试
 
-目前测试主要来自：
+测试统一使用 Node 内置 test runner（`node --test`，TS 直接跑），三个包各自维护自己的
+`test/*.test.ts`：
 
-- `packages/shared`：领域类型/工具的 smoke test
-
-测试使用 Node 内置 test runner。
-
-```bash
-pnpm test
-```
+| 包 | 覆盖范围 | 文件 |
+|---|---|---|
+| `packages/shared` | pricing / format / resume-sync / hsm-client / muirouter-oauth + smoke（核心跨端工具） | format / hsm-client / muirouter-oauth / pricing / resume-sync / smoke |
+| `packages/api` | Hono `app.request()` 测路由、CORS 白名单、api-key middleware、wallet 扣账原子性、llm 用量统计、transcribe | llm-usage / routes / transcribe / wallet |
+| `packages/app` | 纯逻辑 helper（chat-utils / 附件解析 / 滑动窗口 history / slash-command / filler-count）；**不**测 React 组件和 IPC | attachments / chat-utils / filler-count / history / slash-command |
 
 只跑某个包：
 
 ```bash
 pnpm --filter @muicv/shared test
+pnpm --filter @muicv/api test
+pnpm --filter @muicv/app test
 ```
+
+类型检查（`packages/app`）：
+
+```bash
+pnpm --filter @muicv/app typecheck
+```
+
+## 测试方针
+
+覆盖核心工具 / API 路由 / 纯 helper；**有意不测** React 组件、Electron IPC、wrangler /
+miniflare 集成——投入比回报大，留给手测和 dogfood。决策依据见
+[DEV_NOTE.md > 测试](./DEV_NOTE.md#测试)。
 
 ## 启动开发服务器
 

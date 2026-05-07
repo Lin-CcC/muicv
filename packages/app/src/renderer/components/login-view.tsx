@@ -1,3 +1,4 @@
+import { ArrowUpRightIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
@@ -85,7 +86,7 @@ export function LoginView() {
                   className="press mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {busy ? '准备中…' : '登录'}
-                  <ArrowOut />
+                  <ArrowUpRightIcon size={16} weight="bold" />
                 </button>
                 <p className="mt-3 text-center text-[12px] text-mute">会在浏览器里登录，完成后自动回到这里</p>
               </>
@@ -235,19 +236,5 @@ function PasteFallback({
         连接的 API: <code className="font-mono">{apiBase}</code>
       </p>
     </div>
-  );
-}
-
-function ArrowOut() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
-      <path
-        d="M7 17L17 7M17 7H8M17 7v9"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

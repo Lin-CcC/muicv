@@ -2,7 +2,7 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-05-03
+最后更新：2026-05-07
 
 ---
 
@@ -120,6 +120,32 @@
   防止 renderer 通过协议读到工作目录之外的文件。
 - **Buffer → ArrayBuffer**：返回 `Response(buf.buffer.slice(...))` 而不是
   `Response(buf)`，否则 Buffer 在某些环境下会被识别成 SharedArrayBuffer。
+
+## Agent 运行时上下文管理（packages/app/src/main/agent）
+
+> OpenAI Agents SDK 0.9+ 的 `AgentInputItem[]` 是 agent loop 的内存表示。
+> `runtime.ts` 在每次 `run()` 之前把持久化的 `ChatMessage[]` 经 `history.ts` 的
+> `buildAgentInput` 转成 `AgentInputItem[]`，顺手做滑动窗口裁剪——长对话不会撞
+> context_length。
+
+- **预算**：所有模型走同一保守值 `MODEL_CONTEXT_LIMIT = 256_000` 显示 token，
+  压缩阈值 `COMPACT_THRESHOLD = 0.8`，历史区预算 = 256K × 0.8 = 204.8K，留 20%
+  给 system prompt + tool schema + 模型本轮输出。**不**做 per-model 表，因为 muicv
+  后端可能随时上新模型，硬编码会过期；保守值在所有模型上都安全。改阈值改
+  [history.ts](packages/app/src/main/agent/history.ts) 顶部两个常量即可，不必动 runtime。
+- **token 估算**：`estimateTokens(text) = ceil(text.length / 2.5)`，**不**引 tiktoken
+  （桌面端 main 进程要保持轻量）。中文场景偏保守（实际 ~1 token/汉字），代价是
+  英文略低估——可接受，反正用得是软上限。
+- **裁剪策略**：从最新往最早倒序贪心累加，超 budget 即停。**最后一条 user 永远保留**
+  （即便它单条就超 budget——丢用户最新输入比保留 system 更糟）；中段被切断时，
+  在保留段最前面插一条占位 `user` 消息「（已省略 N 条更早的对话）」让模型知道
+  历史不完整。**不**重建 tool_call / tool_result 链：assistant.toolCalls 在送 LLM 时
+  忽略，与 MVP 字符串拼接版语义一致。
+- **context_length_exceeded 友好文案**：上游若仍报这个错（极端长附件 / 工具返回
+  超大），`runtime.ts` 的 `isContextLengthError` 模糊匹配 `context_length_exceeded` /
+  `maximum context length` / `too many tokens` 等中英文表述，统一替换成
+  「本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。」
+  原始 OpenAI 错码不再透出给用户。
 
 ## API Key / 鉴权（packages/api）
 

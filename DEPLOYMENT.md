@@ -1,6 +1,6 @@
 # DEPLOYMENT
 
-最后更新：2026-05-02
+最后更新：2026-05-07
 
 Mui简历的**运行时代码**（service deploy 的部分）只有这几个独立部署单元：
 
@@ -548,34 +548,21 @@ pnpm --filter @muicv/app package:linux    # AppImage（需要 linux runner）
 
 改完 `build/icon.svg` 后在 mac 上跑一次 `build:icons`，连同新的 `.icns` / `.ico` / `.png` 一起 commit。
 
-### 签名 / 公证（M5+）
+### 签名 / 公证
 
-当前版本三平台**全部 unsigned**：
-
-- macOS：用户首次打开要右键 → 打开 → 允许
-- Windows：首次启动撞 SmartScreen，要点 "更多信息 → 仍要运行"
-- Linux：AppImage 加 `chmod +x` 后直接跑，本来就不签名
-
-后续申请：
-
-1. **Apple Developer ID**：
-   - 拿 `Developer ID Application` cert
-   - GitHub Actions secrets 加 `CSC_LINK`（base64 .p12）+ `CSC_KEY_PASSWORD`
-   - `electron-builder.yml` 改 `mac.identity: '<your team>'`，`hardenedRuntime: true`
-   - 加 `mac.notarize: true` + `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID`
-2. **Windows Authenticode 证书**：
-   - DigiCert / SSL.com 等买 EV 证书
-   - GH secrets 加 `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD`
-   - `electron-builder.yml` 的 `win` 段加 `signAndEditExecutable: true`
+- **macOS**：已签名 + 公证 + staple。证书 `Developer ID Application`、entitlements、
+  GitHub Actions secrets（`CSC_LINK` / `CSC_KEY_PASSWORD` / `APPLE_API_KEY_BASE64` /
+  `APPLE_API_KEY_ID` / `APPLE_API_ISSUER`）配置详见
+  [DEV_NOTE.md > packages/app macOS 签名 + 公证](./DEV_NOTE.md#packagesapp-macos-签名--公证)。
+- **Windows**：仍 unsigned。首次启动撞 SmartScreen，要点 "更多信息 → 仍要运行"。
+  未来上 Authenticode 证书：DigiCert / SSL.com 买 EV 证书 → GH secrets 加
+  `WIN_CSC_LINK` + `WIN_CSC_KEY_PASSWORD` → `electron-builder.yml` 的 `win` 段加
+  `signAndEditExecutable: true`。
+- **Linux**：AppImage 不签名（本身格式不要求）。
 
 ### 用户首次安装注意
 
-- **macOS**：`/download` 页面已经写明：右键 .app → 打开 → 允许；或一行命令解 quarantine：
-
-  ```bash
-  xattr -d com.apple.quarantine /Applications/Mui简历.app
-  ```
-
+- **macOS**：已公证，正常拖入 Applications 即可，不用解 quarantine。
 - **Windows**：双击 .exe → SmartScreen 蓝屏 → 点 "更多信息" → 点 "仍要运行" → 选安装路径
 - **Linux**：
 
