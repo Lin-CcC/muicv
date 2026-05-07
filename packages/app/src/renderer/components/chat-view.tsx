@@ -76,7 +76,14 @@ export function ChatView() {
         typeLabel={meta.label}
       />
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div
+        className="flex-1 overflow-y-auto px-6 py-6"
+        onContextMenu={(e) => {
+          // 拦下 Chromium 默认菜单，弹 native 只读菜单（复制 / 全选），方便从历史消息复制
+          e.preventDefault();
+          window.muicv.chatInput.showContextMenu({ editable: false });
+        }}
+      >
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           {messages.length === 0 ? (
             <EmptyConversation type={activeConversation.type} />

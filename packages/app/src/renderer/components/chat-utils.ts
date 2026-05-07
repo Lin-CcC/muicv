@@ -54,16 +54,21 @@ const KIND_LABEL: Record<AttachmentKind, string> = {
   docx: 'DOCX',
   markdown: 'Markdown',
   text: '纯文本',
+  image: '图像',
 };
 
 /**
  * 把附件列表拼成 user message footer。agent 拿到后 `read_file` 这些路径即可。
- * PDF / DOCX 已经在 main 进程提取出 sidecar，明确告知 agent 走哪个 .txt。
+ *
+ * - PDF / DOCX：已经在 main 进程提取出 sidecar，明确告知 agent 走哪个 .txt
+ * - 图像：写明"已附在本条消息（input_image）"——附件本身已通过多模态 content
+ *   block 跟随 user message 进入模型，**agent 不要再 read_file 二进制文件**
  */
 export function formatAttachmentsFooter(refs: AttachmentRef[]): string {
   if (refs.length === 0) return '';
   const lines = refs.map((r) => {
     const head = `- ${r.path}（${KIND_LABEL[r.kind]}`;
+    if (r.kind === 'image') return `${head}，已随消息附图，agent 直接看图，不要 read_file）`;
     return r.textPath ? `${head}，已提取文本：${r.textPath}）` : `${head}）`;
   });
   return `\n\n---\n[附件]\n${lines.join('\n')}`;

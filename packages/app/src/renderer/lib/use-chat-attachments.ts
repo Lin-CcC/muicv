@@ -4,8 +4,28 @@ import type { AttachmentRef, Profile } from '../../shared/types.ts';
 import { cryptoRandomId } from '../components/chat-utils';
 import { hasFiles } from '../components/chat-attachment-chip';
 
-export const ATTACHMENT_ACCEPT =
-  '.pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain';
+export const ATTACHMENT_ACCEPT = [
+  // 文本类
+  '.pdf',
+  '.docx',
+  '.md',
+  '.markdown',
+  '.txt',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/markdown',
+  'text/plain',
+  // 图像类（走多模态走 vision，不做 OCR）
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.gif',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+].join(',');
 export const MAX_ATTACHMENTS_PER_SEND = 5;
 const ATTACHMENT_ERROR_TTL_MS = 4000;
 

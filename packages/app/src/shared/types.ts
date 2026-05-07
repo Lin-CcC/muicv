@@ -126,7 +126,7 @@ export type ChatMessage = {
 };
 
 /** 附件支持的文件种类。新增类型时同步更新 main/attachments.ts 的白名单。 */
-export type AttachmentKind = 'pdf' | 'docx' | 'markdown' | 'text';
+export type AttachmentKind = 'pdf' | 'docx' | 'markdown' | 'text' | 'image';
 
 /**
  * 附件引用 —— 由 main 进程在 'attachments:save' 中写盘后返给 renderer。
@@ -474,6 +474,11 @@ export type RendererApi = {
     /** 在文件管理器里打开。 */
     showInFolder(path: string): Promise<void>;
     /**
+     * 读图像文件并返回 `data:<mime>;base64,...`。仅支持 PNG / JPG / WEBP / GIF，
+     * 其它扩展返 null。给附件预览 dialog 在 `<img src>` 里直接展示。
+     */
+    readAsDataUrl(path: string): Promise<string | null>;
+    /**
      * 写文件（utf8）。仅允许 workspace 内的 .md / .markdown，且不在 .claude/ 子树。
      * 1MB 上限。原子写（tmp + rename），失败不留半成品。
      */
@@ -485,6 +490,19 @@ export type RendererApi = {
      * 在 main 进程提取文本写到同名 `.txt` sidecar，agent 直接 `read_file` 读 sidecar。
      */
     save(profileId: string, file: AttachmentUploadInput): Promise<AttachmentSaveResult>;
+  };
+  chatInput: {
+    /**
+     * 由 renderer 在 chat textarea / 消息气泡区域 onContextMenu 里调，主进程弹
+     * 一个 role-based 的原生编辑菜单。role 自动跟焦点状态联动，不用 renderer
+     * 维护可点性。
+     *
+     * - `editable: true`（默认）→ 编辑菜单（撤销/重做/剪切/复制/粘贴/删除/全选）
+     * - `editable: false` → 只读菜单（只有复制 / 全选），用于消息气泡等场合
+     *
+     * 其它任何位置都不接此调用，维持默认行为。
+     */
+    showContextMenu(opts?: { editable?: boolean }): void;
   };
   audio: {
     /** 监听 main 端 agent tool 发起的录音请求。返回 unsubscribe。 */

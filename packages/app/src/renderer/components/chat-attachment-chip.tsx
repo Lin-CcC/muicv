@@ -3,14 +3,37 @@ import type { DragEvent } from 'react';
 
 import type { AttachmentRef } from '../../shared/types.ts';
 
-export function AttachmentChip({ attachment: a, onRemove }: { attachment: AttachmentRef; onRemove: () => void }) {
-  const kindLabel = a.kind === 'pdf' ? 'PDF' : a.kind === 'docx' ? 'DOCX' : a.kind === 'markdown' ? 'MD' : 'TXT';
+const KIND_LABEL: Record<AttachmentRef['kind'], string> = {
+  pdf: 'PDF',
+  docx: 'DOCX',
+  markdown: 'MD',
+  text: 'TXT',
+  image: 'IMG',
+};
+
+type Props = {
+  attachment: AttachmentRef;
+  onRemove: () => void;
+  /** 点 chip 主体（label + 文件名）触发预览。X 按钮独立处理 remove。 */
+  onPreview?: () => void;
+};
+
+export function AttachmentChip({ attachment: a, onRemove, onPreview }: Props) {
+  const kindLabel = KIND_LABEL[a.kind] ?? '附件';
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-paper px-2.5 py-1 text-[12px] text-ink">
-      <span className="font-mono text-[10px] font-semibold text-ink-soft">{kindLabel}</span>
-      <span className="max-w-[180px] truncate" title={a.path}>
-        {a.name}
-      </span>
+      <button
+        type="button"
+        onClick={onPreview}
+        disabled={!onPreview}
+        title={onPreview ? `预览 ${a.name}` : a.name}
+        className="-mx-0.5 inline-flex items-center gap-1.5 rounded px-0.5 transition hover:text-ink-soft disabled:cursor-default"
+      >
+        <span className="font-mono text-[10px] font-semibold text-ink-soft">{kindLabel}</span>
+        <span className="max-w-[180px] truncate" title={a.path}>
+          {a.name}
+        </span>
+      </button>
       <button
         type="button"
         onClick={onRemove}

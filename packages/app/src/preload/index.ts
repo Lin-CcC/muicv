@@ -94,12 +94,16 @@ const api: RendererApi = {
         isDirectory: boolean;
       }> | null>,
     showInFolder: (path) => ipcRenderer.invoke('fs:showInFolder', path) as Promise<void>,
+    readAsDataUrl: (path) => ipcRenderer.invoke('fs:readAsDataUrl', path) as Promise<string | null>,
     write: (path, content) =>
       ipcRenderer.invoke('fs:write', path, content) as Promise<{ ok: true } | { ok: false; error: string }>,
   },
   attachments: {
     save: (profileId: string, file: AttachmentUploadInput) =>
       ipcRenderer.invoke('attachments:save', profileId, file) as Promise<AttachmentSaveResult>,
+  },
+  chatInput: {
+    showContextMenu: (opts) => ipcRenderer.send('chatInput:showContextMenu', opts ?? {}),
   },
   audio: {
     onRecordingRequest: (handler: (req: AudioRecordingRequest) => void) => {

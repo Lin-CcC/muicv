@@ -1,9 +1,11 @@
 import { MicrophoneIcon, PaperclipIcon, SpinnerGapIcon, StopIcon } from '@phosphor-icons/react';
-import { useEffect, useRef, useState } from 'react';
+import { type ClipboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import type { AttachmentRef } from '../../shared/types.ts';
 import type { ChatAttachmentsApi } from '../lib/use-chat-attachments';
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS_PER_SEND } from '../lib/use-chat-attachments';
 import { useSlashCommand } from '../lib/use-slash-command.ts';
+import { AttachmentPreviewDialog } from './attachment-preview-dialog';
 import { AttachmentChip } from './chat-attachment-chip';
 import { SlashCommandMenu } from './slash-command-menu.tsx';
 
@@ -39,6 +41,7 @@ export function ChatInputBar({
 }: Props) {
   const [input, setInput] = useState('');
   const [recording, setRecording] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<AttachmentRef | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const inputContainerRef = useRef<HTMLDivElement | null>(null);
   const slash = useSlashCommand({ value: input, onChange: setInput, textareaRef });
@@ -46,7 +49,34 @@ export function ChatInputBar({
   // biome-ignore lint/correctness/useExhaustiveDependencies: 仅 contextKey 触发清空
   useEffect(() => {
     setInput('');
+    setPreviewAttachment(null);
   }, [contextKey]);
+
+  // 预览的附件被移除（或发送后清空）→ 自动关 dialog，避免预览空文件
+  useEffect(() => {
+    if (!previewAttachment) return;
+    const stillThere = attachments.pendingAttachments.some((a) => a.path === previewAttachment.path);
+    if (!stillThere) setPreviewAttachment(null);
+  }, [attachments.pendingAttachments, previewAttachment]);
+
+  // textarea 自适应高度：2 行起步，最多 10 行；超过 10 行内部滚动。
+  // 用 useLayoutEffect 在 paint 之前同步改高度，避免抖一帧。reset 到 auto
+  // 让 scrollHeight 反映真实内容（不被上一次设的 height 卡住）。
+  useLayoutEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    const cs = getComputedStyle(ta);
+    const fontSize = Number.parseFloat(cs.fontSize) || 14;
+    const lhRaw = cs.lineHeight;
+    const lh = lhRaw === 'normal' ? fontSize * 1.4 : Number.parseFloat(lhRaw) || fontSize * 1.4;
+    const py = (Number.parseFloat(cs.paddingTop) || 0) + (Number.parseFloat(cs.paddingBottom) || 0);
+    const minHeight = lh * 2 + py;
+    const maxHeight = lh * 10 + py;
+    const target = Math.max(minHeight, Math.min(ta.scrollHeight, maxHeight));
+    ta.style.height = `${target}px`;
+    ta.style.overflowY = ta.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, [input]);
 
   async function handleMicClick(): Promise<void> {
     if (recording) return;
@@ -72,6 +102,34 @@ export function ChatInputBar({
     setInput('');
   }
 
+  /**
+   * 粘贴：拦下任何带文件的剪贴板内容（包括截图 / 拷贝来的文件 / 浏览器里复制的图片）
+   * 走统一的 handleFiles 上传管线；纯文本粘贴不动，照常走 textarea 默认行为。
+   */
+  function handlePaste(e: ClipboardEvent<HTMLTextAreaElement>): void {
+    const cd = e.clipboardData;
+    if (!cd) return;
+    const fromFiles = Array.from(cd.files ?? []);
+    // 浏览器有时不把文件放 .files 而放 .items（`kind:'file'`），两边都查一下
+    const fromItems: File[] = [];
+    for (const it of Array.from(cd.items ?? [])) {
+      if (it.kind === 'file') {
+        const f = it.getAsFile();
+        if (f) fromItems.push(f);
+      }
+    }
+    // 合并去重（按 name + size + lastModified 粗粒度判等）
+    const merged = [...fromFiles];
+    for (const f of fromItems) {
+      if (!merged.some((x) => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified)) {
+        merged.push(f);
+      }
+    }
+    if (merged.length === 0) return; // 纯文本粘贴
+    e.preventDefault();
+    void attachments.handleFiles(merged);
+  }
+
   const canSend =
     (input.trim().length > 0 || attachments.pendingAttachments.length > 0) && attachments.uploadingCount === 0;
 
@@ -95,7 +153,12 @@ export function ChatInputBar({
         {(attachments.pendingAttachments.length > 0 || attachments.uploadingCount > 0) && (
           <div className="flex flex-wrap gap-1.5">
             {attachments.pendingAttachments.map((a) => (
-              <AttachmentChip key={a.path} attachment={a} onRemove={() => attachments.removeAttachment(a.path)} />
+              <AttachmentChip
+                key={a.path}
+                attachment={a}
+                onRemove={() => attachments.removeAttachment(a.path)}
+                onPreview={() => setPreviewAttachment(a)}
+              />
             ))}
             {attachments.uploadingCount > 0 && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-rule bg-paper px-2.5 py-1 text-[12px] text-ink-soft">
@@ -135,7 +198,7 @@ export function ChatInputBar({
             type="button"
             onClick={attachments.onPickFiles}
             disabled={busy || attachments.pendingAttachments.length >= MAX_ATTACHMENTS_PER_SEND}
-            title={`上传附件（PDF / DOCX / Markdown / 文本，单文件 ≤ 20MB，单次最多 ${MAX_ATTACHMENTS_PER_SEND} 个）`}
+            title={`上传附件（PDF / DOCX / Markdown / 文本 / 图像；也可以直接拖入或粘贴。单文件 ≤ 20MB，单次最多 ${MAX_ATTACHMENTS_PER_SEND} 个）`}
             className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="上传附件"
           >
@@ -150,10 +213,16 @@ export function ChatInputBar({
               if (e.nativeEvent.isComposing) return;
               if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSendClick();
             }}
+            onPaste={handlePaste}
+            onContextMenu={(e) => {
+              // 拦下 Chromium 默认空菜单，让主进程弹 native 编辑菜单
+              e.preventDefault();
+              window.muicv.chatInput.showContextMenu({ editable: true });
+            }}
             placeholder={placeholder}
             disabled={busy}
             rows={2}
-            className="flex-1 resize-none rounded-lg bg-transparent px-3 py-2 text-[14px] text-ink placeholder:text-mute focus:outline-none disabled:opacity-60"
+            className="flex-1 resize-none rounded-lg bg-transparent px-3 py-2 text-[14px] leading-[1.5] text-ink placeholder:text-mute focus:outline-none disabled:opacity-60"
           />
           {busy ? (
             <button
@@ -187,6 +256,7 @@ export function ChatInputBar({
           }}
         />
       </div>
+      <AttachmentPreviewDialog attachment={previewAttachment} onClose={() => setPreviewAttachment(null)} />
     </div>
   );
 }

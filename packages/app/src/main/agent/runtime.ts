@@ -11,6 +11,7 @@ import { buildSttTools } from './api-tools-stt.ts';
 import { buildSyncTools } from './api-tools-sync.ts';
 import { buildApiTools } from './api-tools.ts';
 import { buildAgentInput, getModelBudget } from './history.ts';
+import { applyImageAttachments } from './multimodal.ts';
 import { buildSystemPrompt } from './skills.ts';
 import { type ArtifactEmitter, buildFileTools } from './tools.ts';
 
@@ -128,7 +129,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   // 把历史按 SDK 原生 AgentInputItem[] 组装，并按 token budget 做滑动窗口裁剪。
   // 超长对话会丢最早的非必要消息，最后一条 user 永远保留。详见 history.ts。
   const {
-    items: input,
+    items: rawInput,
     droppedCount,
     estimatedTokens,
   } = buildAgentInput(messages, {
@@ -139,6 +140,10 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       `[agent runtime] context trimmed: dropped ${droppedCount} oldest messages, ~${estimatedTokens} tokens kept`,
     );
   }
+  // 最后一条 user 如果带图像附件，这里把它们 base64 成 data URL，拼成
+  // input_image content block，让模型 vision 直接看图。文本附件继续走
+  // footer + read_file，不在这里改动。
+  const input = await applyImageAttachments(rawInput, lastUser.attachments, config.workspaceDir);
 
   const abort = new AbortController();
   activeRuns.set(channelId, abort);

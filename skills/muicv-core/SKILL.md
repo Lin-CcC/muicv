@@ -155,8 +155,8 @@ type: achievements
 
 **触发**：
 
-- user message 末尾出现 prelude 描述的 `[附件]` block 且至少一个附件是 PDF / DOCX / Markdown / 文本（路径在 `inbox/` 下），**或**
-- 用户明说 "我上传了一份简历你帮我导入"、"按这个简历建素材库"、"解析这个 PDF" 等等。
+- user message 末尾出现 prelude 描述的 `[附件]` block 且至少一个附件是 PDF / DOCX / Markdown / 文本 / **图像**（路径在 `inbox/` 下），**或**
+- 用户明说 "我上传了一份简历你帮我导入"、"按这个简历建素材库"、"解析这个 PDF / 截图" 等等。
 
 **流程**：
 
@@ -164,7 +164,8 @@ type: achievements
 
 - PDF / DOCX：`read_file` 那个 `.txt` sidecar（路径就在 `[附件]` block 里写明了）
 - Markdown / 文本：`read_file` 原文件
-- 多个附件全部读完再开始分析，不要边读边写
+- **图像**：已经作为 `input_image` 直接附在 user message 里，你 vision 直接看图，**不要 `read_file` 图像文件**——内容就在你眼前。把图里看到的人名 / 公司 / 时间 / 经历明确摘出来。
+- 多个附件全部读完（看完）再开始分析，不要边读边写
 
 ### 2. 抽取结构化字段
 
