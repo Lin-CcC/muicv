@@ -1,14 +1,27 @@
 import { useEffect, useState } from 'react';
 
+import type { ComponentType } from 'react';
+
 import { useAudioTranscoder } from '../lib/use-audio-transcoder';
 import { useAppStore } from '../lib/store';
 import { ChatView } from './chat-view';
+import { EditorView } from './editor-view';
 import { PreviewDrawer } from './preview-drawer';
 import { RecordPanel } from './record-panel';
 import { SettingsView } from './settings-view';
 import { SidebarLeft } from './sidebar-left';
 import { SidebarRight } from './sidebar-right';
 import { TitleBar } from './title-bar';
+
+/**
+ * View 路由映射：login 由外层处理，这里只覆盖已登录后的中栏 view。
+ * 比嵌套三元更可读，新增 view 时单点扩展。
+ */
+const VIEW_MAP: Record<'chat' | 'settings' | 'editor', ComponentType> = {
+  chat: ChatView,
+  settings: SettingsView,
+  editor: EditorView,
+};
 
 /**
  * 三栏布局：left navigator | center main | right file tree。
@@ -39,7 +52,12 @@ export function AppShell() {
             <SidebarLeft />
           </div>
         )}
-        <main className="min-w-0 flex-1 overflow-hidden">{view === 'settings' ? <SettingsView /> : <ChatView />}</main>
+        <main className="min-w-0 flex-1 overflow-hidden">
+          {(() => {
+            const ViewComponent = VIEW_MAP[view as keyof typeof VIEW_MAP] ?? ChatView;
+            return <ViewComponent />;
+          })()}
+        </main>
         {showRight && (
           <>
             <RightResizeHandle />

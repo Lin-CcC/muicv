@@ -3,6 +3,7 @@ import {
   CircleIcon,
   FolderOpenIcon,
   FolderSimpleIcon,
+  NotePencilIcon,
   PencilSimpleIcon,
   XIcon,
 } from '@phosphor-icons/react';
@@ -29,6 +30,9 @@ export function ProfileSection() {
   const openFileTree = useAppStore((s) => s.openFileTree);
   const closeRightPanel = useAppStore((s) => s.closeRightPanel);
   const treeOpen = useAppStore((s) => s.rightPanelTreeRoot !== null);
+  const view = useAppStore((s) => s.view);
+  const setView = useAppStore((s) => s.setView);
+  const editorActive = view === 'editor';
 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -51,22 +55,39 @@ export function ProfileSection() {
           <CaretDownIcon size={11} weight="bold" className="shrink-0 text-mute" />
         </button>
         {activeProfile && (
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              if (treeOpen) closeRightPanel();
-              else openFileTree();
-            }}
-            title={treeOpen ? '关闭文件浏览' : '查看文件'}
-            aria-label={treeOpen ? '关闭文件浏览' : '查看文件'}
-            aria-pressed={treeOpen}
-            className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-1 hover:bg-fluff ${
-              treeOpen ? 'bg-fluff text-yellow-deep' : 'text-mute hover:text-ink'
-            }`}
-          >
-            {treeOpen ? <FolderOpenIcon size={16} weight="fill" /> : <FolderSimpleIcon size={16} />}
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setView(editorActive ? 'chat' : 'editor');
+              }}
+              title={editorActive ? '关闭编辑器' : '编辑简历素材'}
+              aria-label={editorActive ? '关闭编辑器' : '编辑简历素材'}
+              aria-pressed={editorActive}
+              className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-1 hover:bg-fluff ${
+                editorActive ? 'bg-fluff text-yellow-deep' : 'text-mute hover:text-ink'
+              }`}
+            >
+              <NotePencilIcon size={16} weight={editorActive ? 'fill' : 'regular'} />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                if (treeOpen) closeRightPanel();
+                else openFileTree();
+              }}
+              title={treeOpen ? '关闭文件浏览' : '查看文件'}
+              aria-label={treeOpen ? '关闭文件浏览' : '查看文件'}
+              aria-pressed={treeOpen}
+              className={`flex shrink-0 items-center justify-center rounded-md px-1.5 py-1 hover:bg-fluff ${
+                treeOpen ? 'bg-fluff text-yellow-deep' : 'text-mute hover:text-ink'
+              }`}
+            >
+              {treeOpen ? <FolderOpenIcon size={16} weight="fill" /> : <FolderSimpleIcon size={16} />}
+            </button>
+          </>
         )}
       </div>
 

@@ -1,6 +1,6 @@
 import { mkdir, readFile, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { BrowserWindow, app, dialog, ipcMain, protocol, shell } from 'electron';
@@ -15,6 +15,7 @@ import type {
 } from '../shared/types.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
 import { saveAttachment } from './attachments.ts';
+import { type WriteResult, writeFileToWorkspace } from './fs-edit.ts';
 import { MicPermissionDenied, RecordingCancelled, recordAndTranscribe, type TranscribeResult } from './audio.ts';
 import { registerWhisperEngineIpc } from './whisper-engine/index.ts';
 import {
@@ -300,16 +301,23 @@ ipcMain.handle('conversation:rename', (_e, profileId: string, convId: string, ti
 );
 ipcMain.handle('conversation:remove', (_e, profileId: string, convId: string) => deleteConversation(profileId, convId));
 
-// -------------------- IPC: fs (右栏文件预览) --------------------
+// -------------------- IPC: fs (右栏文件预览 + 编辑器) --------------------
+
+/**
+ * 路径白名单：先 `path.resolve` 折叠 `..`，再做 `startsWith(dir + sep)` 比较。
+ * 比裸 `startsWith` 严：(a) 防 `..` 越界；(b) 避免 `/x/y` 误判 `/x/y2` 同根。
+ */
+function inWorkspace(workspaceDir: string, abs: string): boolean {
+  const root = workspaceDir.endsWith(sep) ? workspaceDir : workspaceDir + sep;
+  return abs === workspaceDir || abs.startsWith(root);
+}
 
 ipcMain.handle('fs:read', async (_e, path: string): Promise<string | null> => {
   if (typeof path !== 'string' || !path) return null;
-  // 安全：只允许读当前激活 profile 工作目录下的文件
   const cfg = getConfig();
   if (!cfg.workspaceDir) return null;
-  const abs = path;
-  // 简单校验：abs 必须以 workspaceDir 开头
-  if (!abs.startsWith(cfg.workspaceDir)) return null;
+  const abs = resolve(path);
+  if (!inWorkspace(cfg.workspaceDir, abs)) return null;
   try {
     return await readFile(abs, 'utf8');
   } catch {
@@ -323,14 +331,15 @@ ipcMain.handle(
     if (typeof path !== 'string' || !path) return null;
     const cfg = getConfig();
     if (!cfg.workspaceDir) return null;
-    if (!path.startsWith(cfg.workspaceDir)) return null;
+    const abs = resolve(path);
+    if (!inWorkspace(cfg.workspaceDir, abs)) return null;
     try {
-      const entries = await readdir(path, { withFileTypes: true });
+      const entries = await readdir(abs, { withFileTypes: true });
       return entries
         .filter((e) => !e.name.startsWith('.') || e.name === '.claude')
         .map((e) => ({
           name: e.name,
-          path: join(path, e.name),
+          path: join(abs, e.name),
           isDirectory: e.isDirectory(),
         }))
         .sort((a, b) => {
@@ -347,8 +356,15 @@ ipcMain.handle(
 ipcMain.handle('fs:showInFolder', async (_e, path: string) => {
   if (typeof path !== 'string') return;
   const cfg = getConfig();
-  if (!cfg.workspaceDir || !path.startsWith(cfg.workspaceDir)) return;
-  shell.showItemInFolder(path);
+  if (!cfg.workspaceDir) return;
+  const abs = resolve(path);
+  if (!inWorkspace(cfg.workspaceDir, abs)) return;
+  shell.showItemInFolder(abs);
+});
+
+ipcMain.handle('fs:write', async (_e, path: string, content: string): Promise<WriteResult> => {
+  const cfg = getConfig();
+  return writeFileToWorkspace(cfg.workspaceDir, path, content);
 });
 
 // -------------------- IPC: attachments (chat box 上传) --------------------

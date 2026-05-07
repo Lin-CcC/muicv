@@ -13,7 +13,7 @@ import type {
 } from '../../shared/types.ts';
 import { DEFAULT_CONFIG } from '../../shared/types.ts';
 
-type View = 'login' | 'chat' | 'settings';
+type View = 'login' | 'chat' | 'settings' | 'editor';
 
 type AppStore = {
   view: View;
@@ -99,13 +99,52 @@ type AppStore = {
   closeRightPanel: () => void;
   /** 拖拽 resize handle 时调用，自动 clamp + 写 localStorage。 */
   setRightPanelWidth: (w: number) => void;
+
+  // -------------------- Editor view (issue #3) --------------------
+
+  /** 当前打开的简历素材文件绝对路径；null = 还没选文件。 */
+  editorOpenPath: string | null;
+  /** 编辑器当前内容（CodeMirror 双向同步）。 */
+  editorBuffer: string;
+  /** 上次 load / save 后的快照，用来算 dirty。 */
+  editorOriginal: string;
+  /** 正在保存中（disable 按钮 + 状态文案）。 */
+  editorSaving: boolean;
+  /** 上次成功保存的时间戳，null = 没保存过。 */
+  editorLastSavedAt: number | null;
+  /** 最近一次错误（保存 / 加载失败的中文提示），null = 无。 */
+  editorError: string | null;
+
+  /** 打开一个文件到编辑器。会清掉之前的 buffer / dirty / 错误。 */
+  openEditorFile: (path: string) => Promise<void>;
+  /** CodeMirror onChange 写回 buffer。 */
+  setEditorBuffer: (text: string) => void;
+  /** 显式保存当前 buffer。返回 ok 让调用方决定 UI 反馈。 */
+  saveEditor: () => Promise<{ ok: boolean }>;
+  /** 关掉当前文件，清状态（不带 dirty 检查，调用方应先确认）。 */
+  closeEditorFile: () => void;
 };
 
-/** 路由：未登录 → login；已登录 → chat（默认）/ settings（用户主动切）。 */
+/** 路由：未登录 → login；已登录 → chat（默认）/ settings / editor（用户主动切）。 */
 function routeFor(session: SessionInfo | null, current: View): View {
   if (!session) return 'login';
   if (current === 'login') return 'chat';
   return current;
+}
+
+/** fs:write 错误码翻译表（与 main/fs-edit.ts 的 WriteError 对齐）。 */
+const WRITE_ERROR_MESSAGES: Record<string, string> = {
+  'bad-input': '参数无效',
+  'no-workspace': '没有激活的职业档案',
+  'out-of-workspace': '路径不在工作目录内',
+  'protected-dir': '不能编辑 .claude/ 内的文件',
+  'unsupported-ext': '只支持 .md / .markdown 文件',
+  'too-large': '文件超过 1MB 上限',
+  'io-error': '写入失败，请检查文件是否被占用',
+};
+
+function translateWriteError(code: string): string {
+  return WRITE_ERROR_MESSAGES[code] ?? `写入失败：${code}`;
 }
 
 // 右栏宽度持久化：localStorage 简单存数字，带边界 clamp。
@@ -354,6 +393,67 @@ export const useAppStore = create<AppStore>((set, get) => ({
       localStorage.setItem(RIGHT_WIDTH_KEY, String(clamped));
     } catch {}
   },
+
+  // -------------------- Editor view --------------------
+
+  editorOpenPath: null,
+  editorBuffer: '',
+  editorOriginal: '',
+  editorSaving: false,
+  editorLastSavedAt: null,
+  editorError: null,
+
+  openEditorFile: async (path) => {
+    set({ editorError: null });
+    const content = await window.muicv.fs.read(path);
+    if (content === null) {
+      set({
+        editorOpenPath: path,
+        editorBuffer: '',
+        editorOriginal: '',
+        editorError: '文件读取失败（可能已被外部移动 / 删除）',
+      });
+      return;
+    }
+    set({
+      editorOpenPath: path,
+      editorBuffer: content,
+      editorOriginal: content,
+      editorLastSavedAt: null,
+    });
+  },
+
+  setEditorBuffer: (text) => set({ editorBuffer: text }),
+
+  saveEditor: async () => {
+    const { editorOpenPath, editorBuffer } = get();
+    if (!editorOpenPath) return { ok: false };
+    set({ editorSaving: true, editorError: null });
+    const result = await window.muicv.fs.write(editorOpenPath, editorBuffer);
+    if (result.ok) {
+      set({
+        editorOriginal: editorBuffer,
+        editorSaving: false,
+        editorLastSavedAt: Date.now(),
+        editorError: null,
+      });
+      return { ok: true };
+    }
+    set({
+      editorSaving: false,
+      editorError: translateWriteError(result.error),
+    });
+    return { ok: false };
+  },
+
+  closeEditorFile: () =>
+    set({
+      editorOpenPath: null,
+      editorBuffer: '',
+      editorOriginal: '',
+      editorLastSavedAt: null,
+      editorError: null,
+    }),
 }));
 
 /**

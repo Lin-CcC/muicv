@@ -94,6 +94,8 @@ const api: RendererApi = {
         isDirectory: boolean;
       }> | null>,
     showInFolder: (path) => ipcRenderer.invoke('fs:showInFolder', path) as Promise<void>,
+    write: (path, content) =>
+      ipcRenderer.invoke('fs:write', path, content) as Promise<{ ok: true } | { ok: false; error: string }>,
   },
   attachments: {
     save: (profileId: string, file: AttachmentUploadInput) =>

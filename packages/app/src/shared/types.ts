@@ -467,12 +467,17 @@ export type RendererApi = {
     remove(profileId: string, convId: string): Promise<void>;
   };
   fs: {
-    /** 读一个文件（utf8）。给右栏文件预览用。失败返回 null。 */
+    /** 读一个文件（utf8）。给右栏文件预览 / 编辑器用。失败返回 null。 */
     read(path: string): Promise<string | null>;
     /** 列目录（仅当前 workspace 内）。返回 null = 路径越界 / 读不到。 */
     listDir(path: string): Promise<Array<{ name: string; path: string; isDirectory: boolean }> | null>;
     /** 在文件管理器里打开。 */
     showInFolder(path: string): Promise<void>;
+    /**
+     * 写文件（utf8）。仅允许 workspace 内的 .md / .markdown，且不在 .claude/ 子树。
+     * 1MB 上限。原子写（tmp + rename），失败不留半成品。
+     */
+    write(path: string, content: string): Promise<{ ok: true } | { ok: false; error: string }>;
   };
   attachments: {
     /**
