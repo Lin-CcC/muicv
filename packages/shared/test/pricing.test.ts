@@ -39,12 +39,14 @@ describe('Pricing', () => {
       assert.deepEqual(new Set(SUPPORTED_LLM_MODELS), new Set(['gpt-5.5', 'gpt-5.4', 'mimo-v2.5-pro', 'mimo-v2.5']));
     });
 
-    it('每个 model 都有 inputRate + outputRate（正数）', () => {
+    it('每个 model 都有 inputRate + cachedInputRate + outputRate（正数）', () => {
       for (const id of SUPPORTED_LLM_MODELS) {
         const rate = LLM_PRICING[id];
         assert.ok(rate, `${id} missing rate`);
         assert.ok(rate.inputRate > 0, `${id} inputRate should be > 0`);
         assert.ok(rate.outputRate > 0, `${id} outputRate should be > 0`);
+        assert.ok(rate.cachedInputRate > 0, `${id} cachedInputRate should be > 0`);
+        assert.ok(rate.cachedInputRate <= rate.inputRate, `${id} cachedInputRate should be ≤ inputRate`);
       }
     });
 
@@ -91,6 +93,33 @@ describe('Pricing', () => {
     it('未知 model → null', () => {
       assert.equal(computeLlmCharge('gpt-4o-mini', 100, 100), null);
       assert.equal(computeLlmCharge('', 100, 100), null);
+    });
+
+    it('cachedTokens=0 与省略参数等价（回归保护）', () => {
+      assert.equal(computeLlmCharge('gpt-5.4', 1000, 500, 0), computeLlmCharge('gpt-5.4', 1000, 500));
+    });
+
+    it('gpt-5.4：cached 命中应严格便宜', () => {
+      // fresh=200, cached=800, completion=500
+      // cost = 200 × 0.25 + 800 × 0.125 + 500 × 1.5 = 50 + 100 + 750 = 900 显示 token
+      // ceil(900 × 1.1 × 10_000) = 9_900_000 μ
+      const withCache = computeLlmCharge('gpt-5.4', 1000, 500, 800);
+      const withoutCache = computeLlmCharge('gpt-5.4', 1000, 500, 0);
+      assert.equal(withCache, Math.ceil(900 * LLM_RATIO * TOKEN_PRECISION));
+      assert.ok(withCache! < withoutCache!, 'cached 命中应该严格便宜');
+    });
+
+    it('cachedTokens > promptTokens 时 clamp 到 promptTokens', () => {
+      // 全 prompt 命中 cache，等价于 cached=1000
+      const clamped = computeLlmCharge('gpt-5.4', 1000, 500, 99_999);
+      const allCached = computeLlmCharge('gpt-5.4', 1000, 500, 1000);
+      assert.equal(clamped, allCached);
+    });
+
+    it('mimo cachedInputRate=inputRate 时，cached 不影响价格', () => {
+      const a = computeLlmCharge('mimo-v2.5-pro', 1000, 200, 0);
+      const b = computeLlmCharge('mimo-v2.5-pro', 1000, 200, 800);
+      assert.equal(a, b);
     });
   });
 

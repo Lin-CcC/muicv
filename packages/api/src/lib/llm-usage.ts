@@ -17,6 +17,8 @@ export type LlmUsage = {
   prompt_tokens: number;
   completion_tokens: number;
   total_tokens?: number;
+  /** prompt cache 命中数（OpenAI: usage.prompt_tokens_details.cached_tokens）；已含在 prompt_tokens 里 */
+  cached_tokens?: number;
 };
 
 const DATA_PREFIX = 'data: ';
@@ -50,6 +52,7 @@ function tryReadUsageFromBlock(block: string): LlmUsage | null {
           prompt_tokens: obj.usage.prompt_tokens,
           completion_tokens: obj.usage.completion_tokens,
           total_tokens: obj.usage.total_tokens,
+          cached_tokens: obj.usage.prompt_tokens_details?.cached_tokens ?? 0,
         };
       }
     } catch {

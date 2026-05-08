@@ -30,17 +30,18 @@ export function microToDisplay(microTokens: number): number {
   return microTokens / TOKEN_PRECISION;
 }
 
-/** 注册赠送 token（显示 token），wrangler vars 里可覆写 */
+/** 注册赠送 token（显示 token），wrangler vars 里可覆写。折算 $0.10（≈ ¥0.70）。 */
 export const SIGNUP_BONUS = 10_000;
 
-/** PDF 单次渲染扣 token（显示 token） */
+/** PDF 单次渲染扣 token（显示 token）。折算 $0.002 ≈ ¥0.014。 */
 export const PDF_RENDER_COST = 200;
 
-/** JD 单次抓取扣 token（显示 token） */
+/** JD 单次抓取扣 token（显示 token）。折算 $0.003 ≈ ¥0.021。 */
 export const JD_FETCH_COST = 300;
 
 /**
  * STT 转写按音频时长扣 token（显示 token / 分钟，向上取整到分钟）。
+ * 折算 $0.001 / 分钟 ≈ ¥0.007 / 分钟。
  * 草案值：跑一段时间（issue #1 M1）观察 Workers AI Whisper 真实账单后再校准。
  */
 export const STT_TRANSCRIBE_RATE_PER_MIN = 100;
@@ -48,26 +49,36 @@ export const STT_TRANSCRIBE_RATE_PER_MIN = 100;
 /**
  * LLM 计费表。每个 model 一项：
  *   - inputRate：1 上游 prompt token 折合多少显示 token
+ *   - cachedInputRate：1 上游 prompt cache 命中 token 折合多少显示 token（≤ inputRate）
  *   - outputRate：1 上游 completion token 折合多少显示 token
  *
  * 数值以「1 显示 token = $1e-5」为锚点反算（Xiaomi 价用 ¥7/USD 折算）。
  *
+ * cached_tokens 由上游 `usage.prompt_tokens_details.cached_tokens` 提供，
+ * 注意 OpenAI 约定下它**已计入** `prompt_tokens`，扣账时要减出新鲜部分单独算价。
+ *
  * 数据来源（review 时核对）：
  *   - gpt-5.5 / gpt-5.4：https://developers.openai.com/api/docs/pricing
+ *     （prompt caching 命中部分按 input 价 50% 计费）
  *   - mimo-v2.5-pro / mimo-v2.5：Xiaomi Mimo 平台官方报价
+ *     （上游目前未在 usage 里返回 cached_tokens，cachedInputRate 暂保守等于 inputRate）
  *
  * 平台路径（余额 > 0）只接受表里的 model；表外 model 在 routes/llm.ts 拦截 400。
  * muirouter fallback 路径不受本表约束（model 列表由 muirouter 端管理）。
  */
-export const LLM_PRICING: Record<string, { inputRate: number; outputRate: number }> = {
-  // OpenAI: input $5/M, output $30/M
-  'gpt-5.5': { inputRate: 0.5, outputRate: 3.0 },
-  // OpenAI: input $2.5/M, output $15/M
-  'gpt-5.4': { inputRate: 0.25, outputRate: 1.5 },
-  // Xiaomi: input ¥1.4/M ≈ $0.20/M, output ¥21/M ≈ $3/M
-  'mimo-v2.5-pro': { inputRate: 0.02, outputRate: 0.3 },
-  // Xiaomi: input ¥0.56/M ≈ $0.08/M, output ¥14/M ≈ $2/M
-  'mimo-v2.5': { inputRate: 0.008, outputRate: 0.2 },
+export const LLM_PRICING: Record<string, { inputRate: number; cachedInputRate: number; outputRate: number }> = {
+  // 上游 input $5 / cached $2.5 / output $30 per 1M tokens
+  // 用户支付（×1.1） input $5.5 / cached $2.75 / output $33 per 1M tokens
+  'gpt-5.5': { inputRate: 0.5, cachedInputRate: 0.25, outputRate: 3.0 },
+  // 上游 input $2.5 / cached $1.25 / output $15 per 1M tokens
+  // 用户支付（×1.1） input $2.75 / cached $1.375 / output $16.5 per 1M tokens
+  'gpt-5.4': { inputRate: 0.25, cachedInputRate: 0.125, outputRate: 1.5 },
+  // 上游 input ¥1.4 (≈$0.20) / output ¥21 (≈$3) per 1M tokens
+  // 用户支付（×1.1） input ¥1.54 (≈$0.22) / output ¥23.1 (≈$3.30) per 1M tokens
+  'mimo-v2.5-pro': { inputRate: 0.02, cachedInputRate: 0.02, outputRate: 0.3 },
+  // 上游 input ¥0.56 (≈$0.08) / output ¥14 (≈$2) per 1M tokens
+  // 用户支付（×1.1） input ¥0.616 (≈$0.088) / output ¥15.4 (≈$2.20) per 1M tokens
+  'mimo-v2.5': { inputRate: 0.008, cachedInputRate: 0.008, outputRate: 0.2 },
 };
 
 /** markup：所有 model 统一 1.1×。等于「上游成本 + 10% 加价」。 */
@@ -141,17 +152,34 @@ export const LLM_DISPLAY_META: Record<
  *   - Stripe price ID：在 packages/website/wrangler.jsonc 的 vars 里给
  *     （STRIPE_PRICE_<PLAN>_<INTERVAL>，详见 lib/stripe.ts 的 priceIdToCycleTokens）
  *   - savingsLabel：年付的折扣展示文案，纯 UI 用
+ *
+ * **设计原则（issue #4 重定价，2026-05-08）**：订阅基本贴成本（月付微利、年付微亏），
+ * 利润中心放在 TOPUP_PACKS。年付亏的部分等于「为留客户付的市场费」。
+ *
+ * **满载毛利率**（按 token 全部用完最坏情况估算）：
+ * 锚点 1 显示 token = $1e-5；token 价格 = 上游 × 1.1；
+ * 余额面值 = tokens × $1e-5；上游成本 = 面值 / 1.1；毛利 = 售价 - 上游成本。
+ *
+ *   | 档位        | 售价     | tokens | 面值     | 上游成本 | 满载毛利   | 毛利率   |
+ *   | ---------- | -------- | ------ | -------- | -------- | --------- | -------- |
+ *   | Pro 月付   | $4.88    | 500k   | $5.00    | $4.55    | +$0.33    | +6.8%    |
+ *   | Pro 年付   | $48.88   | 6M     | $60.00   | $54.55   | -$5.67    | -11.6%   |
+ *   | Max 月付   | $15.88   | 1.7M   | $17.00   | $15.45   | +$0.43    | +2.7%    |
+ *   | Max 年付   | $158.88  | 20M    | $200.00  | $181.82  | -$22.94   | -14.4%   |
+ *
+ * 年付 = 月付 × 10 价 ≈ 月付 × 12 token：「10 个月的钱买 12 个月的量」，单价省 ≈ 17%。
+ * Max 年付 token 砍到 20M（严格 12 倍是 20.4M）让数字 round + 少亏 2%。
  */
 export const SUBSCRIPTION_PLANS = {
   pro: {
     label: 'Pro',
-    monthly: { tokens: 500_000, priceCnyDisplay: '$4.99 / 月' },
-    yearly: { tokens: 6_000_000, priceCnyDisplay: '$49.99 / 年', savingsLabel: '相当于 $4.16 / 月，省 17%' },
+    monthly: { tokens: 500_000, priceCnyDisplay: '$4.88 / 月' },
+    yearly: { tokens: 6_000_000, priceCnyDisplay: '$48.88 / 年', savingsLabel: '相当于 $4.07 / 月，省 17%' },
   },
   max: {
     label: 'Max',
-    monthly: { tokens: 2_500_000, priceCnyDisplay: '$15.88 / 月' },
-    yearly: { tokens: 48_000_000, priceCnyDisplay: '$158.88 / 年', savingsLabel: '相当于 $13.24 / 月，省 17%' },
+    monthly: { tokens: 1_700_000, priceCnyDisplay: '$15.88 / 月' },
+    yearly: { tokens: 20_000_000, priceCnyDisplay: '$158.88 / 年', savingsLabel: '相当于 $13.24 / 月，省 17%' },
   },
 } as const;
 
@@ -178,11 +206,24 @@ export function getPlanLabel(plan: string | null | undefined): string {
 /**
  * 一次性补充包：付完款 webhook 立刻 +tokens（显示 token，credit 时转 μ）。
  * priceCnyDisplay 仅展示用，真实价格在 Stripe price 上。
+ *
+ * **设计原则（issue #4 重定价，2026-05-08）**：本档承担主要利润，毛利率梯度 32% / 26% / 20%。
+ * 故意做成"买得越多单价越低，但永远比订阅贵"，引导高频用户走订阅。
+ *
+ * **满载毛利率**（同 SUBSCRIPTION_PLANS 口径）：
+ *
+ *   | 档位     | 售价     | tokens | 面值     | 上游成本 | 满载毛利 | 毛利率  | tokens 单价 |
+ *   | ------- | -------- | ------ | -------- | -------- | -------- | ------- | ----------- |
+ *   | small   | $1.88    | 140k   | $1.40    | $1.27    | +$0.61   | +32.4%  | $13.43/M    |
+ *   | medium  | $5.88    | 480k   | $4.80    | $4.36    | +$1.52   | +25.8%  | $12.25/M    |
+ *   | large   | $19.88   | 1.75M  | $17.50   | $15.91   | +$3.97   | +20.0%  | $11.36/M    |
+ *
+ * 阶梯参考：Pro 月付 $9.76/M，Max 月付 $9.34/M（topup 永远贵于订阅）。
  */
 export const TOPUP_PACKS = {
-  small: { tokens: 100_000, priceCnyDisplay: '$1.98' },
-  medium: { tokens: 400_000, priceCnyDisplay: '$4.98' },
-  large: { tokens: 2_000_000, priceCnyDisplay: '$15.98' },
+  small: { tokens: 140_000, priceCnyDisplay: '$1.88' },
+  medium: { tokens: 480_000, priceCnyDisplay: '$5.88' },
+  large: { tokens: 1_750_000, priceCnyDisplay: '$19.88' },
 } as const;
 
 export type TopupPackKey = keyof typeof TOPUP_PACKS;
@@ -201,17 +242,32 @@ export type LedgerType =
 /**
  * LLM 上游用量 → μtoken 实扣金额。
  *
- * 公式：ceil((prompt × inputRate + completion × outputRate) × LLM_RATIO × TOKEN_PRECISION)
+ * 公式：
+ *   fresh = max(prompt - cached, 0)
+ *   cost  = fresh × inputRate + cached × cachedInputRate + completion × outputRate
+ *   返回   ceil(cost × LLM_RATIO × TOKEN_PRECISION)
+ *
+ * **OpenAI 约定**：cached_tokens 已包含在 prompt_tokens 里（不另加），所以要减出来再算价。
+ * 异常输入（cached > prompt、负数）clamp 到合法区间。
  *
  * 取整在 μtoken 层（4 位精度），过去整数 ceil 在显示 token 层，会让 mimo-v2.5 这种
  * 廉价模型的小请求被多扣 100×+。
  *
  * @returns μtoken（integer）；model 不在 LLM_PRICING 表里返回 null
  */
-export function computeLlmCharge(model: string, promptTokens: number, completionTokens: number): number | null {
+export function computeLlmCharge(
+  model: string,
+  promptTokens: number,
+  completionTokens: number,
+  cachedTokens = 0,
+): number | null {
   const rate = LLM_PRICING[model];
   if (!rate) return null;
-  const cost = (promptTokens || 0) * rate.inputRate + (completionTokens || 0) * rate.outputRate;
+  const prompt = Math.max(promptTokens || 0, 0);
+  const completion = Math.max(completionTokens || 0, 0);
+  const cached = Math.min(Math.max(cachedTokens || 0, 0), prompt);
+  const fresh = prompt - cached;
+  const cost = fresh * rate.inputRate + cached * rate.cachedInputRate + completion * rate.outputRate;
   return Math.ceil(cost * LLM_RATIO * TOKEN_PRECISION);
 }
 

@@ -53,7 +53,7 @@ const SUB_TIERS: SubTier[] = [
 const PRICING_FAQ: { q: string; a: string }[] = [
   {
     q: 'Token 怎么用？',
-    a: 'LLM 调用按上游 prompt + completion token × 1.1（覆盖第三方成本与少量利润）；PDF 渲染每次扣 200 tokens；JD 抓取每次扣 300 tokens。所有调用都会在 dashboard 流水里看到明细。',
+    a: 'LLM 调用按上游 prompt + completion token × 1.1（覆盖第三方成本与少量利润），其中 OpenAI 系命中 prompt cache 的部分按 input 价 50% 计费；PDF 渲染每次扣 200 tokens；JD 抓取每次扣 300 tokens。所有调用都会在 dashboard 流水里看到明细。',
   },
   {
     q: '月付和年付有什么区别？',
@@ -331,7 +331,13 @@ function SubscriptionCard({
       )}
       {isLoggedIn && hasActiveSub && <BuyButton kind="portal" label="管理订阅" primary={!!tier.highlight} />}
       {isLoggedIn && !hasActiveSub && (
-        <BuyButton kind="subscription" plan={tier.key} interval={interval} label="立即订阅" primary={!!tier.highlight} />
+        <BuyButton
+          kind="subscription"
+          plan={tier.key}
+          interval={interval}
+          label="立即订阅"
+          primary={!!tier.highlight}
+        />
       )}
     </article>
   );

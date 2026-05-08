@@ -250,6 +250,8 @@ export default async function AdminUserDetailPage(props: {
               const llmModel = isLlm ? (typeof meta?.model === 'string' ? meta.model : '—') : null;
               const llmPrompt = isLlm && typeof meta?.promptTokens === 'number' ? meta.promptTokens : null;
               const llmCompletion = isLlm && typeof meta?.completionTokens === 'number' ? meta.completionTokens : null;
+              const llmCached =
+                isLlm && typeof meta?.cachedTokens === 'number' && meta.cachedTokens > 0 ? meta.cachedTokens : null;
               return (
                 <li
                   key={row.id}
@@ -268,6 +270,7 @@ export default async function AdminUserDetailPage(props: {
                     {isLlm && llmPrompt != null && llmCompletion != null && (
                       <p className="mt-0.5 font-mono text-[11px] text-mute">
                         prompt {llmPrompt.toLocaleString()} / completion {llmCompletion.toLocaleString()}
+                        {llmCached != null && ` (cached ${llmCached.toLocaleString()})`}
                       </p>
                     )}
                     {isAdminAction && meta && (

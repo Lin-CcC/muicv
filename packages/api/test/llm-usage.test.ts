@@ -36,6 +36,27 @@ test('extractUsageFromSseStream 找到最后一个 usage chunk', async () => {
   assert.equal(usage?.total_tokens, 17);
 });
 
+test('extractUsageFromSseStream 解析 prompt_tokens_details.cached_tokens', async () => {
+  const stream = sseStream([
+    'data: {"id":"1","choices":[{"delta":{"content":"hi"}}]}',
+    'data: {"id":"1","choices":[],"usage":{"prompt_tokens":1000,"completion_tokens":50,"prompt_tokens_details":{"cached_tokens":800}}}',
+    'data: [DONE]',
+  ]);
+  const usage = await extractUsageFromSseStream(stream);
+  assert.equal(usage?.prompt_tokens, 1000);
+  assert.equal(usage?.completion_tokens, 50);
+  assert.equal(usage?.cached_tokens, 800);
+});
+
+test('extractUsageFromSseStream usage 缺 prompt_tokens_details 时 cached_tokens=0', async () => {
+  const stream = sseStream([
+    'data: {"id":"1","choices":[],"usage":{"prompt_tokens":12,"completion_tokens":5}}',
+    'data: [DONE]',
+  ]);
+  const usage = await extractUsageFromSseStream(stream);
+  assert.equal(usage?.cached_tokens, 0);
+});
+
 test('extractUsageFromSseStream 没有 usage 返回 null', async () => {
   const stream = sseStream(['data: {"id":"1","choices":[{"delta":{"content":"hi"}}]}', 'data: [DONE]']);
   const usage = await extractUsageFromSseStream(stream);

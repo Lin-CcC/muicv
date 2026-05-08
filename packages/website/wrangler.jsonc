@@ -3,7 +3,10 @@
   "name": "muicv-web",
   "main": ".open-next/worker.js",
   "compatibility_date": "2025-12-01",
-  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "compatibility_flags": [
+    "nodejs_compat",
+    "global_fetch_strictly_public"
+  ],
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
   // 生产域名：muicv.com（landing + dashboard + /r/render/[token] 简历渲染 SSR）
   "routes": [
@@ -62,13 +65,13 @@
     // Stripe price IDs（按档位 × 周期）—— 部署前 wrangler vars 覆盖成真实 price_xxx。
     // 订阅走 mode=subscription（月付 / 年付），补充包走 mode=payment。
     // 切 live 时这些值从 sk_test 对应的 price 改成 sk_live 对应的 price。
-    "STRIPE_PRICE_PRO_MONTHLY": "price_1TRwa8EpkXm2vxXTYEgJaDVp",
-    "STRIPE_PRICE_PRO_YEARLY": "price_1TRwb4EpkXm2vxXTP56EkfBh",
+    "STRIPE_PRICE_PRO_MONTHLY": "price_1TUjjpEpkXm2vxXT7PRayf4m",
+    "STRIPE_PRICE_PRO_YEARLY": "price_1TUjkFEpkXm2vxXTqDLQ6kon",
     "STRIPE_PRICE_MAX_MONTHLY": "price_1TRwcYEpkXm2vxXTolTABRBM",
     "STRIPE_PRICE_MAX_YEARLY": "price_1TRwczEpkXm2vxXTxoxuOYjq",
-    "STRIPE_PRICE_TOPUP_SMALL": "price_1TRwg5EpkXm2vxXTIrzLM9nv",
-    "STRIPE_PRICE_TOPUP_MEDIUM": "price_1TRwgREpkXm2vxXTrfyins5N",
-    "STRIPE_PRICE_TOPUP_LARGE": "price_1TRwgtEpkXm2vxXTa6IdtcQC",
+    "STRIPE_PRICE_TOPUP_SMALL": "price_1TUjkrEpkXm2vxXTOgEMjxDE",
+    "STRIPE_PRICE_TOPUP_MEDIUM": "price_1TUjlcEpkXm2vxXTgr6Od5el",
+    "STRIPE_PRICE_TOPUP_LARGE": "price_1TUjm2EpkXm2vxXTy8UHK9qo",
     // 管理员邮箱白名单（逗号分隔，大小写无关）。控制 /admin 访问与 /api/admin/* 接口。
     // 命中走 /admin 后台；不命中访问 /admin 直接返回 404，不暴露后台存在。
     "ADMIN_EMAILS": "meathill@gmail.com"

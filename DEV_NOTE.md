@@ -232,6 +232,12 @@
   不被本表约束（其 model 列表由 muirouter 端管理）。前缀分流的取舍：客户端零改动、
   未来加 deepseek/moonshot 一行 case 即可；缺点是 model id 命名空间冲突时会路由错
   （目前 `mimo-` / `gpt-` 前缀够独特）。
+- **prompt cache 命中分价（issue #4，2026-05-08）**：`LLM_PRICING` 加 `cachedInputRate`，
+  从 `usage.prompt_tokens_details.cached_tokens` 读出命中数。**OpenAI 约定 cached_tokens
+  已计入 prompt_tokens**，所以 `computeLlmCharge` 内部 `fresh = prompt - cached` 后分别按
+  `inputRate` / `cachedInputRate` 算价；OpenAI 系按 50% 给（input × 0.5），mimo 系上游目前
+  不返 cached_tokens、`cachedInputRate=inputRate` 保守持平。`tokenLedger.meta` 多写一个
+  `cachedTokens` 字段（JSON，无 schema 迁移），admin 详情页 cached>0 时展示。
 
 ## OpenAI Chat Completions stream 注入 + 计费（packages/api）
 

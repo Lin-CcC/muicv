@@ -238,12 +238,14 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     c.executionCtx.waitUntil(
       extractUsageFromSseStream(b).then(async (usage) => {
         if (!usage) return;
-        const cost = computeLlmCharge(model, usage.prompt_tokens, usage.completion_tokens);
+        const cachedTokens = usage.cached_tokens ?? 0;
+        const cost = computeLlmCharge(model, usage.prompt_tokens, usage.completion_tokens, cachedTokens);
         if (cost == null) return;
         await charge(c.env, userId, cost, 'llm', {
           model,
           promptTokens: usage.prompt_tokens,
           completionTokens: usage.completion_tokens,
+          cachedTokens,
         }).catch(() => {});
       }),
     );
@@ -260,13 +262,20 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   try {
     const json = JSON.parse(text);
     if (json?.usage?.prompt_tokens != null && json?.usage?.completion_tokens != null) {
-      const cost = computeLlmCharge(json.model ?? model, json.usage.prompt_tokens, json.usage.completion_tokens);
+      const cachedTokens = json.usage.prompt_tokens_details?.cached_tokens ?? 0;
+      const cost = computeLlmCharge(
+        json.model ?? model,
+        json.usage.prompt_tokens,
+        json.usage.completion_tokens,
+        cachedTokens,
+      );
       if (cost != null) {
         c.executionCtx.waitUntil(
           charge(c.env, userId, cost, 'llm', {
             model: json.model ?? model,
             promptTokens: json.usage.prompt_tokens,
             completionTokens: json.usage.completion_tokens,
+            cachedTokens,
           })
             .then(() => {})
             .catch(() => {}),
