@@ -7,6 +7,9 @@ import muicvCritiqueSkill from '@skills/muicv-critique/SKILL.md?raw';
 import muicvGenerateSkill from '@skills/muicv-generate/SKILL.md?raw';
 import generatePrompts from '@skills/muicv-generate/references/prompts.md?raw';
 import muicvInterviewSkill from '@skills/muicv-interview/SKILL.md?raw';
+import interviewLevelCategoryHeuristics from '@skills/muicv-interview/references/level-category-heuristics.md?raw';
+import interviewQuestionDesignFramework from '@skills/muicv-interview/references/question-design-framework.md?raw';
+import interviewRoundRecipes from '@skills/muicv-interview/references/round-recipes.md?raw';
 import muicvJobsSkill from '@skills/muicv-jobs/SKILL.md?raw';
 import muicvRenderSkill from '@skills/muicv-render/SKILL.md?raw';
 
@@ -33,7 +36,16 @@ const SKILLS_RAW: Array<{
   { name: 'muicv-critique', type: 'critique', body: muicvCritiqueSkill },
   { name: 'muicv-jobs', type: 'jobs', body: muicvJobsSkill },
   { name: 'muicv-render', type: 'core', body: muicvRenderSkill }, // render 是工具型 skill，没单独对话类型
-  { name: 'muicv-interview', type: 'interview', body: muicvInterviewSkill },
+  {
+    name: 'muicv-interview',
+    type: 'interview',
+    body: muicvInterviewSkill,
+    references: {
+      'round-recipes.md': interviewRoundRecipes,
+      'level-category-heuristics.md': interviewLevelCategoryHeuristics,
+      'question-design-framework.md': interviewQuestionDesignFramework,
+    },
+  },
   { name: 'muicv-coaching', type: 'coaching', body: muicvCoachingSkill },
 ];
 
