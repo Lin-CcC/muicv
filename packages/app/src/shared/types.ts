@@ -314,11 +314,34 @@ export type AudioTranscribeResult = {
   language: string;
   fillerCount: number;
   pauseCount: number;
+  /** 实际走的 provider；UI 据此区分提示（如本地兜底成功 → 轻量提示「已用本地模型」）。 */
+  provider: 'cloud' | 'local' | 'local-fallback';
+};
+
+/**
+ * 录音失败时把已经录好的 16k mono WAV 一起带回 renderer，
+ * 让 UI 提供「重试转写 / 下载录音 / 安装本地模型」三条后路（issue #6）。
+ */
+export type AudioFailedRecording = {
+  /** 16k mono WAV bytes。Electron structured clone 原生支持 Uint8Array，零拷贝。 */
+  wav: Uint8Array;
+  mimeType: string;
+  durationMs: number;
+  pauses: Array<[number, number]>;
 };
 
 export type AudioRecordOutcome =
   | { ok: true; result: AudioTranscribeResult }
-  | { ok: false; reason: 'mic-denied' | 'cancel' | 'error'; message: string };
+  | { ok: false; reason: 'mic-denied' | 'cancel'; message: string }
+  | {
+      ok: false;
+      reason: 'error';
+      message: string;
+      /** 录音 OK 但转写失败时存在；mic-denied / cancel 没录到音频，没这个字段。 */
+      lastAudio?: AudioFailedRecording;
+      /** 本地引擎是否已装好默认模型。renderer 据此决定是否提示「安装本地模型再试」。 */
+      localReady?: boolean;
+    };
 
 /**
  * 文件转码 IPC（issue #1 M4）：main 端 transcribe_audio_file 工具读完文件
@@ -541,6 +564,11 @@ export type RendererApi = {
     cancel(requestId: string, reason: string): Promise<void>;
     /** chatbox 麦克风按钮：renderer 主动触发一次录音 → 转写。 */
     recordAndTranscribe(opts: { durationLimitSec?: number }): Promise<AudioRecordOutcome>;
+    /**
+     * 用上一次失败保留的 wav 重新走转写（issue #6 手动重试）。
+     * 不再录音，直接复用 `lastAudio`。失败仍返回 lastAudio，可继续尝试。
+     */
+    retranscribe(audio: AudioFailedRecording): Promise<AudioRecordOutcome>;
     /** 监听 main 端 transcribe_audio_file 工具发起的转码请求。返回 unsubscribe。 */
     onTranscodeRequest(handler: (req: AudioTranscodeRequest) => void | Promise<void>): () => void;
     /** 转码完成回传 wav。 */

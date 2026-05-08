@@ -5,6 +5,7 @@ import type {
   AppConfig,
   AttachmentSaveResult,
   AttachmentUploadInput,
+  AudioFailedRecording,
   AudioRecordOutcome,
   AudioRecordingPayload,
   AudioRecordingRequest,
@@ -118,6 +119,8 @@ const api: RendererApi = {
       ipcRenderer.invoke('audio:cancel', requestId, reason) as Promise<void>,
     recordAndTranscribe: (opts: { durationLimitSec?: number }) =>
       ipcRenderer.invoke('audio:recordAndTranscribe', opts) as Promise<AudioRecordOutcome>,
+    retranscribe: (audio: AudioFailedRecording) =>
+      ipcRenderer.invoke('audio:retranscribe', audio) as Promise<AudioRecordOutcome>,
     onTranscodeRequest: (handler: (req: AudioTranscodeRequest) => void | Promise<void>) => {
       const listener = (_e: Electron.IpcRendererEvent, req: AudioTranscodeRequest) => {
         void handler(req);

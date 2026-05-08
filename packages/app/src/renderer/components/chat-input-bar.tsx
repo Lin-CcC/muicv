@@ -1,7 +1,14 @@
-import { MicrophoneIcon, PaperclipIcon, SpinnerGapIcon, StopIcon } from '@phosphor-icons/react';
+import {
+  DownloadSimpleIcon,
+  MicrophoneIcon,
+  PaperclipIcon,
+  SpinnerGapIcon,
+  StopIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import { type ClipboardEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-import type { AttachmentRef } from '../../shared/types.ts';
+import type { AttachmentRef, AudioFailedRecording, AudioRecordOutcome } from '../../shared/types.ts';
 import type { ChatAttachmentsApi } from '../lib/use-chat-attachments';
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS_PER_SEND } from '../lib/use-chat-attachments';
 import { useSlashCommand } from '../lib/use-slash-command.ts';
@@ -19,6 +26,8 @@ type Props = {
   onMicError: (message: string) => void;
   onSend: (text: string) => void;
   onAbort: () => void;
+  /** issue #6：失败面板的"安装本地模型"按钮跳设置页用。 */
+  onOpenSettings?: () => void;
 };
 
 /**
@@ -38,19 +47,49 @@ export function ChatInputBar({
   onMicError,
   onSend,
   onAbort,
+  onOpenSettings,
 }: Props) {
   const [input, setInput] = useState('');
   const [recording, setRecording] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<AttachmentRef | null>(null);
+  // issue #6：转写失败时保留 wav，给用户重试 / 下载 / 引导装本地模型；切对话清空。
+  const [failedAudio, setFailedAudio] = useState<(AudioFailedRecording & { localReady?: boolean }) | null>(null);
+  const [retryPending, setRetryPending] = useState(false);
+  // 本地兜底成功后的轻量提示（"网络异常，已用本地模型转写"）；3.5s 自清。
+  const [info, setInfo] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const inputContainerRef = useRef<HTMLDivElement | null>(null);
+  // 麦克风按下时的 textarea selection 快照；转写回来时按这个落点插入。
+  const cursorAtClickRef = useRef<{ start: number; end: number; focused: boolean } | null>(null);
+  // setInput 提交后再 focus + setSelectionRange 落光标（复用 use-slash-command 的模式）。
+  const pendingCursorRef = useRef<number | null>(null);
   const slash = useSlashCommand({ value: input, onChange: setInput, textareaRef });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 仅 contextKey 触发清空
   useEffect(() => {
     setInput('');
     setPreviewAttachment(null);
+    setFailedAudio(null);
+    setInfo(null);
   }, [contextKey]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ref 不入 deps（引用稳定，.current 不触发 re-render）
+  useEffect(() => {
+    const pos = pendingCursorRef.current;
+    if (pos == null) return;
+    pendingCursorRef.current = null;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.focus();
+    ta.setSelectionRange(pos, pos);
+  }, [input]);
+
+  // info 自清
+  useEffect(() => {
+    if (!info) return;
+    const id = setTimeout(() => setInfo(null), 3500);
+    return () => clearTimeout(id);
+  }, [info]);
 
   // 预览的附件被移除（或发送后清空）→ 自动关 dialog，避免预览空文件
   useEffect(() => {
@@ -78,20 +117,117 @@ export function ChatInputBar({
     ta.style.overflowY = ta.scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [input]);
 
+  /** 在 textarea 当前光标位置插入 transcript（无焦点 → 追加；有选区 → 替换；纯光标 → 插入）。 */
+  function insertTranscriptAtCursor(
+    transcript: string,
+    anchor: { start: number; end: number; focused: boolean },
+  ): void {
+    setInput((prev) => {
+      if (!anchor.focused) {
+        // 用户没把光标落在 textarea 里，按原"追加"语义；空 input 直接放。
+        return prev ? `${prev} ${transcript}` : transcript;
+      }
+      const start = Math.min(anchor.start, prev.length);
+      const end = Math.min(anchor.end, prev.length);
+      const left = prev.slice(0, start);
+      const right = prev.slice(end);
+      const needLeftSpace = left.length > 0 && !/\s$/.test(left);
+      const needRightSpace = right.length > 0 && !/^\s/.test(right);
+      const inserted = `${needLeftSpace ? ' ' : ''}${transcript}${needRightSpace ? ' ' : ''}`;
+      pendingCursorRef.current = start + inserted.length;
+      return left + inserted + right;
+    });
+  }
+
+  function handleSuccess(outcome: Extract<AudioRecordOutcome, { ok: true }>): void {
+    const anchor = cursorAtClickRef.current ?? { start: input.length, end: input.length, focused: false };
+    insertTranscriptAtCursor(outcome.result.transcript, anchor);
+    setFailedAudio(null);
+    if (outcome.result.provider === 'local-fallback') {
+      setInfo('网络转写失败，已用本地模型转写');
+    }
+  }
+
+  function handleFailure(outcome: Extract<AudioRecordOutcome, { ok: false }>): void {
+    if (outcome.reason === 'cancel') return; // 用户主动取消，安静处理
+    onMicError(outcome.message);
+    if (outcome.reason === 'error' && outcome.lastAudio) {
+      setFailedAudio(buildFailedAudio(outcome.lastAudio, outcome.localReady));
+    }
+  }
+
   async function handleMicClick(): Promise<void> {
     if (recording) return;
+    const ta = textareaRef.current;
+    cursorAtClickRef.current =
+      ta && document.activeElement === ta
+        ? { start: ta.selectionStart ?? input.length, end: ta.selectionEnd ?? input.length, focused: true }
+        : { start: input.length, end: input.length, focused: false };
     setRecording(true);
     try {
       const outcome = await window.muicv.audio.recordAndTranscribe({ durationLimitSec: 180 });
-      if (!outcome.ok) {
-        if (outcome.reason !== 'cancel') onMicError(outcome.message);
-        return;
-      }
-      // 默认填入 textarea 让用户编辑后再按发送；空 input 直接放，已有内容追加
-      setInput((prev) => (prev.trim() ? `${prev.trim()} ${outcome.result.transcript}` : outcome.result.transcript));
+      if (outcome.ok) handleSuccess(outcome);
+      else handleFailure(outcome);
     } finally {
       setRecording(false);
     }
+  }
+
+  async function handleRetryTranscribe(): Promise<void> {
+    if (!failedAudio || retryPending) return;
+    setRetryPending(true);
+    try {
+      const outcome = await window.muicv.audio.retranscribe({
+        wav: failedAudio.wav,
+        mimeType: failedAudio.mimeType,
+        durationMs: failedAudio.durationMs,
+        pauses: failedAudio.pauses,
+      });
+      if (outcome.ok) {
+        // 重试成功用此刻 textarea 光标位置插入（原 cursorAtClickRef 已过期）
+        const ta = textareaRef.current;
+        const anchor =
+          ta && document.activeElement === ta
+            ? { start: ta.selectionStart ?? input.length, end: ta.selectionEnd ?? input.length, focused: true }
+            : { start: input.length, end: input.length, focused: false };
+        insertTranscriptAtCursor(outcome.result.transcript, anchor);
+        if (outcome.result.provider === 'local-fallback') {
+          setInfo('网络转写失败，已用本地模型转写');
+        }
+        setFailedAudio(null);
+      } else if (outcome.reason === 'error') {
+        onMicError(outcome.message);
+        // 后端会再次返回 lastAudio；保险起见若有则更新，无则保留原 wav
+        if (outcome.lastAudio) setFailedAudio(buildFailedAudio(outcome.lastAudio, outcome.localReady));
+      }
+    } finally {
+      setRetryPending(false);
+    }
+  }
+
+  function handleDownloadFailedAudio(): void {
+    if (!failedAudio) return;
+    // Uint8Array → Blob → 临时 URL → <a download>。结束后 revoke 释放内存。
+    // copy 一份字节进新 ArrayBuffer，避免 IPC 过来的 Uint8Array<ArrayBufferLike> 在 Blob 构造时被 TS 拒。
+    const bytes = new Uint8Array(failedAudio.wav.byteLength);
+    bytes.set(failedAudio.wav);
+    const blob = new Blob([bytes], { type: failedAudio.mimeType || 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `muicv-recording-${Date.now()}.wav`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /** 构造 failedAudio state，避免 exactOptionalPropertyTypes 下把 undefined 显式赋给可选属性。 */
+  function buildFailedAudio(
+    audio: AudioFailedRecording,
+    localReady: boolean | undefined,
+  ): AudioFailedRecording & { localReady?: boolean } {
+    return localReady === undefined ? { ...audio } : { ...audio, localReady };
   }
 
   function handleSendClick() {
@@ -140,6 +276,63 @@ export function ChatInputBar({
           <p role="alert" className="text-[12px] text-tongue">
             {errorMessage}
           </p>
+        )}
+        {info && (
+          <p role="status" aria-live="polite" className="text-[12px] text-ink-soft">
+            {info}
+          </p>
+        )}
+        {failedAudio && (
+          <div
+            role="alert"
+            aria-live="polite"
+            className="flex flex-col gap-2 rounded-xl border-2 border-rule-strong bg-cream px-3 py-2 text-[12px] text-ink"
+          >
+            <p>转写失败，已保留这段录音（{Math.round(failedAudio.durationMs / 1000)} 秒）。</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleRetryTranscribe()}
+                disabled={retryPending}
+                className="press-ink inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-2.5 py-1 text-[12px] font-medium text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {retryPending ? (
+                  <>
+                    <SpinnerGapIcon size={12} weight="bold" className="animate-spin" />
+                    重试中…
+                  </>
+                ) : (
+                  '重试转写'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadFailedAudio}
+                className="press-ink inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-2.5 py-1 text-[12px] font-medium text-ink transition hover:border-ink"
+              >
+                <DownloadSimpleIcon size={12} weight="bold" />
+                下载录音
+              </button>
+              {!failedAudio.localReady && onOpenSettings && (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="press-ink inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-2.5 py-1 text-[12px] font-medium text-ink transition hover:border-ink"
+                >
+                  安装本地模型
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setFailedAudio(null)}
+                className="press-ink ml-auto inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-2.5 py-1 text-[12px] font-medium text-ink-soft transition hover:border-ink hover:text-ink"
+                aria-label="放弃这段录音"
+              >
+                <TrashIcon size={12} weight="bold" />
+                放弃
+              </button>
+            </div>
+          </div>
         )}
         {attachments.attachmentErrors.length > 0 && (
           <div className="flex flex-col gap-1">

@@ -115,6 +115,7 @@ export function ChatView() {
         onMicError={setError}
         onSend={(text) => void handleSend(text)}
         onAbort={dispatch.abort}
+        onOpenSettings={() => setView('settings')}
       />
 
       {attachments.isDragging && (

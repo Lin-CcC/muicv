@@ -1,4 +1,3 @@
-import { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
 import { isAbsolute, resolve } from 'node:path';
@@ -13,6 +12,7 @@ import type {
   AudioTranscodeRequest,
   AudioTranscodedPayload,
 } from '../shared/types.ts';
+import { postTranscribeWithRetry } from './audio-retry.ts';
 import { countFillers } from './lib/filler-count.ts';
 import { getDefaultModel, getPreference, getStatus, transcribeLocal } from './whisper-engine/index.ts';
 
@@ -157,64 +157,89 @@ export type TranscribeResult = {
   language: string;
   fillerCount: number;
   pauseCount: number;
+  /**
+   * 实际走的 provider，UI 据此区分提示：
+   *   - 'cloud'：偏好 cloud 且 cloud 一次/重试成功
+   *   - 'local'：偏好 'local-preferred' 且本地装好，主动走本地
+   *   - 'local-fallback'：偏好 cloud 但 cloud 三连失败 + 本地装好，opportunistic 兜底
+   */
+  provider: 'cloud' | 'local' | 'local-fallback';
 };
 
 /**
  * 录音 / 文件转写共用：拿到 wav payload → 按偏好选 provider → 返回结果。
  *
- * Provider 选择规则（issue #1 M3）：
+ * Provider 选择规则：
  *   - 偏好 'local-preferred' 且本地引擎 + 默认模型都装好 → 走本地 whisper-cli
- *   - 否则 → 走云端 POST /audio/transcribe
+ *   - 否则 → 走云端 POST /audio/transcribe（含 3 次重试 + 60s 超时）
+ *   - cloud 三连失败 + 本地装好 → opportunistic 兜底走一次本地（issue #6）
  *
  * 本地失败时**不**自动 fallback 云端：本地用户多半在意隐私 / 离线，悄悄上云违背预期。
+ * 反向（cloud 失败兜底本地）则是 OK 的：cloud 用户没有强隐私诉求，沉默兜底等同于"自动重试 + 离线兜底"。
  */
 async function transcribeWavPayload(payload: AudioRecordingPayload, config: AppConfig): Promise<TranscribeResult> {
-  const useLocal = await shouldUseLocal();
-  if (useLocal) {
-    const local = await transcribeLocal({
-      wavBase64: payload.audioBase64,
-      modelName: getDefaultModel(),
-    });
-    return {
-      transcript: local.transcript,
-      durationMs: local.durationMs || payload.durationMs,
-      language: local.language,
-      fillerCount: countFillers(local.transcript),
-      pauseCount: payload.pauses.length,
-    };
+  if (await shouldUseLocal()) {
+    return transcribeViaLocal(payload, 'local');
   }
 
-  const res = await postTranscribe(config, payload);
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`muicv /audio/transcribe 返回 ${res.status}：${text.slice(0, 300) || '未知错误'}`);
+  try {
+    const body = await postTranscribeWithRetry(config, payload);
+    return {
+      transcript: body.transcript,
+      durationMs: body.duration_ms ?? payload.durationMs,
+      language: body.language ?? 'unknown',
+      fillerCount: countFillers(body.transcript),
+      pauseCount: payload.pauses.length,
+      provider: 'cloud',
+    };
+  } catch (cloudErr) {
+    if (await isLocalReady()) {
+      return transcribeViaLocal(payload, 'local-fallback');
+    }
+    throw cloudErr;
   }
-  const body = (await res.json().catch(() => null)) as {
-    transcript?: string;
-    duration_ms?: number;
-    language?: string;
-  } | null;
-  if (!body || typeof body.transcript !== 'string') {
-    throw new Error('muicv /audio/transcribe 响应不含 transcript');
-  }
+}
+
+async function transcribeViaLocal(
+  payload: AudioRecordingPayload,
+  provider: 'local' | 'local-fallback',
+): Promise<TranscribeResult> {
+  const local = await transcribeLocal({
+    wavBase64: payload.audioBase64,
+    modelName: getDefaultModel(),
+  });
   return {
-    transcript: body.transcript,
-    durationMs: body.duration_ms ?? payload.durationMs,
-    language: body.language ?? 'unknown',
-    fillerCount: countFillers(body.transcript),
+    transcript: local.transcript,
+    durationMs: local.durationMs || payload.durationMs,
+    language: local.language,
+    fillerCount: countFillers(local.transcript),
     pauseCount: payload.pauses.length,
+    provider,
   };
 }
 
-/** 录音 → 转写。agent tool record_and_transcribe_response + chatbox 麦克风按钮共用。 */
+/** 录音 → 转写。agent tool record_and_transcribe_response 用（chatbox 麦克风按钮走分步版本以便失败时保留 wav）。 */
 export async function recordAndTranscribe(opts: {
   durationLimitSec: number;
   sender: WebContents;
   config: AppConfig;
 }): Promise<TranscribeResult> {
-  await ensureMicrophoneAccess();
-  const payload = await requestRecording({ durationLimitSec: opts.durationLimitSec, sender: opts.sender });
+  const payload = await recordWav(opts);
   return transcribeWavPayload(payload, opts.config);
+}
+
+/** 仅录音，不转写。给需要"录完拿到 wav，再分别走转写"的调用方用（chatbox 失败保留 wav 场景）。 */
+export async function recordWav(opts: {
+  durationLimitSec: number;
+  sender: WebContents;
+}): Promise<AudioRecordingPayload> {
+  await ensureMicrophoneAccess();
+  return requestRecording({ durationLimitSec: opts.durationLimitSec, sender: opts.sender });
+}
+
+/** 已有 wav payload → 转写。供"手动重试"等场景。 */
+export function transcribeWav(payload: AudioRecordingPayload, config: AppConfig): Promise<TranscribeResult> {
+  return transcribeWavPayload(payload, config);
 }
 
 /**
@@ -284,30 +309,14 @@ function mimeForExtension(path: string): string {
 
 async function shouldUseLocal(): Promise<boolean> {
   if (getPreference() !== 'local-preferred') return false;
+  return isLocalReady();
+}
+
+/** 不看 preference，只看本地引擎 + 默认模型是否装好。给 cloud 失败时的 opportunistic 兜底用。 */
+export async function isLocalReady(): Promise<boolean> {
   const status = await getStatus();
   if (!status.engine.installed) return false;
   return status.models.some((m) => m.name === getDefaultModel() && m.installed);
-}
-
-async function postTranscribe(config: AppConfig, payload: AudioRecordingPayload): Promise<Response> {
-  const audio = Buffer.from(payload.audioBase64, 'base64');
-  const blob = new Blob([audio], { type: payload.mimeType });
-  const form = new FormData();
-  form.append('file', blob, fileNameForMime(payload.mimeType));
-  const headers: Record<string, string> = config.muicvApiKey ? { authorization: `Bearer ${config.muicvApiKey}` } : {};
-  return await fetch(`${config.muicvApiBase.replace(/\/$/, '')}/audio/transcribe`, {
-    method: 'POST',
-    headers,
-    body: form,
-  });
-}
-
-function fileNameForMime(mime: string): string {
-  if (mime.includes('webm')) return 'recording.webm';
-  if (mime.includes('ogg')) return 'recording.ogg';
-  if (mime.includes('mp4') || mime.includes('m4a')) return 'recording.m4a';
-  if (mime.includes('wav')) return 'recording.wav';
-  return 'recording.bin';
 }
 
 function ensureRegistered(): void {
