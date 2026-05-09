@@ -30,17 +30,32 @@ type GhRelease = {
 };
 
 async function fetchLatestRelease(): Promise<GhRelease | null> {
+  const headers: Record<string, string> = {
+    accept: 'application/vnd.github+json',
+    'user-agent': 'muicv-website',
+  };
+  // OpenNext 把 wrangler secret 暴露到 process.env；有 token 时把限流从 60/h 提到 5000/h
+  const token = process.env.GITHUB_TOKEN;
+  if (token) headers.authorization = `Bearer ${token}`;
+
   try {
     const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-      headers: {
-        accept: 'application/vnd.github+json',
-        'user-agent': 'muicv-website',
-      },
+      headers,
       next: { revalidate: 300 },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(
+        '[download] GitHub releases/latest failed',
+        res.status,
+        res.statusText,
+        'x-ratelimit-remaining:',
+        res.headers.get('x-ratelimit-remaining'),
+      );
+      return null;
+    }
     return (await res.json()) as GhRelease;
-  } catch {
+  } catch (err) {
+    console.error('[download] GitHub releases/latest threw', err);
     return null;
   }
 }
@@ -77,6 +92,12 @@ function classifyAsset(asset: GhAsset): ParsedAsset {
   else if (n.endsWith('.exe')) format = 'exe';
   else if (n.endsWith('.appimage')) format = 'AppImage';
   else if (n.endsWith('.deb')) format = 'deb';
+
+  // electron-builder 给 mac 出的 zip 命名为 `MuiCV-<ver>-<arch>.zip`，不带 mac/darwin 字样。
+  // 我们的构建链里 zip 仅用于 mac 自动更新，所以 zip + 已识别 arch 的兜底归到 mac。
+  if (platform === 'other' && format === 'zip' && (arch === 'arm64' || arch === 'x64')) {
+    platform = 'mac';
+  }
 
   return {
     url: asset.browser_download_url,
