@@ -38,8 +38,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   access_denied: '你在 muirouter 取消了授权，未关联。',
   'state-expired-or-invalid': '授权链接已过期，请重新点关联。',
   'state-malformed': '授权数据异常，请重新点关联。',
-  'session-mismatch': '登录态变了，请重新登录后再关联 muirouter。',
-  'token-exchange-failed': '与 muirouter 换 token 失败，稍后再试。',
+  'session-mismatch': '登录状态变了，请重新登录后再关联 muirouter。',
+  'token-exchange-failed': '与 muirouter 换取授权失败，请稍后再试。',
   network: 'muirouter 网络异常，请稍后再试。',
   'missing-code-or-state': '回调缺少必要参数。',
 };
@@ -114,7 +114,7 @@ export function MuirouterSection() {
   async function onUnlink() {
     const ok = await confirmRef.current?.open({
       title: '解除 muirouter 关联？',
-      message: 'muicv 平台余额耗尽后将无 LLM fallback。muirouter 端的 token 会一并撤销。',
+      message: 'muicv 平台余额耗尽后将不再自动切到 muirouter。muirouter 端的授权也会一并撤销。',
       confirmLabel: '确认解除',
       danger: true,
     });
@@ -162,7 +162,9 @@ export function MuirouterSection() {
       <header className="flex items-baseline justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter</p>
-          <h2 className="mt-2 text-[18px] font-extrabold text-ink">关联 muirouter，按需 fallback 调用 LLM</h2>
+          <h2 className="mt-2 text-[18px] font-extrabold text-ink">
+            关联 muirouter，余额耗尽时自动切到自己的大语言模型余额
+          </h2>
           <p className="mt-1 text-[13px] text-ink-soft">
             muicv 平台余额优先扣费；耗尽后自动切到你绑定的{' '}
             <a
@@ -173,7 +175,7 @@ export function MuirouterSection() {
             >
               muirouter
             </a>{' '}
-            走自己的余额。授权全程在 muirouter 完成，muicv 只保管 OAuth token（AES-GCM 加密）。
+            走自己的余额。授权全程在 muirouter 完成，muicv 只保管授权令牌（AES-GCM 加密保存）。
           </p>
         </div>
       </header>
@@ -266,7 +268,7 @@ export function MuirouterSection() {
       ) : (
         <div className="mt-5 flex flex-col items-start gap-3 rounded-xl border-2 border-dashed border-rule-strong bg-paper p-5">
           <p className="text-[13px] text-ink-soft">
-            还没有关联 muirouter。点下面按钮跳到 muirouter，登录或注册后授权 muicv 即可——全程不需要复制 API key。
+            还没有关联 muirouter。点下面按钮跳到 muirouter，登录或注册后授权 muicv 即可——全程不需要复制密钥。
           </p>
           <a
             href="/api/muirouter/oauth/start"

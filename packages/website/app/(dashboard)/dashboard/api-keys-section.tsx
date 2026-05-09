@@ -82,8 +82,8 @@ export function ApiKeysSection() {
   async function onRevoke(id: string) {
     if (deletingIds.has(id)) return;
     const ok = await confirmRef.current?.open({
-      title: '撤销这个 API key？',
-      message: '已经在用它的 skill / app 会立刻失效。',
+      title: '撤销这个凭证？',
+      message: '已经在用它的技能 / 桌面应用会立刻失效。',
       confirmLabel: '撤销',
       danger: true,
     });
@@ -126,11 +126,11 @@ export function ApiKeysSection() {
       <header className="flex items-baseline justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>
-          <h2 className="mt-2 text-[18px] font-extrabold text-ink">给 skill / 桌面 app 用的钥匙</h2>
+          <h2 className="mt-2 text-[18px] font-extrabold text-ink">给桌面应用 / 技能用的登录钥匙</h2>
           <p className="mt-1 text-[13px] text-ink-soft">
-            <strong>桌面 app 唯一登录凭证</strong>。创建后仅显示一次： 桌面 app → 设置 → 粘进来；或 skill 里{' '}
-            <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10 个有效
-            key。
+            <strong>桌面应用的唯一登录凭证</strong>。创建后仅显示一次： 桌面应用 → 设置 → 粘进来；或在技能里设到{' '}
+            <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10
+            个有效凭证。
           </p>
         </div>
       </header>
@@ -154,7 +154,7 @@ export function ApiKeysSection() {
             value={newKeyName}
             onChange={(e) => setNewKeyName(e.target.value)}
             disabled={creating}
-            placeholder="例如：MacBook · 笔电 · CI"
+            placeholder="例如：MacBook · 笔电 · 工作机"
             className="mt-1 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 text-[14px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
           />
         </label>
@@ -163,7 +163,7 @@ export function ApiKeysSection() {
           disabled={creating}
           className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2 text-[14px] font-bold text-ink disabled:opacity-60"
         >
-          {creating ? '生成中…' : '生成新 key'}
+          {creating ? '生成中…' : '生成新凭证'}
         </button>
       </form>
 
@@ -174,7 +174,7 @@ export function ApiKeysSection() {
             <div>
               <p className="text-[13px] font-bold text-ink">⚠️ 复制保存——关掉就再也看不到了</p>
               <p className="mt-1 text-[12px] text-ink-soft">
-                建议立刻设到 shell：
+                建议立刻设到终端配置：
                 <code className="rounded bg-cream px-1 font-mono text-[11.5px]">export MUICV_API_KEY=…</code>
               </p>
             </div>
@@ -207,7 +207,7 @@ export function ApiKeysSection() {
         {keys === null ? (
           <p className="text-[13px] text-mute">加载中…</p>
         ) : keys.length === 0 ? (
-          <p className="text-[13px] text-mute">还没有 API key。点上面"生成新 key"开个第一把。</p>
+          <p className="text-[13px] text-mute">还没有凭证。点上面"生成新凭证"创建第一把。</p>
         ) : (
           <ul className="space-y-2">
             {keys.map((k) => {

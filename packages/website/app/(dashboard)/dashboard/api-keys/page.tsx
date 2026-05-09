@@ -12,10 +12,10 @@ export default function ApiKeysPage() {
       <header>
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>
         <h1 className="mt-3 text-[clamp(1.6rem,3.2vw,2.25rem)] font-extrabold leading-[1.15] tracking-tight text-ink">
-          桌面 app 登录凭证
+          桌面应用登录凭证
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          在自己设备上安装的 muicv 桌面 app 用 API key 登录云服务。每个 key 只在创建时显示一次，请妥善保管。
+          在自己设备上安装的 muicv 桌面应用用凭证登录云服务。每个凭证只在创建时显示一次，请妥善保管。
         </p>
       </header>
 

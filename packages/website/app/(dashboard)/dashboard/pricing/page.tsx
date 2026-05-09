@@ -15,7 +15,7 @@ export default function PricingPage() {
           余额 · 订阅 · 流水
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          买月卡或年卡稳定续 token，临时不够就买补充包。所有交易都会留在最近交易里查得到。
+          买月卡或年卡稳定续 Token，临时不够就买补充包。所有交易都会留在最近交易里查得到。
         </p>
       </header>
 

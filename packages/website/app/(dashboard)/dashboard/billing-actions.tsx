@@ -50,7 +50,7 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
     <div className="space-y-6">
       <div>
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="text-[15px] font-extrabold text-ink">订阅（自动续 token）</h3>
+          <h3 className="text-[15px] font-extrabold text-ink">订阅（自动续 Token）</h3>
           {!hasActiveSubscription && (
             <div className="inline-flex rounded-lg border-2 border-rule bg-paper p-0.5 text-[12px] font-bold">
               <button
@@ -82,8 +82,8 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
           {hasActiveSubscription
             ? '已订阅；切换档位 / 取消请走"管理订阅"。'
             : interval === 'yearly'
-              ? '年付：一次性收一年钱，立即到账整年 token，token 永不过期。'
-              : '月付：每月自动续 token。'}
+              ? '年付：一次性收一年钱，立即到账整年 Token，Token 永不过期。'
+              : '月付：每月自动续 Token。'}
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {(['pro', 'max'] as SubscriptionPlanKey[]).map((key) => {

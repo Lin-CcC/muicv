@@ -11,8 +11,8 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: '概览', hint: '邮箱与余额' },
-  { href: '/dashboard/api-keys', label: 'API Keys', hint: '桌面 app 凭证' },
-  { href: '/dashboard/muirouter', label: 'muirouter', hint: 'BYOK 绑定' },
+  { href: '/dashboard/api-keys', label: '桌面应用凭证', hint: 'API Keys' },
+  { href: '/dashboard/muirouter', label: '自带 API', hint: 'muirouter' },
   { href: '/dashboard/sync', label: '云同步', hint: '素材库快照' },
   { href: '/dashboard/pricing', label: '订阅 / 充值', hint: '月卡 + 补充包' },
 ];

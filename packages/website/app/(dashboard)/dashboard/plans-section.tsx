@@ -12,9 +12,9 @@ const LEDGER_TYPE_LABEL: Record<string, string> = {
   signup_bonus: '注册赠送',
   subscription: '订阅续费',
   topup: '补充包',
-  llm: 'LLM 调用',
+  llm: '大语言模型调用',
   pdf_render: 'PDF 渲染',
-  jd_fetch: 'JD 抓取',
+  jd_fetch: '岗位抓取',
   admin_grant: '后台补发',
   admin_deduct: '后台扣款',
 };
@@ -88,8 +88,8 @@ export async function PlansSection() {
           tokens
         </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          所有云端服务（LLM 调用、PDF 渲染、JD 抓取）按 token 扣费；BYOK 用户的 LLM 走自己 muirouter 余额， PDF / JD
-          仍按本余额扣。token 永不过期。
+          所有云端服务（大语言模型调用、PDF 渲染、岗位抓取）按 Token 扣费；自带 API 的用户，大语言模型调用走自己的
+          muirouter 余额， PDF 渲染、岗位抓取仍按本余额扣。Token 永不过期。
         </p>
       </header>
 

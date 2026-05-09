@@ -30,7 +30,7 @@ export default async function DashboardPage() {
           欢迎回来{user.name ? `，${user.name}` : ''}。
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          所有 muicv 服务（云端 LLM、PDF 导出、JD 抓取）都按 token 计费，余额永不过期。 注册一次性送 10K
+          所有 muicv 服务（云端大语言模型、PDF 导出、岗位抓取）都按 Token 计费，余额永不过期。 注册一次性送 10K
           tokens；用完后订阅（月付 / 年付）或买补充包都能续。
         </p>
       </header>
@@ -47,36 +47,36 @@ export default async function DashboardPage() {
       <section className="rounded-2xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_oklch(0.62_0.14_70)]">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 App · 推荐</p>
-            <h2 className="mt-2 text-[18px] font-extrabold text-ink">下载桌面 app 直接开始</h2>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面应用 · 推荐</p>
+            <h2 className="mt-2 text-[18px] font-extrabold text-ink">下载桌面应用直接开始</h2>
             <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
-              macOS / Windows / Linux 全平台可用。简历、岗位、面试、求职信全部在一个 app 里完成； 云端能力（LLM、PDF
-              导出、JD 抓取）按 token 从余额扣。
+              macOS / Windows / Linux 全平台可用。简历、岗位、面试、求职信全部在一个应用里完成；
+              云端能力（大语言模型、PDF 导出、岗位抓取）按 Token 从余额扣。
             </p>
           </div>
           <a
             href="/download"
             className="press inline-flex shrink-0 items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[14px] font-bold text-ink"
           >
-            下载桌面 app
+            下载桌面应用
           </a>
         </div>
       </section>
 
       <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
-        <h2 className="text-[18px] font-extrabold text-ink">已经在用 AI agent？走 skill 路径</h2>
+        <h2 className="text-[18px] font-extrabold text-ink">已经在用 AI 助手？走技能路径</h2>
         <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
-          Claude Code / Codex / Cursor / OpenCode 等支持 skill 协议的 agent 都能直接接入：
+          Claude Code / Codex / Cursor / OpenCode 等支持技能协议的 AI 助手都能直接接入：
         </p>
         <ol className="mt-4 space-y-2 text-[14px] leading-[1.7] text-ink-soft">
           <li>
-            🐾 在自己 terminal 里安装 skill：
+            🐾 在自己电脑的命令行里安装技能：
             <code className="ml-1 rounded bg-fluff px-1.5 py-0.5 font-mono text-[12.5px] text-yellow-deep ring-1 ring-corgi/40">
               npx skills add muicv -g
             </code>
           </li>
-          <li>🐾 跟 Claude / Codex 说"帮我准备简历"，skill 会接管引导</li>
-          <li>🐾 云端调用都从这个余额里扣，跟桌面 app 共用一个钱包</li>
+          <li>🐾 跟 Claude / Codex 说"帮我准备简历"，技能会接管引导</li>
+          <li>🐾 云端调用都从这个余额里扣，跟桌面应用共用一个钱包</li>
         </ol>
       </section>
     </div>

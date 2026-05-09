@@ -27,8 +27,9 @@ export default async function ResumeSyncPage() {
           MuiCV 平台云同步
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          用 muicv-sync skill push 当前工作目录的所有 .md 文件到云端；新机器可以 pull 回来。云端只保留一份活动版 + 最近{' '}
-          {RESUME_SYNC_HISTORY_KEEP} 份历史快照，单库上限 {(RESUME_SYNC_MAX_SIZE_BYTES / 1024).toLocaleString()} KB。
+          用 muicv-sync 技能把当前工作目录的所有素材文件（.md）上传到云端；新机器可以再下载回来。云端只保留一份当前版 +
+          最近 {RESUME_SYNC_HISTORY_KEEP} 份历史快照，单库上限 {(RESUME_SYNC_MAX_SIZE_BYTES / 1024).toLocaleString()}{' '}
+          KB。
         </p>
       </header>
 
@@ -49,18 +50,18 @@ function ActiveCard({
   if (!active) {
     return (
       <section className="rounded-2xl border-2 border-rule bg-paper p-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 当前活动版</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 当前版本</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">云端还没有任何快照</h2>
         <p className="mt-2 text-[13.5px] text-ink-soft">
-          还没在 skill 里 push 过素材。先用 muicv-core 在工作目录里编辑好 profile / experience 等文件，再跟 muicv-sync
-          说"同步到云端"。
+          还没用技能上传过素材。先用 muicv-core 在工作目录里编辑好简历素材（profile / experience 等文件），再跟
+          muicv-sync 说"同步到云端"。
         </p>
       </section>
     );
   }
   return (
     <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 当前活动版</p>
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 当前版本</p>
       <h2 className="mt-2 text-[18px] font-extrabold text-ink">
         云端 <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">{active.fileCount}</span> 个文件 ·{' '}
         <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">{formatSize(active.sizeBytes)}</span>
@@ -68,7 +69,7 @@ function ActiveCard({
       <p className="mt-2 text-[13px] text-ink-soft">
         最后同步：<span className="font-mono">{formatTimestamp(active.updatedAt)}</span>
       </p>
-      <p className="mt-1 break-all font-mono text-[11px] text-mute">hash {active.hash.slice(0, 16)}…</p>
+      <p className="mt-1 break-all font-mono text-[11px] text-mute">指纹 {active.hash.slice(0, 16)}…</p>
       <div className="mt-5">
         <WipeButton />
       </div>
@@ -79,23 +80,23 @@ function ActiveCard({
 function SkillHints() {
   return (
     <section className="rounded-2xl border-2 border-ink bg-paper p-6">
-      <h2 className="text-[16px] font-extrabold text-ink">在 muicv-sync skill 里怎么用</h2>
+      <h2 className="text-[16px] font-extrabold text-ink">在 muicv-sync 技能里怎么用</h2>
       <ol className="mt-3 space-y-2 text-[13.5px] leading-[1.7] text-ink-soft">
         <li>
-          🐾 <span className="font-bold text-ink">推送到云端</span>：跟 muicv-sync 说"
+          🐾 <span className="font-bold text-ink">上传到云端</span>：跟 muicv-sync 说"
           <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">同步到云端</span>
-          "，它会 Glob 工作目录的所有 .md，调用 <code className="font-mono">POST /resume/sync</code> 上传。
+          "，它会扫描工作目录里的所有素材文件（.md），上传到云端。
         </li>
         <li>
-          🐾 <span className="font-bold text-ink">从云端拉取</span>：换一台新机器，告诉 muicv-sync"
+          🐾 <span className="font-bold text-ink">从云端下载</span>：换一台新机器，告诉 muicv-sync"
           <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">从云端恢复素材</span>
-          "，它会调 <code className="font-mono">GET /resume/snapshot</code>，本地有冲突的文件先备份到{' '}
-          <code className="font-mono">.muicv-pull-backup-*</code>，再写入云端版本。
+          "，它会拉取云端版本，本地有冲突的文件先备份到 <code className="font-mono">.muicv-pull-backup-*</code>{' '}
+          目录，再写入云端版本。
         </li>
         <li>
           🐾 <span className="font-bold text-ink">前提</span>：本地要配好{' '}
           <code className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">MUICV_API_KEY</code>
-          （在 API Keys 页生成，写到 shell rc 里），skill 才能用 Bearer 鉴权。
+          （在「桌面应用凭证」页生成，写到终端配置文件里），技能才能用令牌鉴权。
         </li>
       </ol>
     </section>
@@ -113,7 +114,7 @@ function HistoryList({
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 历史快照</p>
         <h2 className="mt-2 text-[16px] font-extrabold text-ink">最近 {RESUME_SYNC_HISTORY_KEEP} 份归档</h2>
         <p className="mt-1 text-[12.5px] text-ink-soft">
-          每次 push 之前，当前活动版会被搬到这里；超出保留份数的旧版会自动清理。
+          每次上传之前，当前版本会被搬到这里；超出保留份数的旧版会自动清理。
         </p>
       </header>
 
@@ -128,7 +129,7 @@ function HistoryList({
                   {item.fileCount} 个文件 · {formatSize(item.sizeBytes)}
                 </p>
                 <p className="font-mono text-[11px] text-mute">
-                  {formatTimestamp(item.archivedAt)} · hash {item.hash.slice(0, 12)}…
+                  {formatTimestamp(item.archivedAt)} · 指纹 {item.hash.slice(0, 12)}…
                 </p>
               </div>
               <HistoryRowActions id={item.id} />
