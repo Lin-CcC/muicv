@@ -77,7 +77,8 @@ export const FEEDBACK_COMMENT_MAX_CHARS = 2000;
  *
  * 数据来源（review 时核对）：
  *   - gpt-5.5 / gpt-5.4：https://developers.openai.com/api/docs/pricing
- *     （prompt caching 命中部分按 input 价 50% 计费）
+ *     （prompt caching 命中部分按 input 价 10%（90% off）计费，2026-05-10 校准；
+ *     之前误配 50%，导致 cache 重的请求净加价 ~13.6% 高于设计 10%）
  *   - mimo-v2.5-pro / mimo-v2.5：Xiaomi Mimo 平台官方报价
  *     （上游目前未在 usage 里返回 cached_tokens，cachedInputRate 暂保守等于 inputRate）
  *
@@ -85,12 +86,12 @@ export const FEEDBACK_COMMENT_MAX_CHARS = 2000;
  * muirouter fallback 路径不受本表约束（model 列表由 muirouter 端管理）。
  */
 export const LLM_PRICING: Record<string, { inputRate: number; cachedInputRate: number; outputRate: number }> = {
-  // 上游 input $5 / cached $2.5 / output $30 per 1M tokens
-  // 用户支付（×1.1） input $5.5 / cached $2.75 / output $33 per 1M tokens
-  'gpt-5.5': { inputRate: 0.5, cachedInputRate: 0.25, outputRate: 3.0 },
-  // 上游 input $2.5 / cached $1.25 / output $15 per 1M tokens
-  // 用户支付（×1.1） input $2.75 / cached $1.375 / output $16.5 per 1M tokens
-  'gpt-5.4': { inputRate: 0.25, cachedInputRate: 0.125, outputRate: 1.5 },
+  // 上游 input $5 / cached $0.5 / output $30 per 1M tokens
+  // 用户支付（×1.1） input $5.5 / cached $0.55 / output $33 per 1M tokens
+  'gpt-5.5': { inputRate: 0.5, cachedInputRate: 0.05, outputRate: 3.0 },
+  // 上游 input $2.5 / cached $0.25 / output $15 per 1M tokens
+  // 用户支付（×1.1） input $2.75 / cached $0.275 / output $16.5 per 1M tokens
+  'gpt-5.4': { inputRate: 0.25, cachedInputRate: 0.025, outputRate: 1.5 },
   // 上游 input ¥1.4 (≈$0.20) / output ¥21 (≈$3) per 1M tokens
   // 用户支付（×1.1） input ¥1.54 (≈$0.22) / output ¥23.1 (≈$3.30) per 1M tokens
   'mimo-v2.5-pro': { inputRate: 0.02, cachedInputRate: 0.02, outputRate: 0.3 },

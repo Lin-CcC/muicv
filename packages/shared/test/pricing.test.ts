@@ -101,11 +101,11 @@ describe('Pricing', () => {
 
     it('gpt-5.4：cached 命中应严格便宜', () => {
       // fresh=200, cached=800, completion=500
-      // cost = 200 × 0.25 + 800 × 0.125 + 500 × 1.5 = 50 + 100 + 750 = 900 显示 token
-      // ceil(900 × 1.1 × 10_000) = 9_900_000 μ
+      // cost = 200 × 0.25 + 800 × 0.025 + 500 × 1.5 = 50 + 20 + 750 = 820 显示 token
+      // ceil(820 × 1.1 × 10_000) = 9_020_000 μ
       const withCache = computeLlmCharge('gpt-5.4', 1000, 500, 800);
       const withoutCache = computeLlmCharge('gpt-5.4', 1000, 500, 0);
-      assert.equal(withCache, Math.ceil(900 * LLM_RATIO * TOKEN_PRECISION));
+      assert.equal(withCache, Math.ceil(820 * LLM_RATIO * TOKEN_PRECISION));
       assert.ok(withCache! < withoutCache!, 'cached 命中应该严格便宜');
     });
 
