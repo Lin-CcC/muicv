@@ -6,6 +6,7 @@ import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
 import { renderPdf } from './lib/render-pdf.ts';
 import { charge, ensureBalance } from './lib/wallet.ts';
 import { requireApiKey } from './middleware/api-key.ts';
+import { handleComment, handleRate } from './routes/feedback.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
 import {
@@ -62,6 +63,8 @@ app.get('/', (c) =>
       'POST /waitlist',
       'GET /me（拿当前登录用户信息）',
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
+      'POST /feedback/rate（赞/踩 AI 消息，奖励 1000 token）',
+      'POST /feedback/comment（聊聊 AI 消息，≥50 字奖励 50000 token）',
       'POST /resume/sync（push 整个素材库快照）',
       'GET /resume/snapshot（pull 活动版）',
       'GET /resume/snapshot/history（列历史快照 metadata）',
@@ -83,6 +86,17 @@ app.get('/me', requireApiKey, handleMe);
  * 详见 src/routes/llm.ts。
  */
 app.all('/llm/v1/*', requireApiKey, handleLlmProxy);
+
+/**
+ * /feedback/* —— 用户对单条 AI 消息的反馈，反过来奖励用户 token。
+ *
+ * - rate：赞 / 踩二选一，每条消息只奖励一次（切换 praise↔dislike 不重复发奖）。
+ * - comment：自由文本，不限次数；≥50 字才发奖。
+ *
+ * 详见 src/routes/feedback.ts、src/lib/feedback.ts。
+ */
+app.post('/feedback/rate', requireApiKey, handleRate);
+app.post('/feedback/comment', requireApiKey, handleComment);
 
 /**
  * POST /waitlist

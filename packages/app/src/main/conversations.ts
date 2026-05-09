@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import {
   CONVERSATION_TYPE_META,
+  type ChatMessageFeedback,
   type Conversation,
   type ConversationSummary,
   type ConversationType,
@@ -125,6 +126,27 @@ export async function renameConversation(profileId: string, convId: string, titl
   if (!conv) return;
   conv.title = title.trim() || conv.title;
   await saveConversation(conv);
+}
+
+/**
+ * 给一条消息 patch feedback 缓存（赞 / 踩状态、是否拿过评论奖励）。
+ * 找不到 profile / conv / message 时静默返回 false——这是缓存数据，云端是 source of truth。
+ *
+ * 浅合并：传入的字段覆盖原有；undefined 字段保留。
+ */
+export async function setMessageFeedback(
+  profileId: string,
+  convId: string,
+  messageId: string,
+  patch: Partial<ChatMessageFeedback>,
+): Promise<boolean> {
+  const conv = await getConversation(profileId, convId);
+  if (!conv) return false;
+  const msg = conv.messages.find((m) => m.id === messageId);
+  if (!msg) return false;
+  msg.feedback = { ...(msg.feedback ?? {}), ...patch };
+  await saveConversation(conv);
+  return true;
 }
 
 export async function deleteConversation(profileId: string, convId: string): Promise<void> {

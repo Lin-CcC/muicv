@@ -10,6 +10,7 @@ import type {
   AttachmentSaveResult,
   AttachmentUploadInput,
   ChatMessage,
+  ChatMessageFeedback,
   ConversationType,
   Profile,
 } from '../shared/types.ts';
@@ -32,8 +33,10 @@ import {
   getConversation,
   listConversations,
   renameConversation,
+  setMessageFeedback,
 } from './conversations.ts';
 import { beginConnect, beginLinkMuirouter, handleDeepLink, registerScheme, setMainWindowGetter } from './deep-link.ts';
+import { commentFeedback, rateFeedback, type CommentArgs, type RateArgs } from './feedback.ts';
 import { checkSession as runCheckSession, loginWithKey, logout as runLogout, verifyCandidateKey } from './session.ts';
 import {
   addProfile,
@@ -308,6 +311,16 @@ ipcMain.handle('conversation:rename', (_e, profileId: string, convId: string, ti
   renameConversation(profileId, convId, title),
 );
 ipcMain.handle('conversation:remove', (_e, profileId: string, convId: string) => deleteConversation(profileId, convId));
+ipcMain.handle(
+  'conversation:setMessageFeedback',
+  (_e, profileId: string, convId: string, messageId: string, patch: Partial<ChatMessageFeedback>) =>
+    setMessageFeedback(profileId, convId, messageId, patch),
+);
+
+// -------------------- IPC: feedback（赞 / 踩 / 聊聊 → packages/api） --------------------
+
+ipcMain.handle('feedback:rate', (_e, args: RateArgs) => rateFeedback(args));
+ipcMain.handle('feedback:comment', (_e, args: CommentArgs) => commentFeedback(args));
 
 // -------------------- IPC: fs (右栏文件预览 + 编辑器) --------------------
 

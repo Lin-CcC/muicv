@@ -122,8 +122,67 @@ export type ChatMessage = {
   artifacts?: ArtifactRef[];
   /** 用户消息附带的上传附件（落到 inbox/，agent 用 read_file 读）。 */
   attachments?: AttachmentRef[];
+  /**
+   * 用户对这条 assistant 消息的反馈状态缓存。云端 D1 是 source of truth，
+   * 这里只为 UI 做按钮选中态恢复（重启 / 切对话回来仍能看到自己点过 👍/👎）。
+   * 仅 role === 'assistant' 时有意义。
+   */
+  feedback?: ChatMessageFeedback;
   createdAt: number;
 };
+
+/**
+ * 单条消息的本地反馈缓存。两个字段都显式接受 undefined：
+ * 因为开了 exactOptionalPropertyTypes，rollback 时要能传 `{ rating: undefined }` 清空。
+ */
+export type ChatMessageFeedback = {
+  /** 当前评分；切换 praise ↔ dislike 时直接覆盖；undefined = 未评分。 */
+  rating?: 'praise' | 'dislike' | undefined;
+  /** 是否至少一次 ≥50 字的有效评论拿过奖励（避免 UI 反复"恭喜"）。 */
+  rewardedComment?: boolean | undefined;
+};
+
+/**
+ * `feedback:rate` IPC 返回值。失败时 `ok: false`，message 中文可直接给 toast。
+ * 成功时返回 server 反馈（已折算成显示 token）。
+ */
+export type FeedbackRateOutcome =
+  | {
+      ok: true;
+      data: {
+        feedbackId: string;
+        rating: 'praise' | 'dislike';
+        /** 这次新增的显示 token；切换或重放为 0。 */
+        awarded: number;
+        alreadyRewarded: boolean;
+        /** 入账后的最新余额（显示 token）。 */
+        balance: number;
+      };
+    }
+  | {
+      ok: false;
+      error: 'no-api-key' | 'network-error' | 'invalid-key' | 'bad-request' | 'server-error';
+      message: string;
+    };
+
+export type FeedbackCommentOutcome =
+  | {
+      ok: true;
+      data: {
+        feedbackId: string;
+        charCount: number;
+        /** 这次新增的显示 token；<minChars 时为 0。 */
+        awarded: number;
+        balance: number;
+        minChars: number;
+        maxChars: number;
+      };
+    }
+  | {
+      ok: false;
+      error: 'no-api-key' | 'network-error' | 'invalid-key' | 'bad-request' | 'server-error';
+      message: string;
+    };
 
 /** 附件支持的文件种类。新增类型时同步更新 main/attachments.ts 的白名单。 */
 export type AttachmentKind = 'pdf' | 'docx' | 'markdown' | 'text' | 'image';
@@ -516,6 +575,16 @@ export type RendererApi = {
     create(opts: { profileId: string; type: ConversationType; title?: string }): Promise<Conversation>;
     rename(profileId: string, convId: string, title: string): Promise<void>;
     remove(profileId: string, convId: string): Promise<void>;
+    /**
+     * 给某条消息的 feedback 缓存做浅 patch 并写盘。云端 D1 是 source of truth，
+     * 这份本地缓存只为 UI 按钮选中态恢复。找不到 conv / message 时静默返回 false。
+     */
+    setMessageFeedback(
+      profileId: string,
+      convId: string,
+      messageId: string,
+      patch: Partial<ChatMessageFeedback>,
+    ): Promise<boolean>;
   };
   fs: {
     /** 读一个文件（utf8）。给右栏文件预览 / 编辑器用。失败返回 null。 */
@@ -554,6 +623,21 @@ export type RendererApi = {
      * 其它任何位置都不接此调用，维持默认行为。
      */
     showContextMenu(opts?: { editable?: boolean }): void;
+  };
+  feedback: {
+    /**
+     * 给一条 AI 消息打分（赞 / 踩）。同一条消息只奖励一次（首次发 1000 显示 token），
+     * 切换 praise↔dislike 仅更新状态，不重复发奖。
+     */
+    rate(args: {
+      messageId: string;
+      conversationId: string;
+      rating: 'praise' | 'dislike';
+    }): Promise<FeedbackRateOutcome>;
+    /**
+     * 给一条 AI 消息留文字反馈。不限次数；text 长度 ≥ minChars 才发奖（50,000 显示 token）。
+     */
+    comment(args: { messageId: string; conversationId: string; text: string }): Promise<FeedbackCommentOutcome>;
   };
   audio: {
     /** 监听 main 端 agent tool 发起的录音请求。返回 unsubscribe。 */

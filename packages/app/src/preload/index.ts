@@ -15,6 +15,8 @@ import type {
   Conversation,
   ConversationSummary,
   ConversationType,
+  FeedbackCommentOutcome,
+  FeedbackRateOutcome,
   MuirouterLinkResult,
   Profile,
   RendererApi,
@@ -86,6 +88,8 @@ const api: RendererApi = {
     rename: (profileId, convId, title) =>
       ipcRenderer.invoke('conversation:rename', profileId, convId, title) as Promise<void>,
     remove: (profileId, convId) => ipcRenderer.invoke('conversation:remove', profileId, convId) as Promise<void>,
+    setMessageFeedback: (profileId, convId, messageId, patch) =>
+      ipcRenderer.invoke('conversation:setMessageFeedback', profileId, convId, messageId, patch) as Promise<boolean>,
   },
   fs: {
     read: (path) => ipcRenderer.invoke('fs:read', path) as Promise<string | null>,
@@ -106,6 +110,10 @@ const api: RendererApi = {
   },
   chatInput: {
     showContextMenu: (opts) => ipcRenderer.send('chatInput:showContextMenu', opts ?? {}),
+  },
+  feedback: {
+    rate: (args) => ipcRenderer.invoke('feedback:rate', args) as Promise<FeedbackRateOutcome>,
+    comment: (args) => ipcRenderer.invoke('feedback:comment', args) as Promise<FeedbackCommentOutcome>,
   },
   audio: {
     onRecordingRequest: (handler: (req: AudioRecordingRequest) => void) => {

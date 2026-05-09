@@ -1,22 +1,29 @@
 import { CheckIcon, FileTextIcon, GearIcon, HourglassIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
-import type { ArtifactRef, ToolCallRecord } from '../../shared/types.ts';
+import type { ArtifactRef, ChatMessageFeedback, ToolCallRecord } from '../../shared/types.ts';
 import { ArtifactCard } from './artifact-card';
+import { MessageFeedbackBar } from './chat-message-feedback';
 import { MarkdownView } from './markdown-view';
 
 export function MessageBubble({
+  messageId,
+  conversationId,
   role,
   content,
   toolCalls,
   artifacts,
+  feedback,
   onOpenArtifact,
   onPathClick,
 }: {
+  messageId: string;
+  conversationId: string;
   role: string;
   content: string;
   toolCalls?: ToolCallRecord[] | undefined;
   artifacts?: ArtifactRef[] | undefined;
+  feedback?: ChatMessageFeedback | undefined;
   onOpenArtifact: (a: ArtifactRef) => void;
   onPathClick?: (path: string) => void;
 }) {
@@ -26,35 +33,46 @@ export function MessageBubble({
   const writeRefs = artifacts?.filter((a) => a.source === 'write') ?? [];
   const hasOps = (toolCalls?.length ?? 0) > 0 || readRefs.length > 0;
   const empty = !content && !hasOps && writeRefs.length === 0;
+  // 流式中（content 还在累加 / inflight tool）不显示反馈条；
+  // 等流式完成、有实际文本后再让用户评价。
+  const showFeedback = !isUser && !empty && content.length > 0;
 
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[85%] space-y-2 rounded-2xl px-4 py-3 text-[14px] leading-relaxed ${
-          isUser ? 'border-2 border-ink bg-yellow text-ink' : 'border-2 border-rule bg-paper text-ink-soft'
-        }`}
-      >
-        {!isUser && hasOps && <OpsGroup toolCalls={toolCalls ?? []} reads={readRefs} />}
+      <div className={`flex max-w-[85%] flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+        <div
+          className={`w-full space-y-2 rounded-2xl px-4 py-3 text-[14px] leading-relaxed ${
+            isUser ? 'border-2 border-ink bg-yellow text-ink' : 'border-2 border-rule bg-paper text-ink-soft'
+          }`}
+        >
+          {!isUser && hasOps && <OpsGroup toolCalls={toolCalls ?? []} reads={readRefs} />}
 
-        {content &&
-          (isUser ? (
-            <div className="whitespace-pre-wrap">{content}</div>
-          ) : (
-            <MarkdownView source={content} className="text-ink-soft" onPathClick={onPathClick} />
-          ))}
-
-        {empty && (
-          <span className="inline-flex items-center gap-2 text-mute">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow" />
-            思考中…
-          </span>
-        )}
-
-        {writeRefs.length > 0 && (
-          <div className="space-y-1.5 pt-1">
-            {writeRefs.map((a, i) => (
-              <ArtifactCard key={`${a.path}-${i}`} artifact={a} onOpen={() => onOpenArtifact(a)} />
+          {content &&
+            (isUser ? (
+              <div className="whitespace-pre-wrap">{content}</div>
+            ) : (
+              <MarkdownView source={content} className="text-ink-soft" onPathClick={onPathClick} />
             ))}
+
+          {empty && (
+            <span className="inline-flex items-center gap-2 text-mute">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow" />
+              思考中…
+            </span>
+          )}
+
+          {writeRefs.length > 0 && (
+            <div className="space-y-1.5 pt-1">
+              {writeRefs.map((a, i) => (
+                <ArtifactCard key={`${a.path}-${i}`} artifact={a} onOpen={() => onOpenArtifact(a)} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {showFeedback && (
+          <div className="mt-1 self-stretch px-1">
+            <MessageFeedbackBar messageId={messageId} conversationId={conversationId} feedback={feedback} />
           </div>
         )}
       </div>

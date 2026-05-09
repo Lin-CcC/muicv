@@ -4,6 +4,7 @@ import type {
   AppConfig,
   ArtifactRef,
   ChatMessage,
+  ChatMessageFeedback,
   Conversation,
   ConversationSummary,
   ConversationType,
@@ -67,6 +68,16 @@ type AppStore = {
   attachArtifact: (id: string, artifact: ArtifactRef) => void;
   /** 清空当前 activeConversation 的消息（不删 conversation 本身）。 */
   resetMessages: () => void;
+  /**
+   * 给某条消息的 feedback 缓存做浅 patch（内存 + 异步写盘）。
+   * 写盘失败不抛——云端 D1 是 source of truth，本地只是 UI 按钮选中态。
+   */
+  patchMessageFeedback: (messageId: string, patch: Partial<ChatMessageFeedback>) => void;
+  /**
+   * 直接覆盖 session.balance（显示 token）。点完赞 / 踩 / 聊聊后用 server 返回的最新余额刷一下，
+   * Settings 的 PlanCard 自动反映。
+   */
+  applyBalance: (balance: number) => void;
 
   /** 当前 streaming 的 channelId，none 表示空闲。 */
   activeChannel: string | null;
@@ -372,6 +383,24 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }),
   resetMessages: () =>
     set((s) => (s.activeConversation ? { activeConversation: { ...s.activeConversation, messages: [] } } : {})),
+  patchMessageFeedback: (messageId, patch) => {
+    const state = get();
+    const conv = state.activeConversation;
+    if (!conv) return;
+    set({
+      activeConversation: {
+        ...conv,
+        messages: conv.messages.map((m) =>
+          m.id === messageId ? { ...m, feedback: { ...(m.feedback ?? {}), ...patch } } : m,
+        ),
+      },
+    });
+    // 异步写盘；本地缓存丢失也不影响业务，所以失败静默
+    const profileId = state.activeProfile?.id;
+    if (!profileId) return;
+    void window.muicv.conversation.setMessageFeedback(profileId, conv.id, messageId, patch).catch(() => {});
+  },
+  applyBalance: (balance) => set((s) => (s.session ? { session: { ...s.session, balance } } : {})),
 
   activeChannel: null,
   setActiveChannel: (c) => set({ activeChannel: c }),

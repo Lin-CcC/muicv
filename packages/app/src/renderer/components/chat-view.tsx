@@ -91,10 +91,13 @@ export function ChatView() {
             messages.map((m) => (
               <MessageBubble
                 key={m.id}
+                messageId={m.id}
+                conversationId={activeConversation.id}
                 role={m.role}
                 content={m.content}
                 toolCalls={m.toolCalls}
                 artifacts={m.artifacts}
+                feedback={m.feedback}
                 onOpenArtifact={(a) => openRightPanel(a.path)}
                 onPathClick={(p) => openRightPanel(resolveWorkspacePath(activeProfile?.dir ?? null, p))}
               />

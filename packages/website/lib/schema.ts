@@ -146,6 +146,27 @@ export const tokenLedger = sqliteTable('tokenLedger', {
 });
 
 /**
+ * 消息级反馈（赞 / 踩 / 聊聊），见 migrations/0012_message_feedback.sql 注释。
+ *
+ * 与 tokenLedger 的关系：每条带奖励的反馈通过 wallet.credit() 写一条 type='feedback_reward'
+ * 的 ledger，ledgerId = messageFeedback.id 实现幂等（重放不会重复发奖）。
+ */
+export const messageFeedback = sqliteTable('messageFeedback', {
+  id: text('id').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  messageId: text('messageId').notNull(),
+  conversationId: text('conversationId').notNull(),
+  kind: text('kind').notNull(), // 'rating' | 'comment'
+  rating: text('rating'), // kind='rating' 时 'praise'|'dislike'
+  text: text('text'),
+  awarded: integer('awarded').notNull().default(0),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
  * Stripe 订阅状态承接表：每用户至多一条。stripeCustomerId UNIQUE 防同一 user 的脏数据。
  * stripeSubscriptionId 允许 null：customer 可以早于 subscription 存在（点了升级但
  * checkout 还没付款的中间态）。

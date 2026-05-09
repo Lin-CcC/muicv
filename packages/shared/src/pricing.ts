@@ -47,6 +47,24 @@ export const JD_FETCH_COST = 300;
 export const STT_TRANSCRIBE_RATE_PER_MIN = 100;
 
 /**
+ * 反馈奖励：用户给单条 AI 消息点赞 / 踩。显示 token。
+ * 同一条消息只奖励一次（赞踩切换不重复发奖）。
+ */
+export const FEEDBACK_RATING_REWARD = 1000;
+
+/**
+ * 反馈奖励：用户给单条 AI 消息留 ≥ FEEDBACK_COMMENT_MIN_CHARS 字的评论。显示 token。
+ * 不限次数（同一条消息可以反复留评论，每次都奖励）。
+ */
+export const FEEDBACK_COMMENT_REWARD = 50_000;
+
+/** 评论奖励的最低字数门槛（unicode code point 计数，<50 字仍可提交但不奖励）。 */
+export const FEEDBACK_COMMENT_MIN_CHARS = 50;
+
+/** 评论原文最大字数（防滥用，超过截断或拒收）。 */
+export const FEEDBACK_COMMENT_MAX_CHARS = 2000;
+
+/**
  * LLM 计费表。每个 model 一项：
  *   - inputRate：1 上游 prompt token 折合多少显示 token
  *   - cachedInputRate：1 上游 prompt cache 命中 token 折合多少显示 token（≤ inputRate）
@@ -237,7 +255,8 @@ export type LedgerType =
   | 'jd_fetch'
   | 'stt_transcribe'
   | 'admin_grant'
-  | 'admin_deduct';
+  | 'admin_deduct'
+  | 'feedback_reward';
 
 /**
  * LLM 上游用量 → μtoken 实扣金额。
