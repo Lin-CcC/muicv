@@ -1,13 +1,19 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import Link from 'next/link';
+
+import { getAuth } from '@/lib/auth';
+
+import { Footer } from '../_sections/footer';
+import { Header } from '../_sections/header';
 
 export const metadata: Metadata = {
   title: '下载桌面 app',
   description: 'Mui简历桌面端：让不用 AI agent 的求职者也能跑完整简历工作流。macOS / Windows / Linux 全平台支持。',
 };
 
-// 5 分钟 ISR 缓存 GitHub releases API（user-agent 防 60/h 限流）
-export const revalidate = 300;
+// 与其它营销页对齐：Header 需要 session，必须 dynamic。GitHub fetch 自带 5 分钟数据缓存，rate-limit 压力不变。
+export const dynamic = 'force-dynamic';
 
 const REPO = 'meathill/muicv';
 
@@ -125,17 +131,16 @@ function formatDate(iso: string): string {
 }
 
 export default async function DownloadPage() {
-  const release = await fetchLatestRelease();
+  const auth = await getAuth();
+  const [session, release] = await Promise.all([
+    auth.api.getSession({ headers: await headers() }),
+    fetchLatestRelease(),
+  ]);
+  const isLoggedIn = !!session?.user;
 
   return (
     <div className="relative">
-      <header className="sticky top-0 z-30 border-b border-rule bg-cream/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-8">
-          <Link href="/" className="flex items-center gap-2.5 text-ink no-underline">
-            <span className="text-[17px] font-bold tracking-tight">← 回首页</span>
-          </Link>
-        </div>
-      </header>
+      <Header isLoggedIn={isLoggedIn} />
 
       <main className="mx-auto max-w-3xl px-5 py-14 md:px-8 md:py-20">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 app</p>
@@ -150,9 +155,9 @@ export default async function DownloadPage() {
         {!release ? <NoRelease /> : <ReleasePanel release={release} />}
 
         <FirstRunHelp />
-
-        <Footer />
       </main>
+
+      <Footer />
     </div>
   );
 }
@@ -289,18 +294,5 @@ function FirstRunHelp() {
         </pre>
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="mt-16 flex flex-wrap items-center gap-4 border-t border-rule pt-6 text-[12.5px] text-mute">
-      <span>下载即代表你接受未来的服务条款（占位）。</span>
-      <span className="ml-auto">
-        <Link href="/" className="underline decoration-corgi decoration-2 underline-offset-4 hover:text-yellow-deep">
-          回首页
-        </Link>
-      </span>
-    </footer>
   );
 }
