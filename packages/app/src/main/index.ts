@@ -555,9 +555,13 @@ app.whenReady().then(() => {
     if (url.hostname !== 'local') {
       return new Response('Bad host', { status: 400 });
     }
-    const filePath = decodeURIComponent(url.pathname);
+    let raw = decodeURIComponent(url.pathname);
+    // Windows: '/C:/Users/...' → 'C:/Users/...'，让 path.resolve 正确识别盘符。
+    // 渲染端编码细节见 src/renderer/lib/muicv-pdf-url.ts。
+    if (/^\/[A-Za-z]:/.test(raw)) raw = raw.slice(1);
+    const filePath = resolve(raw);
     const cfg = getConfig();
-    if (!cfg.workspaceDir || !filePath.startsWith(cfg.workspaceDir)) {
+    if (!cfg.workspaceDir || !inWorkspace(cfg.workspaceDir, filePath)) {
       return new Response('Forbidden: out of workspace', { status: 403 });
     }
     if (!/\.pdf$/i.test(filePath)) {

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { AttachmentRef } from '../../shared/types.ts';
+import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
 import { resolveWorkspacePath } from './chat-utils';
 import { MarkdownView } from './markdown-view';
@@ -180,15 +181,9 @@ function ImagePreview({ absPath, name }: { absPath: string; name: string }) {
 }
 
 function PdfPreview({ absPath, name }: { absPath: string; name: string }) {
-  // 复用 PreviewDrawer 同款：muicv-pdf:// 协议在 main 注册，
-  // path 当 host 之外的 absolute pathname 传进去
+  // 复用 PreviewDrawer 同款：muicv-pdf:// 协议在 main 注册，URL 编码逻辑见 ../lib/muicv-pdf-url。
   return (
-    <iframe
-      key={absPath}
-      title={name}
-      src={`muicv-pdf://local${encodeURI(absPath)}`}
-      className="h-[70vh] w-full border-0 bg-white"
-    />
+    <iframe key={absPath} title={name} src={pathToMuicvPdfUrl(absPath)} className="h-[70vh] w-full border-0 bg-white" />
   );
 }
 

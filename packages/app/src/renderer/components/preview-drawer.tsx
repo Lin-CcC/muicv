@@ -2,6 +2,7 @@ import { FolderOpenIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
 import { MarkdownView } from './markdown-view';
 
@@ -149,13 +150,12 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
           </pre>
         )}
         {isPdf && (
-          // muicv-pdf:// 协议在 main 进程注册（src/main/index.ts），把 path 当 host
-          // 之外的 absolute pathname 传，main 端 decodeURIComponent 后做 workspace 越权校验。
-          // encodeURI 保留 / 不被编码，但中文 / 空格会被转义。
+          // muicv-pdf:// 协议在 main 进程注册（src/main/index.ts），URL 编码细节见
+          // ../lib/muicv-pdf-url：跨平台兼容 Windows 盘符。
           <iframe
             key={path}
             title={fileName}
-            src={`muicv-pdf://local${encodeURI(path)}`}
+            src={pathToMuicvPdfUrl(path)}
             className="border-0 bg-white"
             style={{ width: '100%', height: '100%', flex: 1 }}
           />
