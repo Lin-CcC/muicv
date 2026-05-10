@@ -1,6 +1,7 @@
-import { ArrowLeftIcon } from '@phosphor-icons/react';
+import { ArrowLeftIcon, ArrowsClockwiseIcon, WarningIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
+import type { UpdaterStatus } from '../../shared/types.ts';
 import { useAppStore } from '../lib/store';
 import { CorgiMascot } from './corgi-mascot';
 import { Avatar } from './settings/bits';
@@ -9,6 +10,8 @@ import { ModelCard } from './settings/model-card';
 import { MuirouterCard } from './settings/muirouter-card';
 import { PlanCard } from './settings/plan-card';
 import { WhisperEngineCard } from './settings/whisper-engine-card';
+
+const LATEST_FEEDBACK_MS = 5_000;
 
 /**
  * 登录后的"账号控制台"。简历管理在顶栏 dropdown 完成，这里只放：
@@ -26,6 +29,8 @@ export function SettingsView() {
   const logout = useAppStore((s) => s.logout);
   const setView = useAppStore((s) => s.setView);
   const config = useAppStore((s) => s.config);
+  const updaterStatus = useAppStore((s) => s.updaterStatus);
+  const setUpdaterStatus = useAppStore((s) => s.setUpdaterStatus);
   const [version, setVersion] = useState<string>('');
 
   useEffect(() => {
@@ -78,9 +83,87 @@ export function SettingsView() {
 
       <footer className="flex items-center gap-2 text-[11px] text-mute">
         <CorgiMascot className="h-5 w-5" />
-        <span>所有设置只存本地（macOS Keychain 加密），不上传服务器。</span>
-        {version && <span className="ml-auto font-mono text-[10px] tabular-nums text-mute">v{version}</span>}
+        <span className="min-w-0 flex-1">所有设置只存本地（macOS Keychain 加密），不上传服务器。</span>
+        <div className="flex shrink-0 items-center gap-2">
+          {version && <span className="font-mono text-[10px] tabular-nums text-mute">v{version}</span>}
+          <SettingsUpdateButton status={updaterStatus} setStatus={setUpdaterStatus} />
+        </div>
       </footer>
     </div>
   );
+}
+
+function SettingsUpdateButton({
+  status,
+  setStatus,
+}: {
+  status: UpdaterStatus;
+  setStatus: (status: UpdaterStatus) => void;
+}) {
+  const [latestHint, setLatestHint] = useState(false);
+  const [manualCheckActive, setManualCheckActive] = useState(false);
+
+  useEffect(() => {
+    if (!latestHint) return;
+    const timer = window.setTimeout(() => setLatestHint(false), LATEST_FEEDBACK_MS);
+    return () => window.clearTimeout(timer);
+  }, [latestHint]);
+
+  useEffect(() => {
+    if (!manualCheckActive) return;
+    if (status.phase === 'idle' && status.latestVersion) {
+      setLatestHint(true);
+      setManualCheckActive(false);
+    }
+    if (status.phase === 'downloading' || status.phase === 'ready' || status.phase === 'error') {
+      setManualCheckActive(false);
+    }
+  }, [manualCheckActive, status.latestVersion, status.phase]);
+
+  async function handleCheck() {
+    setLatestHint(false);
+    setManualCheckActive(true);
+    try {
+      const next = await window.muicv.updater.checkNow();
+      setStatus(next);
+    } catch (err) {
+      setManualCheckActive(false);
+      setStatus({
+        phase: 'error',
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  if (status.skipped) return null;
+
+  const isChecking = status.phase === 'checking' || manualCheckActive;
+  const isBusy = isChecking || status.phase === 'downloading';
+  const hasError = status.phase === 'error';
+  const disabled = isBusy || status.phase === 'ready';
+
+  return (
+    <button
+      type="button"
+      onClick={() => void handleCheck()}
+      disabled={disabled}
+      className="inline-flex items-center gap-1 rounded-md border border-rule bg-cream px-2 py-1 text-[11px] font-semibold text-ink-soft transition hover:border-rule-strong hover:bg-fluff hover:text-ink disabled:cursor-default disabled:text-mute disabled:hover:border-rule disabled:hover:bg-cream disabled:hover:text-mute"
+    >
+      {hasError ? (
+        <WarningIcon size={12} weight="bold" className="text-tongue" />
+      ) : (
+        <ArrowsClockwiseIcon size={12} weight="bold" className={isChecking ? 'animate-spin' : ''} />
+      )}
+      <span>{getUpdateButtonLabel(status, latestHint, isChecking)}</span>
+    </button>
+  );
+}
+
+function getUpdateButtonLabel(status: UpdaterStatus, latestHint: boolean, isChecking: boolean): string {
+  if (isChecking) return '检查中';
+  if (status.phase === 'downloading') return '下载更新';
+  if (status.phase === 'ready') return '新版本已就绪';
+  if (status.phase === 'error') return '重试更新';
+  if (latestHint) return '已是最新版';
+  return '检查更新';
 }

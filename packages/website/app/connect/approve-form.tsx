@@ -4,12 +4,13 @@ import { useState } from 'react';
 
 /**
  * 客户端：点"授权"调 POST /api/connect/approve 拿回跳 URL，用 location.href 触发
- * muicv:// scheme，让 OS 唤起 electron app。同时给一个"复制 key 手动粘贴"的 fallback。
+ * muicv:// scheme，让 OS 唤起 electron app。备用登录码只放在故障排查入口里。
  */
 export function ApproveForm({ state, redirect, appName }: { state: string; redirect: string; appName: string }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ key: string; redirectUrl: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function onApprove() {
     setError(null);
@@ -36,27 +37,38 @@ export function ApproveForm({ state, redirect, appName }: { state: string; redir
 
   if (done) {
     return (
-      <div className="mt-6 space-y-3">
-        <div className="rounded-xl border-2 border-ink bg-fluff p-4 text-[13px] leading-[1.65] text-ink">
-          <p className="font-bold">已授权 ✓</p>
-          <p className="mt-1.5 text-ink-soft">
-            浏览器应该已经唤起桌面 app 了。如果没有反应，再点一下下面的按钮，或者复制 key 手动粘到 app 里。
-          </p>
+      <div className="mt-6 space-y-4">
+        <div
+          aria-live="polite"
+          className="rounded-xl border border-rule bg-fluff px-4 py-3 text-[13px] leading-[1.65] text-ink"
+        >
+          <p className="text-[16px] font-extrabold">已连接</p>
+          <p className="mt-1 text-ink-soft">如果桌面 app 已经打开，可以直接回去继续。没反应的话，再点一次。</p>
         </div>
         <a
           href={done.redirectUrl}
           className="press inline-flex w-full items-center justify-center rounded-lg bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink"
         >
-          再次唤起桌面 app
+          打开桌面 app
         </a>
-        <button
-          type="button"
-          onClick={() => void navigator.clipboard.writeText(done.key)}
-          className="block w-full rounded-lg border-2 border-rule-strong bg-cream px-4 py-2 text-[13px] font-bold text-ink hover:bg-fluff"
-        >
-          复制 API key 手动粘贴
-        </button>
-        <p className="text-center font-mono text-[11px] text-mute">{previewKey(done.key)}</p>
+        <details className="rounded-lg border border-rule bg-paper/70 px-4 py-3 text-[12.5px] text-ink-soft">
+          <summary className="cursor-pointer font-bold text-ink">桌面 app 没反应？</summary>
+          <div className="mt-3 space-y-3">
+            <p className="leading-[1.6] text-mute">
+              少数浏览器会拦截自动打开。复制备用登录码，回到桌面 app 的手动登录里粘贴。
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setCopied(true);
+                void navigator.clipboard.writeText(done.key);
+              }}
+              className="block w-full rounded-lg border-2 border-rule-strong bg-cream px-4 py-2 text-[13px] font-bold text-ink hover:bg-fluff"
+            >
+              {copied ? '已复制备用登录码' : '复制备用登录码'}
+            </button>
+          </div>
+        </details>
       </div>
     );
   }
@@ -77,20 +89,15 @@ export function ApproveForm({ state, redirect, appName }: { state: string; redir
         disabled={busy}
         className="press inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[15px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {busy ? '生成 key 中…' : '授权并打开桌面 app 🐾'}
+        {busy ? '正在连接…' : '连接并打开桌面 app'}
       </button>
       <button
         type="button"
         onClick={() => window.close()}
         className="block w-full text-center text-[12px] text-mute hover:text-ink"
       >
-        取消
+        取消连接
       </button>
     </div>
   );
-}
-
-function previewKey(key: string): string {
-  if (key.length < 12) return '••••';
-  return `${key.slice(0, 8)}…${key.slice(-4)}`;
 }

@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     .where(and(eq(schema.apiKey.userId, session.user.id), isNull(schema.apiKey.revokedAt)));
   if (activeRows.length >= 10) {
     return Response.json(
-      { error: 'too-many-keys', detail: '一个账号最多 10 个 key，先去 dashboard 撤销几个再来。' },
+      { error: 'too-many-keys', detail: '这个账号连接过太多设备，请先在网页端移除旧的桌面端连接。' },
       { status: 400 },
     );
   }

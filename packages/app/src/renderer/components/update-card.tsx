@@ -3,13 +3,11 @@ import { useEffect, useState } from 'react';
 
 import { useAppStore } from '../lib/store';
 
-const CHECK_DEBOUNCE_MS = 60_000;
-
 /**
  * 左下侧栏的「软件更新」卡片：
  *
  *   - dev 模式（status.skipped）整体不渲染
- *   - idle：「已是最新版本 vX.Y.Z」+ 小号「检查更新」按钮（60s 内禁用避免抖动）
+ *   - idle / 已是最新版：不渲染，避免常驻打扰
  *   - checking：「正在检查更新…」+ 旋转图标
  *   - downloading：「下载新版本 vX.Y.Z」+ 进度条 + transferred/total
  *   - ready：高亮「v X.Y.Z 已就绪」+「立即重启」+「稍后」（折叠为缩略一行）
@@ -18,12 +16,7 @@ const CHECK_DEBOUNCE_MS = 60_000;
 export function UpdateCard() {
   const status = useAppStore((s) => s.updaterStatus);
   const setStatus = useAppStore((s) => s.setUpdaterStatus);
-  const [appVersion, setAppVersion] = useState<string>('');
   const [readyDismissed, setReadyDismissed] = useState(false);
-
-  useEffect(() => {
-    void window.muicv.app.getVersion().then(setAppVersion);
-  }, []);
 
   // 重新进入 ready 状态时自动展开（用户先稍后、又下了一次新版本的场景）。
   // 不监听 status.version：electron-updater 一定会先回 checking/downloading
@@ -32,7 +25,7 @@ export function UpdateCard() {
     if (status.phase === 'ready') setReadyDismissed(false);
   }, [status.phase]);
 
-  if (status.skipped) return null;
+  if (status.skipped || status.phase === 'idle') return null;
 
   async function handleCheck() {
     const next = await window.muicv.updater.checkNow();
@@ -140,26 +133,8 @@ export function UpdateCard() {
           </div>
         );
 
-      default: {
-        const recentlyChecked =
-          typeof status.lastCheckedAt === 'number' && Date.now() - status.lastCheckedAt < CHECK_DEBOUNCE_MS;
-        const display = status.latestVersion ?? appVersion;
-        return (
-          <div className="flex items-center gap-1.5">
-            <span className="truncate text-[11.5px] text-mute">
-              {display ? `已是最新版本 v${display}` : '检查更新'}
-            </span>
-            <button
-              type="button"
-              onClick={() => void handleCheck()}
-              disabled={recentlyChecked}
-              className="ml-auto rounded-md px-1.5 py-0.5 text-[11px] font-medium text-ink hover:bg-fluff disabled:cursor-default disabled:text-mute disabled:hover:bg-transparent"
-            >
-              检查更新
-            </button>
-          </div>
-        );
-      }
+      default:
+        return null;
     }
   }
 }
