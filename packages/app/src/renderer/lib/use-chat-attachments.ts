@@ -46,13 +46,27 @@ export type ChatAttachmentsApi = {
   onDrop: (e: DragEvent<HTMLDivElement>) => void;
 };
 
+const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'webp', 'gif']);
+function isImageFile(file: File): boolean {
+  if (file.type.startsWith('image/')) return true;
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+  return IMAGE_EXTS.has(ext);
+}
+
 /**
  * 中栏附件托盘的状态机：上传 / drag-drop / 错误冒泡 / 切换上下文重置。
  *
  * 切 profile / 切对话时自动清空所有附件状态，避免「残留的 critique 附件
  * 在新对话被误发」之类的跨上下文污染。输入框文本由调用方各自管理（这里不动）。
+ *
+ * `acceptImage`：当前模型是否支持图像。设为 false 时图片在 handleFiles 入口
+ * 就被挡掉（带友好错误条），避免在 main 进程拼好 input_image 才被上游打 404。
  */
-export function useChatAttachments(activeProfile: Profile | null, conversationId: string | null): ChatAttachmentsApi {
+export function useChatAttachments(
+  activeProfile: Profile | null,
+  conversationId: string | null,
+  acceptImage = true,
+): ChatAttachmentsApi {
   const [pendingAttachments, setPendingAttachments] = useState<AttachmentRef[]>([]);
   const [attachmentErrors, setAttachmentErrors] = useState<Array<{ id: string; message: string }>>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -81,8 +95,17 @@ export function useChatAttachments(activeProfile: Profile | null, conversationId
       pushAttachmentError('先选中一份职业档案再上传');
       return;
     }
-    const list = Array.from(files);
+    let list = Array.from(files);
     if (list.length === 0) return;
+
+    if (!acceptImage) {
+      const blocked = list.filter(isImageFile);
+      if (blocked.length > 0) {
+        pushAttachmentError(`当前模型不支持图片（${blocked.map((f) => f.name).join('、')}），请切到支持 vision 的模型`);
+      }
+      list = list.filter((f) => !isImageFile(f));
+      if (list.length === 0) return;
+    }
 
     const remaining = MAX_ATTACHMENTS_PER_SEND - pendingAttachments.length;
     if (remaining <= 0) {

@@ -1,14 +1,30 @@
+/**
+ * Claude Code 模式下的多模态测试：
+ *   - 历史里所有 user message 的图都重新内联到 input；
+ *   - 越界 / 读失败保护；
+ *   - imageReader 缺省时退化为纯文本（兼容老路径 / 不需要 vision 的场景）。
+ *
+ * 集成点：buildAgentInput(messages, { imageReader }) ——
+ * applyImageAttachments 这个旧的"只对最后一条"helper 已删除，逻辑全部进
+ * history.ts 一处。
+ */
+
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import type { AgentInputItem } from '@openai/agents';
-
-import { applyImageAttachments } from '../src/main/agent/multimodal.ts';
-import type { AttachmentRef } from '../src/shared/types.ts';
+import { buildAgentInput, IMAGE_TOKEN_BUDGET } from '../src/main/agent/history.ts';
+import { readImageAsDataUrl } from '../src/main/agent/multimodal.ts';
+import type { AttachmentRef, ChatMessage } from '../src/shared/types.ts';
 
 const WORKSPACE = '/tmp/fake-workspace';
 
-function makeRef(overrides: Partial<AttachmentRef> = {}): AttachmentRef {
+let counter = 0;
+function msg(role: ChatMessage['role'], content: string, attachments?: AttachmentRef[]): ChatMessage {
+  counter += 1;
+  return { id: `m-${counter}`, role, content, createdAt: counter, ...(attachments ? { attachments } : {}) };
+}
+
+function imageRef(overrides: Partial<AttachmentRef> = {}): AttachmentRef {
   return {
     path: 'inbox/20260506-143022-shot.png',
     name: 'shot.png',
@@ -19,105 +35,126 @@ function makeRef(overrides: Partial<AttachmentRef> = {}): AttachmentRef {
   };
 }
 
-function makeItems(text: string): AgentInputItem[] {
-  return [{ role: 'user', content: text }];
-}
+const fakeReader = (mapping: Record<string, string | null> = {}) => {
+  return async (ref: AttachmentRef): Promise<string | null> => {
+    if (ref.path in mapping) return mapping[ref.path];
+    return `data:${ref.mimeType};base64,FAKE_${ref.path}`;
+  };
+};
 
-test('applyImageAttachments 没附件时原样返回', async () => {
-  const items = makeItems('hi');
-  const out = await applyImageAttachments(items, undefined, WORKSPACE, async () => Buffer.from('x'));
-  assert.deepEqual(out, items);
+test('buildAgentInput 没 imageReader → user content 仍是纯字符串（兼容老路径）', async () => {
+  const r = await buildAgentInput([msg('user', '你好', [imageRef()])]);
+  const u = r.items[0] as { role: string; content: string };
+  assert.equal(u.role, 'user');
+  assert.equal(typeof u.content, 'string');
+  assert.equal(u.content, '你好');
 });
 
-test('applyImageAttachments 只有非 image 附件 → 原样返回', async () => {
-  const items = makeItems('hi');
-  const refs: AttachmentRef[] = [{ path: 'inbox/a.txt', name: 'a.txt', kind: 'text', mimeType: 'text/plain', size: 1 }];
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => Buffer.from('x'));
-  assert.deepEqual(out, items);
+test('buildAgentInput 注入 imageReader → 最后一条 user 的图拼成 input_text + input_image', async () => {
+  const r = await buildAgentInput([msg('user', '解析这张截图', [imageRef()])], { imageReader: fakeReader() });
+  const u = r.items[0] as { content: Array<{ type: string; text?: string; image?: string }> };
+  assert.ok(Array.isArray(u.content));
+  assert.equal(u.content.length, 2);
+  assert.equal(u.content[0]?.type, 'input_text');
+  assert.equal(u.content[0]?.text, '解析这张截图');
+  assert.equal(u.content[1]?.type, 'input_image');
+  assert.match(u.content[1]?.image ?? '', /^data:image\/png;base64,FAKE_/);
 });
 
-test('applyImageAttachments 拼成 input_text + input_image', async () => {
-  const items = makeItems('解析这个截图');
-  const refs = [makeRef()];
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-  assert.equal(out.length, 1);
-  const last = out[0] as { role: 'user'; content: Array<{ type: string; text?: string; image?: string }> };
-  assert.equal(last.role, 'user');
-  assert.ok(Array.isArray(last.content));
-  assert.equal(last.content.length, 2);
-  assert.equal(last.content[0]?.type, 'input_text');
-  assert.equal(last.content[0]?.text, '解析这个截图');
-  assert.equal(last.content[1]?.type, 'input_image');
-  assert.match(last.content[1]?.image ?? '', /^data:image\/png;base64,/);
+test('buildAgentInput 历史里每一条带图 user 都内联（Claude Code 模式）', async () => {
+  const r = await buildAgentInput(
+    [
+      msg('user', '看 JD', [imageRef({ path: 'inbox/jd.jpg', mimeType: 'image/jpeg' })]),
+      msg('assistant', '好的，这份 JD 要 ...'),
+      msg('user', '基于这个 JD 写简历', [imageRef({ path: 'inbox/sample.png' })]),
+    ],
+    { imageReader: fakeReader() },
+  );
+  assert.equal(r.items.length, 3);
+  // 第 1 条 user：图被内联
+  const turn1 = r.items[0] as { content: Array<{ type: string; image?: string }> };
+  assert.ok(Array.isArray(turn1.content));
+  assert.match(turn1.content[1]?.image ?? '', /jd\.jpg/);
+  // 第 3 条 user：图也被内联
+  const turn3 = r.items[2] as { content: Array<{ type: string; image?: string }> };
+  assert.ok(Array.isArray(turn3.content));
+  assert.match(turn3.content[1]?.image ?? '', /sample\.png/);
 });
 
-test('applyImageAttachments 多张图片全部 inline', async () => {
-  const items = makeItems('两张截图');
-  const refs = [
-    makeRef({ path: 'inbox/a.png', name: 'a.png' }),
-    makeRef({ path: 'inbox/b.jpg', name: 'b.jpg', mimeType: 'image/jpeg' }),
-  ];
-  let calls = 0;
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => {
-    calls++;
-    return Buffer.from([0x00, 0x01, 0x02]);
-  });
-  assert.equal(calls, 2);
-  const last = out[0] as { content: Array<{ type: string; image?: string }> };
-  // text + 2 images
-  assert.equal(last.content.length, 3);
-  assert.match(last.content[2]?.image ?? '', /^data:image\/jpeg;base64,/);
+test('buildAgentInput 多张图 → 全部拼到同一条 user content', async () => {
+  const r = await buildAgentInput(
+    [
+      msg('user', '两张图', [
+        imageRef({ path: 'inbox/a.png' }),
+        imageRef({ path: 'inbox/b.jpg', mimeType: 'image/jpeg' }),
+      ]),
+    ],
+    { imageReader: fakeReader() },
+  );
+  const u = r.items[0] as { content: Array<{ type: string; image?: string }> };
+  assert.equal(u.content.length, 3); // text + 2 image
+  assert.match(u.content[1]?.image ?? '', /a\.png/);
+  assert.match(u.content[2]?.image ?? '', /b\.jpg/);
 });
 
-test('applyImageAttachments 文本为空时只塞图像 block', async () => {
-  const items = makeItems('');
-  const refs = [makeRef()];
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => Buffer.from('x'));
-  const last = out[0] as { content: Array<{ type: string }> };
-  assert.equal(last.content.length, 1);
-  assert.equal(last.content[0]?.type, 'input_image');
+test('buildAgentInput 文本为空时只塞 image block', async () => {
+  const r = await buildAgentInput([msg('user', '', [imageRef()])], { imageReader: fakeReader() });
+  const u = r.items[0] as { content: Array<{ type: string }> };
+  assert.equal(u.content.length, 1);
+  assert.equal(u.content[0]?.type, 'input_image');
 });
 
-test('applyImageAttachments 读文件失败的图像跳过，不崩', async () => {
-  const items = makeItems('两张图');
-  const refs = [makeRef({ path: 'inbox/ok.png' }), makeRef({ path: 'inbox/missing.png' })];
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async (abs) => {
-    if (abs.includes('missing')) throw new Error('ENOENT');
-    return Buffer.from([1]);
-  });
-  const last = out[0] as { content: Array<{ type: string }> };
-  // text + 1 ok image
-  assert.equal(last.content.length, 2);
+test('buildAgentInput 单图读失败但还有别的好图 → 跳过坏的，文本保留', async () => {
+  const reader = fakeReader({ 'inbox/missing.png': null });
+  const r = await buildAgentInput(
+    [msg('user', '两张', [imageRef({ path: 'inbox/ok.png' }), imageRef({ path: 'inbox/missing.png' })])],
+    { imageReader: reader },
+  );
+  const u = r.items[0] as { content: Array<{ type: string; image?: string }> };
+  assert.equal(u.content.length, 2); // text + 1 ok image
+  assert.match(u.content[1]?.image ?? '', /ok\.png/);
 });
 
-test('applyImageAttachments 全部读失败 → 退回原 items（不替换 content）', async () => {
-  const items = makeItems('图');
-  const refs = [makeRef()];
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => {
-    throw new Error('ENOENT');
-  });
-  // 没图像可塞 → 不替换
-  assert.deepEqual(out, items);
+test('buildAgentInput 全部图都读失败 → 退化为纯字符串 content（不留空 array）', async () => {
+  const reader = async () => null;
+  const r = await buildAgentInput([msg('user', '图', [imageRef()])], { imageReader: reader });
+  const u = r.items[0] as { role: string; content: string };
+  assert.equal(typeof u.content, 'string', '没有可用图时退化回字符串，避免空 content array');
+  assert.equal(u.content, '图');
 });
 
-test('applyImageAttachments 越界路径被拒绝', async () => {
-  const items = makeItems('坏图');
-  const refs = [makeRef({ path: '../../../etc/passwd.png' })];
+test('buildAgentInput 把图按 IMAGE_TOKEN_BUDGET 计入预算', async () => {
+  // 1 张图占 IMAGE_TOKEN_BUDGET，budget 给 100 应该只保留最后一条
+  const r = await buildAgentInput(
+    [
+      msg('user', '前面', [imageRef({ path: 'inbox/old.png' })]),
+      msg('user', '最新', [imageRef({ path: 'inbox/new.png' })]),
+    ],
+    { budgetTokens: 100, imageReader: fakeReader() },
+  );
+  // 最新一条强制保留；前面被丢；插 ellipsis
+  assert.equal(r.droppedCount, 1);
+  assert.ok(r.estimatedTokens >= IMAGE_TOKEN_BUDGET);
+});
+
+test('readImageAsDataUrl 越界路径被拒绝（不读盘）', async () => {
   let called = false;
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => {
+  const url = await readImageAsDataUrl(WORKSPACE, imageRef({ path: '../../../etc/passwd.png' }), async () => {
     called = true;
     return Buffer.from('x');
   });
-  assert.equal(called, false, '越界应该在 read 之前拒绝，不读盘');
-  assert.deepEqual(out, items);
+  assert.equal(url, null);
+  assert.equal(called, false, '越界应该在 read 之前拒绝');
 });
 
-test('applyImageAttachments 最后一条不是 user → 不动', async () => {
-  const items: AgentInputItem[] = [
-    { role: 'user', content: 'hi' },
-    { role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: 'hello' }] },
-  ];
-  const refs = [makeRef()];
-  const out = await applyImageAttachments(items, refs, WORKSPACE, async () => Buffer.from('x'));
-  assert.deepEqual(out, items);
+test('readImageAsDataUrl 读盘失败 → 返 null（不抛）', async () => {
+  const url = await readImageAsDataUrl(WORKSPACE, imageRef(), async () => {
+    throw new Error('ENOENT');
+  });
+  assert.equal(url, null);
+});
+
+test('readImageAsDataUrl 正常路径 → data URL', async () => {
+  const url = await readImageAsDataUrl(WORKSPACE, imageRef(), async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+  assert.match(url ?? '', /^data:image\/png;base64,iVBORw==$/);
 });

@@ -5,13 +5,15 @@ import OpenAI from 'openai';
 
 import { randomUUID } from 'node:crypto';
 
+import { LLM_DISPLAY_META, modelSupportsVision } from '@muicv/shared';
+
 import type { AgentChunk, AppConfig, ChatMessage, ConversationType, ToolCallRecord } from '../../shared/types.ts';
 import { getConversation, saveConversation } from '../conversations.ts';
 import { buildSttTools } from './api-tools-stt.ts';
 import { buildSyncTools } from './api-tools-sync.ts';
 import { buildApiTools } from './api-tools.ts';
 import { buildAgentInput, getModelBudget } from './history.ts';
-import { applyImageAttachments } from './multimodal.ts';
+import { readImageAsDataUrl } from './multimodal.ts';
 import { buildSystemPrompt } from './skills.ts';
 import { type ArtifactEmitter, buildFileTools } from './tools.ts';
 
@@ -93,6 +95,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     send({ type: 'finish', reason: 'error' });
     return;
   }
+  const workspaceDir = config.workspaceDir;
   if (!ensureConfigured(config)) {
     send({ type: 'error', message: 'NOT_LOGGED_IN' });
     send({ type: 'finish', reason: 'error' });
@@ -126,24 +129,40 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     return;
   }
 
+  // Vision 能力 gate：当前模型路由到的 endpoint 不收图（如 mimo 系走 muirouter
+  // → OpenRouter 没勾 image capability，见 issue #7），就别把图发上去碰 404。
+  // 只看本轮 user 的附件——历史图本来就在历史里，只要本轮没新加图就放行。
+  const hasNewImage = (lastUser.attachments ?? []).some((a) => a.kind === 'image');
+  if (hasNewImage && !modelSupportsVision(config.defaultModel)) {
+    const visionPicks = Object.entries(LLM_DISPLAY_META)
+      .filter(([, m]) => m.supportsVision)
+      .map(([, m]) => m.label)
+      .join(' / ');
+    send({
+      type: 'error',
+      message: `当前模型「${LLM_DISPLAY_META[config.defaultModel]?.label ?? config.defaultModel}」暂不支持图片输入，请在设置里切到 ${visionPicks}`,
+    });
+    send({ type: 'finish', reason: 'error' });
+    return;
+  }
+
   // 把历史按 SDK 原生 AgentInputItem[] 组装，并按 token budget 做滑动窗口裁剪。
-  // 超长对话会丢最早的非必要消息，最后一条 user 永远保留。详见 history.ts。
+  // 历史里所有 user message 的图都重新 base64 进 input_image content block——
+  // Claude Code 模式：每轮带全部历史图，靠底层 LLM 的 prompt cache 抵成本。
+  // 见 history.ts 的 buildAgentInput 注释。
   const {
-    items: rawInput,
+    items: input,
     droppedCount,
     estimatedTokens,
-  } = buildAgentInput(messages, {
+  } = await buildAgentInput(messages, {
     budgetTokens: getModelBudget(config.defaultModel),
+    imageReader: (ref) => readImageAsDataUrl(workspaceDir, ref),
   });
   if (droppedCount > 0) {
     console.log(
       `[agent runtime] context trimmed: dropped ${droppedCount} oldest messages, ~${estimatedTokens} tokens kept`,
     );
   }
-  // 最后一条 user 如果带图像附件，这里把它们 base64 成 data URL，拼成
-  // input_image content block，让模型 vision 直接看图。文本附件继续走
-  // footer + read_file，不在这里改动。
-  const input = await applyImageAttachments(rawInput, lastUser.attachments, config.workspaceDir);
 
   const abort = new AbortController();
   activeRuns.set(channelId, abort);

@@ -1,38 +1,59 @@
 import { CheckIcon, FileTextIcon, GearIcon, HourglassIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 
-import type { ArtifactRef, ChatMessageFeedback, ToolCallRecord } from '../../shared/types.ts';
+import type { ArtifactRef, AttachmentRef, ChatMessageFeedback, ToolCallRecord } from '../../shared/types.ts';
 import { ArtifactCard } from './artifact-card';
+import { AttachmentChip } from './chat-attachment-chip';
 import { MessageFeedbackBar } from './chat-message-feedback';
 import { MarkdownView } from './markdown-view';
+
+/**
+ * formatAttachmentsFooter 在每条带附件的 user message content 末尾追加
+ * `\n\n---\n[附件]\n...`，agent 端拿到后能 read_file。
+ *
+ * 但 UI 层显示这一段是冗余 + 难看：用户已经能从下方的 AttachmentChip 看到
+ * 文件名 + 预览，再读一遍灰色路径毫无意义。这里按 marker 把 footer 砍掉，
+ * 持久化数据本身不动——agent 那边的 input 仍然带 footer。
+ */
+const ATTACHMENT_FOOTER_MARKER = '\n\n---\n[附件]\n';
+function stripAttachmentFooter(content: string): string {
+  const idx = content.indexOf(ATTACHMENT_FOOTER_MARKER);
+  return idx === -1 ? content : content.slice(0, idx);
+}
 
 export function MessageBubble({
   messageId,
   conversationId,
   role,
   content,
+  attachments,
   toolCalls,
   artifacts,
   feedback,
   onOpenArtifact,
+  onPreviewAttachment,
   onPathClick,
 }: {
   messageId: string;
   conversationId: string;
   role: string;
   content: string;
+  attachments?: AttachmentRef[] | undefined;
   toolCalls?: ToolCallRecord[] | undefined;
   artifacts?: ArtifactRef[] | undefined;
   feedback?: ChatMessageFeedback | undefined;
   onOpenArtifact: (a: ArtifactRef) => void;
+  onPreviewAttachment?: (a: AttachmentRef) => void;
   onPathClick?: (path: string) => void;
 }) {
   const isUser = role === 'user';
+  const displayContent = isUser ? stripAttachmentFooter(content) : content;
   // 工件按 source 分两类：read = 过程参考资料（折叠到操作组里）/ write = 最终产物（显眼卡片）
   const readRefs = artifacts?.filter((a) => a.source === 'read') ?? [];
   const writeRefs = artifacts?.filter((a) => a.source === 'write') ?? [];
   const hasOps = (toolCalls?.length ?? 0) > 0 || readRefs.length > 0;
-  const empty = !content && !hasOps && writeRefs.length === 0;
+  const hasAttachments = (attachments?.length ?? 0) > 0;
+  const empty = !displayContent && !hasOps && !hasAttachments && writeRefs.length === 0;
   // 流式中（content 还在累加 / inflight tool）不显示反馈条；
   // 等流式完成、有实际文本后再让用户评价。
   const showFeedback = !isUser && !empty && content.length > 0;
@@ -47,12 +68,24 @@ export function MessageBubble({
         >
           {!isUser && hasOps && <OpsGroup toolCalls={toolCalls ?? []} reads={readRefs} />}
 
-          {content &&
+          {displayContent &&
             (isUser ? (
-              <div className="whitespace-pre-wrap">{content}</div>
+              <div className="whitespace-pre-wrap">{displayContent}</div>
             ) : (
-              <MarkdownView source={content} className="text-ink-soft" onPathClick={onPathClick} />
+              <MarkdownView source={displayContent} className="text-ink-soft" onPathClick={onPathClick} />
             ))}
+
+          {hasAttachments && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {attachments?.map((a) =>
+                onPreviewAttachment ? (
+                  <AttachmentChip key={a.path} attachment={a} onPreview={() => onPreviewAttachment(a)} />
+                ) : (
+                  <AttachmentChip key={a.path} attachment={a} />
+                ),
+              )}
+            </div>
+          )}
 
           {empty && (
             <span className="inline-flex items-center gap-2 text-mute">

@@ -13,7 +13,8 @@ const KIND_LABEL: Record<AttachmentRef['kind'], string> = {
 
 type Props = {
   attachment: AttachmentRef;
-  onRemove: () => void;
+  /** 不传时隐藏 X 按钮（用于历史消息里只读地展示已发出的附件）。 */
+  onRemove?: () => void;
   /** 点 chip 主体（label + 文件名）触发预览。X 按钮独立处理 remove。 */
   onPreview?: () => void;
 };
@@ -34,14 +35,16 @@ export function AttachmentChip({ attachment: a, onRemove, onPreview }: Props) {
           {a.name}
         </span>
       </button>
-      <button
-        type="button"
-        onClick={onRemove}
-        className="rounded-full p-0.5 text-ink-soft transition hover:bg-rule hover:text-ink"
-        aria-label={`移除 ${a.name}`}
-      >
-        <XIcon size={11} weight="bold" />
-      </button>
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="rounded-full p-0.5 text-ink-soft transition hover:bg-rule hover:text-ink"
+          aria-label={`移除 ${a.name}`}
+        >
+          <XIcon size={11} weight="bold" />
+        </button>
+      )}
     </span>
   );
 }

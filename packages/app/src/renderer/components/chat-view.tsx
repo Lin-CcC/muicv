@@ -1,10 +1,14 @@
 import { useState } from 'react';
 
+import { modelSupportsVision } from '@muicv/shared';
+
+import type { AttachmentRef } from '../../shared/types.ts';
 import { CONVERSATION_TYPE_META } from '../../shared/types.ts';
 import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
 import { useAppStore } from '../lib/store';
 import { useAgentDispatch } from '../lib/use-agent-dispatch';
 import { useChatAttachments } from '../lib/use-chat-attachments';
+import { AttachmentPreviewDialog } from './attachment-preview-dialog';
 import { AiSetupCard, CenteredCard, EmptyConversation, NoConversationCard } from './chat-empty-states';
 import { ChatInputBar } from './chat-input-bar';
 import { MessageBubble } from './chat-message-bubble';
@@ -33,11 +37,17 @@ export function ChatView() {
   const clearOnboardingDraft = useAppStore((s) => s.clearOnboardingDraft);
   const setView = useAppStore((s) => s.setView);
   const openRightPanel = useAppStore((s) => s.openRightPanel);
+  const defaultModel = useAppStore((s) => s.config.defaultModel);
 
   const [error, setError] = useState<string | null>(null);
   const [needsAiSetup, setNeedsAiSetup] = useState(false);
+  const [historyPreview, setHistoryPreview] = useState<AttachmentRef | null>(null);
 
-  const attachments = useChatAttachments(activeProfile, activeConversation?.id ?? null);
+  const attachments = useChatAttachments(
+    activeProfile,
+    activeConversation?.id ?? null,
+    modelSupportsVision(defaultModel),
+  );
   const dispatch = useAgentDispatch({ onError: setError, onNeedsAiSetup: setNeedsAiSetup });
 
   if (!session || !activeProfile) {
@@ -98,10 +108,12 @@ export function ChatView() {
                 conversationId={activeConversation.id}
                 role={m.role}
                 content={m.content}
+                attachments={m.attachments}
                 toolCalls={m.toolCalls}
                 artifacts={m.artifacts}
                 feedback={m.feedback}
                 onOpenArtifact={(a) => openRightPanel(a.path)}
+                onPreviewAttachment={setHistoryPreview}
                 onPathClick={(p) => openRightPanel(resolveWorkspacePath(activeProfile?.dir ?? null, p))}
               />
             ))
@@ -132,6 +144,10 @@ export function ChatView() {
             <p className="mt-1 text-[12px] text-ink-soft">支持 PDF / DOCX / Markdown / 文本，单次最多 5 个</p>
           </div>
         </div>
+      )}
+
+      {historyPreview && (
+        <AttachmentPreviewDialog attachment={historyPreview} onClose={() => setHistoryPreview(null)} />
       )}
     </div>
   );

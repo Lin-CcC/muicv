@@ -17,23 +17,23 @@ test('estimateTokens 大致随长度上升', () => {
   assert.equal(estimateTokens(''), 0);
 });
 
-test('buildAgentInput 空数组 → 空 items', () => {
-  const r = buildAgentInput([]);
+test('buildAgentInput 空数组 → 空 items', async () => {
+  const r = await buildAgentInput([]);
   assert.equal(r.items.length, 0);
   assert.equal(r.droppedCount, 0);
   assert.equal(r.estimatedTokens, 0);
 });
 
-test('buildAgentInput 单条 user → 单条 UserMessageItem', () => {
-  const r = buildAgentInput([msg('user', '你好')]);
+test('buildAgentInput 单条 user → 单条 UserMessageItem', async () => {
+  const r = await buildAgentInput([msg('user', '你好')]);
   assert.equal(r.items.length, 1);
   assert.equal(r.items[0].role, 'user');
   assert.equal((r.items[0] as { content: string }).content, '你好');
   assert.equal(r.droppedCount, 0);
 });
 
-test('buildAgentInput 多条混合保持时间顺序 + 角色映射', () => {
-  const r = buildAgentInput([msg('user', 'A'), msg('assistant', 'B'), msg('user', 'C')]);
+test('buildAgentInput 多条混合保持时间顺序 + 角色映射', async () => {
+  const r = await buildAgentInput([msg('user', 'A'), msg('assistant', 'B'), msg('user', 'C')]);
   assert.equal(r.items.length, 3);
   assert.equal(r.items[0].role, 'user');
   assert.equal(r.items[1].role, 'assistant');
@@ -49,9 +49,9 @@ test('buildAgentInput 多条混合保持时间顺序 + 角色映射', () => {
   assert.equal(a.content[0].text, 'B');
 });
 
-test('buildAgentInput budget 极小时只剩最后一条 + ellipsis 提示', () => {
+test('buildAgentInput budget 极小时只剩最后一条 + ellipsis 提示', async () => {
   const long = 'X'.repeat(1000);
-  const r = buildAgentInput([msg('user', long), msg('assistant', long), msg('user', '最新的一句')], {
+  const r = await buildAgentInput([msg('user', long), msg('assistant', long), msg('user', '最新的一句')], {
     budgetTokens: 10,
   });
 
@@ -64,17 +64,17 @@ test('buildAgentInput budget 极小时只剩最后一条 + ellipsis 提示', () 
   assert.equal((r.items[1] as { content: string }).content, '最新的一句');
 });
 
-test('buildAgentInput budget 充足时全保留', () => {
-  const r = buildAgentInput([msg('user', 'A'), msg('assistant', 'B'), msg('user', 'C')], {
+test('buildAgentInput budget 充足时全保留', async () => {
+  const r = await buildAgentInput([msg('user', 'A'), msg('assistant', 'B'), msg('user', 'C')], {
     budgetTokens: 10_000,
   });
   assert.equal(r.items.length, 3);
   assert.equal(r.droppedCount, 0);
 });
 
-test('buildAgentInput 最后一条 user 自身超 budget 仍保留', () => {
+test('buildAgentInput 最后一条 user 自身超 budget 仍保留', async () => {
   const huge = '巨长内容'.repeat(2000);
-  const r = buildAgentInput([msg('user', '前面那条'), msg('user', huge)], { budgetTokens: 10 });
+  const r = await buildAgentInput([msg('user', '前面那条'), msg('user', huge)], { budgetTokens: 10 });
 
   // 最后一条强制保留；前面那条被丢；插一条 ellipsis
   assert.equal(r.droppedCount, 1);
@@ -83,10 +83,10 @@ test('buildAgentInput 最后一条 user 自身超 budget 仍保留', () => {
   assert.equal((r.items[1] as { content: string }).content, huge);
 });
 
-test('buildAgentInput 中间裁剪：保留最近的、丢最早的', () => {
+test('buildAgentInput 中间裁剪：保留最近的、丢最早的', async () => {
   // 每条估算 ~40 token；budget=120 应该恰好留最近 3 条（含最后 user）
   const each = '内容'.repeat(50); // 100 chars → ~40 tokens
-  const r = buildAgentInput(
+  const r = await buildAgentInput(
     [msg('user', each), msg('assistant', each), msg('user', each), msg('assistant', each), msg('user', '最新')],
     { budgetTokens: 120 },
   );

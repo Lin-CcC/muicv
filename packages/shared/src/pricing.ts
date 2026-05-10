@@ -127,6 +127,14 @@ export const LLM_DISPLAY_META: Record<
     hint: string;
     /** true 表示这是全平台默认，UI 加 "默认" chip，并在 store 里没值时落到它。 */
     isDefault?: boolean;
+    /**
+     * 当前 muicv 平台路径下该 model id 是否能接受图像 input。
+     * 模型本身能力 ≠ 平台路由能力——例如 mimo-v2.5 模型支持 vision，
+     * 但 muirouter → OpenRouter 这条链上 endpoint 没勾 image capability，
+     * 直接发图会被上游打回 404。详见 issue meathill/muicv#7。
+     * 等 muirouter 那边修好了，把对应 model 的这个值改回 true 即可。
+     */
+    supportsVision: boolean;
   }
 > = {
   'gpt-5.5': {
@@ -135,6 +143,7 @@ export const LLM_DISPLAY_META: Record<
     inputPrice: '$5 / 1M',
     outputPrice: '$30 / 1M',
     hint: '最强，最贵',
+    supportsVision: true,
   },
   'gpt-5.4': {
     label: 'GPT-5.4',
@@ -143,6 +152,7 @@ export const LLM_DISPLAY_META: Record<
     outputPrice: '$15 / 1M',
     hint: '通用首选',
     isDefault: true,
+    supportsVision: true,
   },
   'mimo-v2.5-pro': {
     label: 'MiMo v2.5 Pro',
@@ -150,6 +160,7 @@ export const LLM_DISPLAY_META: Record<
     inputPrice: '¥1.4 / 1M',
     outputPrice: '¥21 / 1M',
     hint: '中文友好',
+    supportsVision: false,
   },
   'mimo-v2.5': {
     label: 'MiMo v2.5',
@@ -157,8 +168,14 @@ export const LLM_DISPLAY_META: Record<
     inputPrice: '¥0.56 / 1M',
     outputPrice: '¥14 / 1M',
     hint: '最便宜',
+    supportsVision: false,
   },
 };
+
+/** 平台路径下当前 model id 是否能接受图像 input。未知 id 默认按"不支持"算，避免再炸 404。 */
+export function modelSupportsVision(modelId: string): boolean {
+  return LLM_DISPLAY_META[modelId]?.supportsVision ?? false;
+}
 
 /**
  * 订阅档位：每个 cycle（月付每月 / 年付每年）自动续 tokens。
