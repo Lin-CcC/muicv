@@ -18,7 +18,7 @@
 
 - `muicv-render`（`POST /render`）
 - `muicv-jobs`（仅 `fetch` 子任务，`POST /jobs/fetch`；`match`/`apply` 是本地分析）
-- `muicv-sync`（`POST /resume/sync`、`GET /resume/snapshot`、`/resume/sync/history/*`）
+- `muicv-sync`（`POST /resume/sync` / `GET /resume/snapshot` / `/resume/sync/history/*` 明文路径；`POST /resume/sync/blob` / `GET /resume/snapshot/blob` / `GET /resume/snapshot/blob/:id/download` / `GET /resume/sync/blob/history` / `DELETE /resume/snapshot/blob` 加密路径）
 
 ---
 

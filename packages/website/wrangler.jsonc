@@ -5,7 +5,6 @@
   "compatibility_date": "2025-12-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
-  // 生产域名：muicv.com（landing + dashboard + /r/render/[token] 简历渲染 SSR）
   "routes": [
     {
       "pattern": "muicv.com",
@@ -17,8 +16,7 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  // 和 packages/api 共用同一个名为 `muicv` 的 D1。本 worker 主要写
-  // users / subscriptions / sessions（M2 起，Better Auth 会用）。
+  // D1 / KV 与 packages/api 共用同一份资源（id 必须保持一致）。
   "d1_databases": [
     {
       "binding": "MUICV_DB",
@@ -27,10 +25,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  // MUICV_KV 用于：(1) 简历预览渲染的短期 token（resume:* key，5min TTL，由 packages/api 写入，
-  // 本 worker 在 /r/render/[token] 路由读取）；(2) 未来 dashboard 自身需要的轻量缓存。
-  // ⚠️ id 必须和 packages/api/wrangler.jsonc 里 kv_namespaces[0].id 完全一致，否则
-  // api 写的 token website 这边读不到。
   "kv_namespaces": [
     {
       "binding": "MUICV_KV",
@@ -43,11 +37,16 @@
   "placement": {
     "mode": "smart"
   },
+  // NEXT_INC_CACHE_R2_BUCKET 是 OpenNext 必需；MUICV_RESUME_BLOB 跟 packages/api 共享。
   "r2_buckets": [
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
       "bucket_name": "site-cache",
       "preview_bucket_name": "site-cache"
+    },
+    {
+      "binding": "MUICV_RESUME_BLOB",
+      "bucket_name": "muicv"
     }
   ],
   "services": [
@@ -59,9 +58,6 @@
   "vars": {
     "BETTER_AUTH_URL": "https://muicv.com",
     "GITHUB_CLIENT_ID": "3dbc98e657fc50a08577",
-    // Stripe price IDs（按档位 × 周期）—— 部署前 wrangler vars 覆盖成真实 price_xxx。
-    // 订阅走 mode=subscription（月付 / 年付），补充包走 mode=payment。
-    // 切 live 时这些值从 sk_test 对应的 price 改成 sk_live 对应的 price。
     "STRIPE_PRICE_PRO_MONTHLY": "price_1TUjjpEpkXm2vxXT7PRayf4m",
     "STRIPE_PRICE_PRO_YEARLY": "price_1TUjkFEpkXm2vxXTqDLQ6kon",
     "STRIPE_PRICE_MAX_MONTHLY": "price_1TRwcYEpkXm2vxXTolTABRBM",
@@ -69,8 +65,6 @@
     "STRIPE_PRICE_TOPUP_SMALL": "price_1TUjkrEpkXm2vxXTOgEMjxDE",
     "STRIPE_PRICE_TOPUP_MEDIUM": "price_1TUjlcEpkXm2vxXTgr6Od5el",
     "STRIPE_PRICE_TOPUP_LARGE": "price_1TUjm2EpkXm2vxXTy8UHK9qo",
-    // 管理员邮箱白名单（逗号分隔，大小写无关）。控制 /admin 访问与 /api/admin/* 接口。
-    // 命中走 /admin 后台；不命中访问 /admin 直接返回 404，不暴露后台存在。
     "ADMIN_EMAILS": "meathill@gmail.com"
   }
 }

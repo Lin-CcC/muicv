@@ -5,26 +5,19 @@
   "compatibility_date": "2026-04-23",
   "compatibility_flags": ["nodejs_compat"],
   "account_id": "fdc63eeea83ae8f5234357308b9a638b",
-  // 生产域名：api.muicv.com。首次部署前确保 Cloudflare DNS 有 `api`
-  // CNAME（任意 target，proxy 必须开），routes 把流量绑到本 Worker。
   "routes": [
     {
       "pattern": "api.muicv.com/*",
       "zone_name": "muicv.com"
     }
   ],
-  // Cloudflare Browser Rendering：跑托管 Chromium 给 puppeteer.goto / page.pdf 用。
-  // 替代了原本的 Container/DO 方案，详见 https://developers.cloudflare.com/browser-rendering/
   "browser": {
     "binding": "BROWSER"
   },
-  // Cloudflare Workers AI：跑 STT（@cf/openai/whisper-large-v3-turbo）给 /audio/transcribe 用。
-  // issue #1 M1。详见 https://developers.cloudflare.com/workers-ai/
   "ai": {
     "binding": "AI"
   },
-  // BrowserContainer 已彻底下线。上一次 deploy 完成「无 binding 引用」的过渡状态，
-  // 这次 deploy 加 v2 deleted_classes 真正把 class 从 Cloudflare 卸掉。
+  // BrowserContainer 已下线；v1/v2 migration 必须留着，否则 Cloudflare 会拒部署。
   "migrations": [
     {
       "tag": "v1",
@@ -35,17 +28,13 @@
       "deleted_classes": ["BrowserContainer"]
     }
   ],
-  // 共享 KV：与 packages/website 用同一个 namespace。
-  // /render 写一次性 token（key 形如 `resume:<uuid>`，5min TTL），
-  // packages/website 的 /r/render/[token] 路由读取后渲染。
+  // KV / D1 与 packages/website 共用同一份资源（id 必须保持一致）。
   "kv_namespaces": [
     {
       "binding": "MUICV_KV",
       "id": "3db8f70ff2494a798b06ba699adc6d5a"
     }
   ],
-  // D1：和 packages/website 共用同一个名为 `muicv` 的数据库。本 worker 主要写
-  // waitlist；M2 起 website 那边会写 users / subscriptions 等表。
   "d1_databases": [
     {
       "binding": "MUICV_API_DB",
@@ -54,8 +43,14 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Wrangler 把这两个 .js 文件当文本资源 import（fetch-jd.ts 注入到 page 内跑）。
-  // fallthrough: true 让默认的 txt/html/sql Text 规则继续生效，否则它们会被本规则替代。
+  // 简历素材加密同步 blob，公开域名 i.muicv.com（按需开启 access policy）。
+  "r2_buckets": [
+    {
+      "binding": "MUICV_RESUME_BLOB",
+      "bucket_name": "muicv"
+    }
+  ],
+  // Readability / turndown 在 puppeteer page 内 addScriptTag，作为文本资源 import。
   "rules": [
     {
       "type": "Text",
@@ -64,10 +59,7 @@
     }
   ],
   "vars": {
-    // packages/website 的公网 base URL，puppeteer.goto 用它拼出 /r/render/[token]
     "RENDER_BASE_URL": "https://muicv.com",
-    // Stripe price IDs（与 packages/website 同一组）。/me 把 subscription.stripePriceId
-    // 反查成 'pro'/'max' plan 字段返回给客户端。Stripe price ID 不是 secret。
     "STRIPE_PRICE_PRO_MONTHLY": "price_1TRwa8EpkXm2vxXTYEgJaDVp",
     "STRIPE_PRICE_PRO_YEARLY": "price_1TRwb4EpkXm2vxXTP56EkfBh",
     "STRIPE_PRICE_MAX_MONTHLY": "price_1TRwcYEpkXm2vxXTolTABRBM",

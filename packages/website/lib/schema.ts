@@ -231,3 +231,35 @@ export const resumeSnapshotHistory = sqliteTable('resumeSnapshotHistory', {
   fileCount: integer('fileCount').notNull(),
   archivedAt: integer('archivedAt', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/**
+ * 简历素材云同步加密路径——活动版（每用户 1 行）。
+ * blob 本体存 R2（key: `users/{userId}/blobs/{blobId}.zip`），D1 这里只留元数据 + summary。
+ * blobId 是 R2 object 的 key 后缀（uuid），dashboard 拿来拼下载链接。
+ * 用户在 muicv-sync skill 里 `zip -e` 加密整库后 multipart 上传。服务端不解析 blob 内容。
+ */
+export const resumeSnapshotBlob = sqliteTable('resumeSnapshotBlob', {
+  userId: text('userId')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  blobId: text('blobId').notNull(),
+  summary: text('summary').notNull(),
+  sizeBytes: integer('sizeBytes').notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+});
+
+/**
+ * 简历素材云同步加密路径——历史快照（最近 N 份）。
+ * 每次 push 前把活动版搬过来；后台用 archivedAt DESC 取前 5 份，多余的删 D1 row + R2 object。
+ * 同样 blob 本体在 R2，这里只是元数据。
+ */
+export const resumeSnapshotBlobHistory = sqliteTable('resumeSnapshotBlobHistory', {
+  id: text('id').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  blobId: text('blobId').notNull(),
+  summary: text('summary').notNull(),
+  sizeBytes: integer('sizeBytes').notNull(),
+  archivedAt: integer('archivedAt', { mode: 'timestamp_ms' }).notNull(),
+});

@@ -18,6 +18,7 @@ type Stmt = {
   bind: (..._args: unknown[]) => Stmt;
   run: () => Promise<unknown>;
   first: <T = unknown>() => Promise<T | null>;
+  all: <T = unknown>() => Promise<{ results: T[] }>;
 };
 
 type MockOptions = {
@@ -57,6 +58,7 @@ function mockEnv(opts: MockOptions = {}): unknown {
     const stmt: Stmt = {
       bind: () => stmt,
       run: opts.run ?? (async () => ({ success: true })),
+      all: async <T = unknown>(): Promise<{ results: T[] }> => ({ results: [] }),
       first: async <T = unknown>(): Promise<T | null> => {
         if (opts.authenticated && /FROM apiKey/i.test(sql)) {
           return { id: 'k_test', userId: FAKE_USER_ID, revokedAt: null } as T;
@@ -86,8 +88,12 @@ function mockEnv(opts: MockOptions = {}): unknown {
     };
     return stmt;
   };
+  const r2Store = new Map<string, Uint8Array>();
   const env: Record<string, unknown> = {
-    MUICV_API_DB: { prepare: (sql: string) => makeStmt(sql) },
+    MUICV_API_DB: {
+      prepare: (sql: string) => makeStmt(sql),
+      batch: async () => [{ success: true }],
+    },
     // BROWSER / MUICV_KV 这些只需要满足 type shape；当前测试只覆盖入口校验
     // 路径，不会真的走 puppeteer 渲染 / KV 读写。
     BROWSER: { fetch: async () => new Response('') },
@@ -95,6 +101,31 @@ function mockEnv(opts: MockOptions = {}): unknown {
       put: async () => {},
       get: async () => null,
       delete: async () => {},
+    },
+    // R2 mock：内存 Map，覆盖 put / get / delete 三件套；handler 不依赖 list / multipart upload
+    MUICV_RESUME_BLOB: {
+      put: async (key: string, body: ReadableStream | Blob | Uint8Array) => {
+        const u8 =
+          body instanceof Uint8Array
+            ? body
+            : body instanceof Blob
+              ? new Uint8Array(await body.arrayBuffer())
+              : new Uint8Array(await new Response(body).arrayBuffer());
+        r2Store.set(key, u8);
+        return { key, size: u8.length };
+      },
+      get: async (key: string) => {
+        const u8 = r2Store.get(key);
+        if (!u8) return null;
+        return {
+          body: new Response(u8).body,
+          size: u8.length,
+          writeHttpMetadata: (_h: Headers) => {},
+        };
+      },
+      delete: async (key: string) => {
+        r2Store.delete(key);
+      },
     },
     RENDER_BASE_URL: 'https://muicv.com',
   };
@@ -616,4 +647,96 @@ test('POST /llm/v1/chat/completions 余额=0 + 没绑 muirouter → 402 insuffic
   assert.equal(res.status, 402);
   const body = (await res.json()) as { error: { code: string } };
   assert.equal(body.error.code, 'insufficient_balance');
+});
+
+// === /resume/sync/blob 加密路径 ===
+
+test('POST /resume/sync/blob 缺 Authorization → 401', async () => {
+  const res = await app.request(
+    '/resume/sync/blob',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'multipart/form-data; boundary=x' },
+      body: '',
+    },
+    mockEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 401);
+});
+
+test('POST /resume/sync/blob content-type 不是 multipart → 400', async () => {
+  const res = await app.request(
+    '/resume/sync/blob',
+    { method: 'POST', headers: { 'content-type': 'application/json', ...AUTH }, body: '{}' },
+    authedEnv(),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+});
+
+test('POST /resume/sync/blob blob 字段缺失 → 400', async () => {
+  const fd = new FormData();
+  fd.append('summary', 'hi');
+  const res = await app.request('/resume/sync/blob', { method: 'POST', headers: AUTH, body: fd }, authedEnv(), ctx);
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.match(body.error, /blob/);
+});
+
+test('POST /resume/sync/blob summary 太长 → 400', async () => {
+  const fd = new FormData();
+  fd.append('blob', new Blob([new Uint8Array(8)], { type: 'application/zip' }), 'a.zip');
+  fd.append('summary', 'x'.repeat(501));
+  const res = await app.request('/resume/sync/blob', { method: 'POST', headers: AUTH, body: fd }, authedEnv(), ctx);
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.match(body.error, /summary/);
+});
+
+test('POST /resume/sync/blob summary 含控制字符 → 400', async () => {
+  const fd = new FormData();
+  fd.append('blob', new Blob([new Uint8Array(8)], { type: 'application/zip' }), 'a.zip');
+  fd.append('summary', 'before\nafter');
+  const res = await app.request('/resume/sync/blob', { method: 'POST', headers: AUTH, body: fd }, authedEnv(), ctx);
+  assert.equal(res.status, 400);
+});
+
+test('POST /resume/sync/blob 正常路径 → 200 + 返回 blobId / sizeBytes / summary / updatedAt', async () => {
+  const fd = new FormData();
+  fd.append('blob', new Blob([new Uint8Array(64)], { type: 'application/zip' }), 'a.zip');
+  fd.append('summary', '快照 2026-05-10 · 3 文件 · 1 KB');
+  const res = await app.request('/resume/sync/blob', { method: 'POST', headers: AUTH, body: fd }, authedEnv(), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { blobId: string; sizeBytes: number; summary: string; updatedAt: number };
+  assert.match(body.blobId, /^[a-f0-9-]{36}$/i);
+  assert.equal(body.sizeBytes, 64);
+  assert.equal(body.summary, '快照 2026-05-10 · 3 文件 · 1 KB');
+  assert.ok(body.updatedAt > 0);
+});
+
+test('GET /resume/snapshot/blob 没快照 → 404', async () => {
+  const res = await app.request('/resume/snapshot/blob', { headers: AUTH }, authedEnv(), ctx);
+  assert.equal(res.status, 404);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'no-snapshot');
+});
+
+test('GET /resume/snapshot/blob/:id/download invalid id → 400', async () => {
+  const res = await app.request('/resume/snapshot/blob/!!/download', { headers: AUTH }, authedEnv(), ctx);
+  assert.equal(res.status, 400);
+});
+
+test('GET /resume/sync/blob/history 空 → { items: [] }', async () => {
+  const res = await app.request('/resume/sync/blob/history', { headers: AUTH }, authedEnv(), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { items: unknown[] };
+  assert.deepEqual(body.items, []);
+});
+
+test('DELETE /resume/snapshot/blob → 200', async () => {
+  const res = await app.request('/resume/snapshot/blob', { method: 'DELETE', headers: AUTH }, authedEnv(), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { ok: boolean };
+  assert.equal(body.ok, true);
 });

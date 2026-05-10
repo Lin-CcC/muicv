@@ -10,6 +10,13 @@ import { handleComment, handleRate } from './routes/feedback.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
 import {
+  handleResumeBlobHistoryList,
+  handleResumeSnapshotBlobDelete,
+  handleResumeSnapshotBlobDownload,
+  handleResumeSnapshotBlobGet,
+  handleResumeSyncBlob,
+} from './routes/resume-sync-blob.ts';
+import {
   handleResumeHistoryGet,
   handleResumeHistoryList,
   handleResumeSnapshotDelete,
@@ -65,11 +72,16 @@ app.get('/', (c) =>
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
       'POST /feedback/rate（赞/踩 AI 消息，奖励 1000 token）',
       'POST /feedback/comment（聊聊 AI 消息，≥50 字奖励 50000 token）',
-      'POST /resume/sync（push 整个素材库快照）',
+      'POST /resume/sync（push 整个素材库快照，明文 JSON）',
       'GET /resume/snapshot（pull 活动版）',
       'GET /resume/snapshot/history（列历史快照 metadata）',
       'GET /resume/snapshot/history/:id（pull 某历史版本）',
-      'DELETE /resume/snapshot（清空云端）',
+      'DELETE /resume/snapshot（清空云端，明文路径）',
+      'POST /resume/sync/blob（push 加密 zip blob，multipart/form-data: blob + summary）',
+      'GET /resume/snapshot/blob（活动版元数据，不含二进制）',
+      'GET /resume/snapshot/blob/:id/download（下载 blob zip）',
+      'GET /resume/sync/blob/history（列加密快照历史）',
+      'DELETE /resume/snapshot/blob（清空加密路径快照，含 R2 对象）',
     ],
   }),
 );
@@ -244,13 +256,26 @@ app.post('/jobs/fetch', requireApiKey, async (c) => {
 app.post('/audio/transcribe', requireApiKey, handleTranscribe);
 
 /**
- * /resume/* —— 简历素材云同步（skill 用 Bearer key 调用）。详见 src/routes/resume-sync.ts。
- * 不扣 token，单库 1MB / 500 文件上限；推送前自动归档活动版到 history（最近 5 份）。
+ * /resume/* —— 简历素材云同步（skill 用 Bearer key 调用）。
+ *
+ * 两条路径并存（详见 src/routes/resume-sync.ts / src/routes/resume-sync-blob.ts）：
+ *   - 明文路径：JSON `{ files: { path: content } }` 直入 D1，dashboard 能看到文件列表
+ *     + 历史 diff。仅接受 .md，单库 50 MB / 1000 文件上限。
+ *   - 加密路径：multipart 上传 zip blob 到 R2，D1 只存元数据 + summary。dashboard 上
+ *     只能下载 .zip 自己解密。blob ≤ 60 MB，summary ≤ 500 字符。
+ *
+ * 都不扣 token；推送前自动把当前活动版搬到 history（最近 5 份）。
  */
 app.post('/resume/sync', requireApiKey, handleResumeSync);
 app.get('/resume/snapshot', requireApiKey, handleResumeSnapshotGet);
 app.get('/resume/snapshot/history', requireApiKey, handleResumeHistoryList);
 app.get('/resume/snapshot/history/:id', requireApiKey, handleResumeHistoryGet);
 app.delete('/resume/snapshot', requireApiKey, handleResumeSnapshotDelete);
+
+app.post('/resume/sync/blob', requireApiKey, handleResumeSyncBlob);
+app.get('/resume/snapshot/blob', requireApiKey, handleResumeSnapshotBlobGet);
+app.get('/resume/snapshot/blob/:id/download', requireApiKey, handleResumeSnapshotBlobDownload);
+app.get('/resume/sync/blob/history', requireApiKey, handleResumeBlobHistoryList);
+app.delete('/resume/snapshot/blob', requireApiKey, handleResumeSnapshotBlobDelete);
 
 export default app;

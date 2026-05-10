@@ -32,6 +32,12 @@ declare global {
     HSM_BASE_URL?: string;
     /** 管理员邮箱白名单，逗号分隔。控制 /admin 与 /api/admin/* 访问。 */
     ADMIN_EMAILS?: string;
+    /**
+     * R2 bucket（bucket_name 见 wrangler.jsonc），跟 packages/api 共享，存简历素材
+     * 加密同步的 zip blob。dashboard `/api/resume/sync/blob/[id]/download` 路由用
+     * cookie 鉴权后从这儿拉。
+     */
+    MUICV_RESUME_BLOB: R2Bucket;
   }
 }
 

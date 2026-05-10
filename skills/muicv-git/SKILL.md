@@ -1,6 +1,6 @@
 ---
 name: muicv-git
-description: 把简历素材库放到用户自己的 git 仓库（GitHub / GitLab / 自建均可），用 git workflow 多端同步、留版本史、可分享。四个子任务：`init`（首次给素材库加 .git + .gitignore + 远程关联）、`sync`（commit 当前改动并 push 到远程）、`clone`（换机器场景，把已有 repo 克隆到工作目录）、`status`（看本地状态）。使用场景：用户说「推到 GitHub」「git push 我的简历」「sync 到 GitLab」「从 GitHub 克隆我的素材」「换机器拉 git」「commit 一下」「git status」「我想用 git 管简历」等。和 muicv-sync 是平行选项——后者是 muicv 平台 D1 黑盒备份，本 skill 是用户掌控的 git workflow，可以同时用。
+description: 把简历素材库放到用户自己的 git 仓库（GitHub / GitLab / 自建均可），用 git workflow 多端同步、留版本史、可分享。四个子任务：`init`（首次给素材库加 .git + .gitignore + 远程关联，**会问用户 public/private**）、`sync`（commit 当前改动并 push 到远程）、`clone`（换机器场景，把已有 repo 克隆到工作目录）、`status`（看本地状态）。使用场景：用户说「推到 GitHub」「git push 我的简历」「sync 到 GitLab」「从 GitHub 克隆我的素材」「换机器拉 git」「commit 一下」「git status」「我想用 git 管简历」「用 GitHub 当作品集」等。和 muicv-sync 是平行选项——后者是 muicv 平台 D1 黑盒（可加密）备份，本 skill 是用户掌控的 git workflow，可以同时用。
 ---
 
 # muicv-git
@@ -41,13 +41,25 @@ gh --version            # 可选；有的话能更省事（自动建 repo + OAut
 
 `gh` 没装：可选，没有也行，下面 init 流程会给浏览器手动建 repo 的备选路径。
 
-### 2. 素材库根
+### 2. 素材库尺寸软提醒（init 前）
+
+```bash
+du -sh <素材库根>
+find <素材库根> -type f -not -path '*/.*' -not -path '*/node_modules/*' | wc -l
+```
+
+- 总大小 > 50 MB **或** 文件数 > 1000 → 给用户**软提醒**（不阻断）：
+  > repo 有点大（`<X> MB / <N>` 文件）。GitHub 单文件 100 MB / repo 软上限 5GB 都够用，但每次 push 会慢一些。
+  > 建议把 `versions/*.pdf`（renderer 产物，能现拉现渲）和大照片塞进 `.gitignore`，让 git 只 track 真正源数据。
+- 不超阈值就跳过这步。
+
+### 3. 素材库根
 
 prelude 已探查 `**/profile.md`：
 - **init / sync / status** 必须有根
 - **clone** 没有根也行——会把远程仓克隆下来填充工作目录
 
-### 3. 是不是已经是 git repo
+### 4. 是不是已经是 git repo
 
 ```bash
 git -C <素材库根> rev-parse --is-inside-work-tree 2>/dev/null
@@ -93,16 +105,25 @@ git -C <素材库根> rev-parse --is-inside-work-tree 2>/dev/null
 
    `versions/*.pdf` 默认**不**忽略（PDF 也版本化，方便 review）；如果用户介意 repo 体积，问一次"PDF 要不要纳入版本？"再决定。
 
-4. **创建远程仓 + 关联**：
+4. **问用户：repo 是 public 还是 private**
+
+   不要默认就 private。问一句：
+   > repo 用 **private**（推荐，简历是私人内容、有联系方式 / 薪资期望 / 离职原因这些不想公开的细节）还是 **public**（想公开当作品集 / 让 HR 直接搜到）？
+   - 默认推荐 private 但接受用户选 public。
+   - 如果用户已经在前一句话里明说了（"建个公开 repo"），跳过这一问直接照做。
+
+5. **创建远程仓 + 关联**：
 
    **路径 A（用 gh，最丝滑）**：
    ```bash
+   # 用户选 private
    gh repo create <repo-name> --private --source=<素材库根> --remote=origin --push
+   # 或用户选 public
+   gh repo create <repo-name> --public  --source=<素材库根> --remote=origin --push
    ```
-   - 默认 `--private`（简历是私人内容）
    - `--source` 指素材库根，`--remote=origin --push` 一键关联并首推
 
-   **路径 B（手动）**：让用户去 https://github.com/new 建一个 private repo（**不要勾**「Initialize with README」），然后：
+   **路径 B（手动）**：让用户去 https://github.com/new 建一个 repo（**自己选 public 还是 private**；**不要勾**「Initialize with README」），然后：
    ```bash
    cd <素材库根>
    git remote add origin git@github.com:<user>/<repo>.git
@@ -113,7 +134,7 @@ git -C <素材库根> rev-parse --is-inside-work-tree 2>/dev/null
 
    GitLab / 自建：把 origin URL 改成对应 host 的 SSH/HTTPS 地址即可。
 
-5. **报告**：远程仓 URL + "以后跟我说『推到 GitHub』就能继续 sync"。
+6. **报告**：远程仓 URL + 是 public 还是 private + "以后跟我说『推到 GitHub』就能继续 sync"。
 
 ---
 
@@ -220,11 +241,13 @@ git -C <根> log --oneline -5
 用户：我想用 GitHub 管这个素材库
 Claude:
   1. git -C ~/cv rev-parse → 不是 git repo
-  2. 走 init 流程，确认意图
-  3. git init -b main
-  4. 写 .gitignore（默认不排除 PDF；问用户要不要排除 → 不要）
-  5. gh 已装 → gh repo create meathill/my-resume --private --source=. --remote=origin --push
-  6. 报告：✓ 已推到 git@github.com:meathill/my-resume.git，以后跟我说"推到 GitHub"继续 sync
+  2. du -sh ~/cv → 12 MB / 80 文件，没超 50 MB / 1000 阈值，不提醒
+  3. 走 init 流程，确认意图
+  4. git init -b main
+  5. 写 .gitignore（默认不排除 PDF；问用户要不要排除 → 不要）
+  6. 问用户：repo 是 public 还是 private？→ 用户回 "private"
+  7. gh 已装 → gh repo create meathill/my-resume --private --source=. --remote=origin --push
+  8. 报告：✓ 已推到 git@github.com:meathill/my-resume.git（private），以后跟我说"推到 GitHub"继续 sync
 ```
 
 ### 例 2：日常 sync

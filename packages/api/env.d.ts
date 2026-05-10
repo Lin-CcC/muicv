@@ -42,6 +42,13 @@ declare namespace Cloudflare {
     STRIPE_PRICE_PRO_YEARLY?: string;
     STRIPE_PRICE_MAX_MONTHLY?: string;
     STRIPE_PRICE_MAX_YEARLY?: string;
+    /**
+     * R2 bucket（bucket_name 见 wrangler.jsonc），存简历素材加密同步的 zip blob。
+     * key 形如 `users/{userId}/blobs/{blobId}.zip`。公开域名 i.muicv.com。
+     * 下次 `wrangler types` 会把它合并进 worker-configuration.d.ts，本声明只是
+     * 在那之前让 typecheck 不报错。
+     */
+    MUICV_RESUME_BLOB: R2Bucket;
   }
 }
 
