@@ -15,7 +15,9 @@ import type {
 } from '../../shared/types.ts';
 import { DEFAULT_CONFIG } from '../../shared/types.ts';
 
-type View = 'login' | 'chat' | 'settings' | 'editor';
+type View = 'login' | 'onboarding' | 'chat' | 'settings' | 'editor';
+
+export type OnboardingStart = 'resume' | 'experience' | 'blank';
 
 type AppStore = {
   view: View;
@@ -27,7 +29,12 @@ type AppStore = {
   config: AppConfig;
   loadConfig: () => Promise<void>;
   patchConfig: (
-    patch: Partial<Pick<AppConfig, 'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey'>>,
+    patch: Partial<
+      Pick<
+        AppConfig,
+        'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey' | 'onboardingCompleted'
+      >
+    >,
   ) => Promise<void>;
 
   /** 当前激活的 profile（派生）。 */
@@ -78,6 +85,12 @@ type AppStore = {
    * Settings 的 PlanCard 自动反映。
    */
   applyBalance: (balance: number) => void;
+
+  /** 首次引导写入 chatbox 的一次性草稿。 */
+  onboardingDraft: string | null;
+  completeOnboarding: (start: OnboardingStart) => Promise<void>;
+  skipOnboarding: () => Promise<void>;
+  clearOnboardingDraft: () => void;
 
   /** 当前 streaming 的 channelId，none 表示空闲。 */
   activeChannel: string | null;
@@ -143,10 +156,12 @@ type AppStore = {
   setUpdaterStatus: (status: UpdaterStatus) => void;
 };
 
-/** 路由：未登录 → login；已登录 → chat（默认）/ settings / editor（用户主动切）。 */
-function routeFor(session: SessionInfo | null, current: View): View {
+/** 路由：未登录 → login；已登录首次 → onboarding；之后保持用户所在视图。 */
+export function routeFor(session: SessionInfo | null, current: View, onboardingCompleted: boolean): View {
   if (!session) return 'login';
+  if (!onboardingCompleted) return 'onboarding';
   if (current === 'login') return 'chat';
+  if (current === 'onboarding') return 'chat';
   return current;
 }
 
@@ -202,6 +217,22 @@ function toSummary(conv: Conversation): ConversationSummary {
   };
 }
 
+function onboardingTitle(start: OnboardingStart): string {
+  if (start === 'resume') return '从现有简历整理素材';
+  if (start === 'experience') return '记录第一段工作经历';
+  return '从零整理职业素材';
+}
+
+function onboardingDraftFor(start: OnboardingStart): string {
+  if (start === 'resume') {
+    return '我想先导入一份现有简历，请帮我解析成可复用的职业素材。';
+  }
+  if (start === 'experience') {
+    return '我先讲一段经历，请帮我追问细节，并整理成适合写进简历的素材。';
+  }
+  return '我想从零整理职业素材，请一步一步问我需要补充哪些经历、项目和技能。';
+}
+
 export const useAppStore = create<AppStore>((set, get) => ({
   view: 'login',
   setView: (v) => set({ view: v }),
@@ -253,7 +284,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   session: null,
   setSession: (s) => {
     set({ session: s });
-    set((st) => ({ view: routeFor(s, st.view) }));
+    set((st) => ({ view: routeFor(s, st.view, st.config.onboardingCompleted) }));
   },
   refreshSession: async () => {
     await get().loadConfig();
@@ -401,6 +432,25 @@ export const useAppStore = create<AppStore>((set, get) => ({
     void window.muicv.conversation.setMessageFeedback(profileId, conv.id, messageId, patch).catch(() => {});
   },
   applyBalance: (balance) => set((s) => (s.session ? { session: { ...s.session, balance } } : {})),
+
+  onboardingDraft: null,
+  completeOnboarding: async (start) => {
+    const profileId = get().activeProfile?.id;
+    const conversation = profileId ? await get().createConversation('core', onboardingTitle(start)) : null;
+    const next = await window.muicv.config.set({ onboardingCompleted: true });
+    set({
+      config: next,
+      activeProfile: deriveActiveProfile(next),
+      onboardingDraft: onboardingDraftFor(start),
+      view: 'chat',
+      ...(conversation ? { activeConversation: conversation } : {}),
+    });
+  },
+  skipOnboarding: async () => {
+    const next = await window.muicv.config.set({ onboardingCompleted: true });
+    set({ config: next, activeProfile: deriveActiveProfile(next), onboardingDraft: null, view: 'chat' });
+  },
+  clearOnboardingDraft: () => set({ onboardingDraft: null }),
 
   activeChannel: null,
   setActiveChannel: (c) => set({ activeChannel: c }),

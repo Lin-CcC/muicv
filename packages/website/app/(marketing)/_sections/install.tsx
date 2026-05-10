@@ -19,16 +19,15 @@ export function Install() {
           <div className="lg:col-span-5">
             <span className="inline-flex items-center gap-2 rounded-full border-2 border-ink bg-cream px-3.5 py-1 text-[12px] font-bold text-ink">
               <span className="inline-block h-2 w-2 rounded-full bg-yellow-deep" />
-              已经可用 · 5 秒装完
+              高级入口 · 给熟悉 AI 工具的人
             </span>
             <h2 className="mt-5 text-[clamp(1.9rem,3.5vw,2.75rem)] font-extrabold leading-[1.1] tracking-tight">
-              已经在用 AI agent？
+              已经在用 Claude Code / Codex？
               <br />
-              <Highlight>现在就能开始</Highlight>。
+              <Highlight>直接装 skill</Highlight>。
             </h2>
             <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-ink-soft">
-              不需要等桌面 app。装了 Claude Code、Codex、Cursor、OpenCode 等任何一种支持 skill 协议的
-              agent，用下面这条命令，5 秒装完。
+              这是高级路径，适合已经习惯在 AI agent 里工作的用户。普通求职者直接下载桌面 app 会更顺。
             </p>
             <p className="mt-4 max-w-md text-[13px] leading-[1.7] text-mute">
               不熟悉 AI agent？{' '}

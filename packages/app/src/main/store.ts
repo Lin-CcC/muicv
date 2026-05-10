@@ -57,6 +57,8 @@ type StoredShape = {
   customLlmBase: string | null;
   /** safeStorage 加密后的自带 LLM key */
   customLlmKeyCipher: string | null;
+  /** 本设备是否已完成首次引导。 */
+  onboardingCompleted: boolean;
 };
 
 type LegacyShape = StoredShape & {
@@ -74,6 +76,7 @@ const store = new Store<LegacyShape>({
     muicvApiKeyCipher: null,
     customLlmBase: null,
     customLlmKeyCipher: null,
+    onboardingCompleted: DEFAULT_CONFIG.onboardingCompleted,
   },
   // electron-store 的 migrations 按版本号执行。projectVersion 从 package.json
   // 读，所以我们只在版本号 >= migration key 时跑一次。这里用 0.0.2 作为引入
@@ -136,12 +139,18 @@ export function getConfig(): AppConfig {
     defaultModel: store.get('defaultModel'),
     customLlmBase: store.get('customLlmBase'),
     customLlmKey: decrypt(store.get('customLlmKeyCipher')),
+    onboardingCompleted: store.get('onboardingCompleted'),
   };
 }
 
 /** 只接受非 profile 类的标量字段。Profile 操作走专门的 API。 */
 export function patchConfig(
-  patch: Partial<Pick<AppConfig, 'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey'>>,
+  patch: Partial<
+    Pick<
+      AppConfig,
+      'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey' | 'onboardingCompleted'
+    >
+  >,
 ): AppConfig {
   if ('muicvApiBase' in patch && typeof patch.muicvApiBase === 'string') {
     store.set('muicvApiBase', patch.muicvApiBase);
@@ -157,6 +166,9 @@ export function patchConfig(
   if ('customLlmKey' in patch) {
     const v = typeof patch.customLlmKey === 'string' ? patch.customLlmKey.trim() : '';
     store.set('customLlmKeyCipher', encrypt(v ? v : null));
+  }
+  if ('onboardingCompleted' in patch && typeof patch.onboardingCompleted === 'boolean') {
+    store.set('onboardingCompleted', patch.onboardingCompleted);
   }
   return getConfig();
 }

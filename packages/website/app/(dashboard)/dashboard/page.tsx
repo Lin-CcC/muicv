@@ -30,28 +30,18 @@ export default async function DashboardPage() {
           欢迎回来{user.name ? `，${user.name}` : ''}。
         </h1>
         <p className="mt-2 max-w-xl text-[14px] text-ink-soft">
-          所有 muicv 服务（云端大语言模型、PDF 导出、岗位抓取）都按 Token 计费，余额永不过期。 注册一次性送 10K
-          tokens；用完后订阅（月付 / 年付）或买补充包都能续。
+          如果你是第一次来，先下载桌面应用。登录后它会带你导入简历或记录第一段经历，比先研究设置更快。
         </p>
       </header>
-
-      <section className="grid gap-4 sm:grid-cols-2">
-        <Card label="邮箱" value={user.email} />
-        <Card
-          label="Token 余额"
-          value={microToDisplay(wallet.balance).toLocaleString()}
-          hint={wallet.justInitialized ? '注册赠送已到账' : '永不过期'}
-        />
-      </section>
 
       <section className="rounded-2xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_oklch(0.62_0.14_70)]">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面应用 · 推荐</p>
-            <h2 className="mt-2 text-[18px] font-extrabold text-ink">下载桌面应用直接开始</h2>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 推荐下一步</p>
+            <h2 className="mt-2 text-[18px] font-extrabold text-ink">打开桌面应用，完成第一份职业素材</h2>
             <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
-              macOS / Windows / Linux 全平台可用。简历、岗位、面试、求职信全部在一个应用里完成；
-              云端能力（大语言模型、PDF 导出、岗位抓取）按 Token 从余额扣。
+              macOS / Windows / Linux 全平台可用。第一次登录后，app
+              会带你选择起点：导入现有简历、粘贴一段经历，或从零开始记录。
             </p>
           </div>
           <a
@@ -63,10 +53,21 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Card label="邮箱" value={user.email} />
+        <Card
+          label="Token 余额"
+          value={microToDisplay(wallet.balance).toLocaleString()}
+          hint={
+            wallet.justInitialized ? '注册赠送已到账，后续云端能力会从这里扣' : 'PDF、岗位抓取和云端模型共用这份余额'
+          }
+        />
+      </section>
+
       <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
-        <h2 className="text-[18px] font-extrabold text-ink">已经在用 AI 助手？走技能路径</h2>
+        <h2 className="text-[18px] font-extrabold text-ink">高级入口：已经在用 AI 助手？</h2>
         <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
-          Claude Code / Codex / Cursor / OpenCode 等支持技能协议的 AI 助手都能直接接入：
+          如果你已经熟悉 Claude Code / Codex / Cursor / OpenCode，可以直接装 skill，不必走桌面 app：
         </p>
         <ol className="mt-4 space-y-2 text-[14px] leading-[1.7] text-ink-soft">
           <li>

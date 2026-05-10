@@ -20,6 +20,7 @@ type Props = {
   /** profile.id + ':' + conversation.id；切换上下文时变更，触发草稿清空。 */
   contextKey: string;
   placeholder: string;
+  initialDraft?: string | null;
   busy: boolean;
   errorMessage: string | null;
   attachments: ChatAttachmentsApi;
@@ -41,6 +42,7 @@ type Props = {
 export function ChatInputBar({
   contextKey,
   placeholder,
+  initialDraft,
   busy,
   errorMessage,
   attachments,
@@ -67,11 +69,11 @@ export function ChatInputBar({
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 仅 contextKey 触发清空
   useEffect(() => {
-    setInput('');
+    setInput(initialDraft ?? '');
     setPreviewAttachment(null);
     setFailedAudio(null);
     setInfo(null);
-  }, [contextKey]);
+  }, [contextKey, initialDraft]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: ref 不入 deps（引用稳定，.current 不触发 re-render）
   useEffect(() => {

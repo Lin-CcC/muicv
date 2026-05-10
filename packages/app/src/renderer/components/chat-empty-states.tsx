@@ -1,5 +1,8 @@
+import { FileTextIcon, NotePencilIcon, TargetIcon } from '@phosphor-icons/react';
+
 import { CONVERSATION_TYPE_META, type ConversationType } from '../../shared/types.ts';
 import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
+import { useAppStore } from '../lib/store';
 import { CorgiMascot } from './corgi-mascot';
 
 export function CenteredCard({
@@ -32,14 +35,53 @@ export function CenteredCard({
 }
 
 export function NoConversationCard() {
+  const createConversation = useAppStore((s) => s.createConversation);
+  const starts = [
+    {
+      title: '导入现有简历',
+      body: '创建整理对话，然后把 PDF / DOCX / Markdown 拖进输入框。',
+      Icon: FileTextIcon,
+      onClick: () => void createConversation('core', '从现有简历整理素材'),
+    },
+    {
+      title: '记录一段经历',
+      body: '先讲一个项目或一段工作，Mui 会追问并整理成简历素材。',
+      Icon: NotePencilIcon,
+      onClick: () => void createConversation('core', '记录第一段工作经历'),
+    },
+    {
+      title: '针对岗位生成简历',
+      body: '已经有素材时，贴岗位链接或描述，生成更对口的简历版本。',
+      Icon: TargetIcon,
+      onClick: () => void createConversation('generate', '针对岗位生成简历'),
+    },
+  ];
+
   return (
-    <div className="flex h-full items-center justify-center px-6">
-      <div className="max-w-md text-center">
-        <CorgiMascot className="mx-auto h-16 w-16" />
-        <h2 className="mt-4 text-2xl font-extrabold text-ink">还没选对话</h2>
-        <p className="mt-2 text-[13px] leading-[1.7] text-ink-soft">
-          左栏点 <strong>+ 新建</strong> 选一种对话类型开始，或者点列表里某个对话切过去。
+    <div className="flex h-full items-center justify-center overflow-y-auto px-6 py-10">
+      <div className="w-full max-w-3xl">
+        <CorgiMascot className="h-16 w-16" />
+        <h2 className="mt-4 text-2xl font-extrabold text-ink">先选一个起点</h2>
+        <p className="mt-2 max-w-xl text-[13px] leading-[1.7] text-ink-soft">
+          不需要先理解所有对话类型。最常见的开始方式是导入简历、记录经历，或者直接针对一个岗位生成版本。
         </p>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {starts.map(({ title, body, Icon, onClick }) => (
+            <button
+              key={title}
+              type="button"
+              onClick={onClick}
+              className="group flex min-h-[170px] flex-col items-start rounded-2xl border-2 border-ink bg-cream p-4 text-left shadow-[0_3px_0_0_var(--color-ink)] transition hover:-translate-y-0.5 hover:bg-fluff"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-yellow text-ink">
+                <Icon size={18} weight="bold" />
+              </span>
+              <span className="mt-4 text-[14px] font-extrabold text-ink">{title}</span>
+              <span className="mt-2 text-[12.5px] leading-[1.6] text-ink-soft">{body}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-[12px] text-mute">熟练以后，也可以继续用左栏的 + 新建选择完整对话类型。</p>
       </div>
     </div>
   );

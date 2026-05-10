@@ -32,8 +32,8 @@ export function DesktopApp() {
               <Highlight>下载就能开始</Highlight>。
             </h2>
             <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-ink-soft">
-              全平台桌面 app，打开就能用。简历、岗位、面试、求职信全部在一个 app 里完成； 云端能力（LLM、PDF 导出、JD
-              抓取）按 token 计费，从你的余额扣。
+              全平台桌面 app，打开后先带你导入简历或记录第一段经历。等素材整理好，再继续做岗位匹配、 简历评审和 PDF
+              导出。
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <a
@@ -47,7 +47,7 @@ export function DesktopApp() {
                 href="#install"
                 className="text-[13.5px] font-semibold text-ink-soft underline decoration-rule decoration-2 underline-offset-4 transition hover:text-ink hover:decoration-yellow"
               >
-                已经在用 AI agent？走 skill 路径 ↓
+                已经在用 AI agent？走高级入口 ↓
               </a>
             </div>
           </div>
@@ -77,7 +77,7 @@ export function DesktopApp() {
               >
                 下载页
               </a>{' '}
-              自动从 GitHub Releases 拉最新。 当前 macOS 已签名 + 公证；Windows / Linux 首次运行可能需要手动放行。
+              自动从 GitHub Releases 拉最新。首次运行如果被系统拦截，下载页后半部分有放行说明。
             </p>
           </div>
         </div>

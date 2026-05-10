@@ -29,6 +29,8 @@ export function ChatView() {
   const session = useAppStore((s) => s.session);
   const activeProfile = useAppStore((s) => s.activeProfile);
   const activeConversation = useAppStore((s) => s.activeConversation);
+  const onboardingDraft = useAppStore((s) => s.onboardingDraft);
+  const clearOnboardingDraft = useAppStore((s) => s.clearOnboardingDraft);
   const setView = useAppStore((s) => s.setView);
   const openRightPanel = useAppStore((s) => s.openRightPanel);
 
@@ -58,6 +60,7 @@ export function ChatView() {
   const TypeIcon = CONVERSATION_TYPE_ICON[activeConversation.type];
 
   async function handleSend(text: string): Promise<void> {
+    clearOnboardingDraft();
     await dispatch.send(text, attachments.pendingAttachments);
     attachments.clearAfterSend();
   }
@@ -112,6 +115,7 @@ export function ChatView() {
       <ChatInputBar
         contextKey={`${activeProfile.id}:${activeConversation.id}`}
         placeholder={meta.placeholder}
+        initialDraft={onboardingDraft}
         busy={dispatch.busy}
         errorMessage={error}
         attachments={attachments}

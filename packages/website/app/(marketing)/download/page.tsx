@@ -9,7 +9,7 @@ import { Header } from '../_sections/header';
 
 export const metadata: Metadata = {
   title: '下载桌面 app',
-  description: 'Mui简历桌面端：让不用 AI agent 的求职者也能跑完整简历工作流。macOS / Windows / Linux 全平台支持。',
+  description: '下载 Mui简历桌面 app：导入简历或记录经历，先整理职业素材，再针对岗位生成简历。',
 };
 
 // 与其它营销页对齐：Header 需要 session，必须 dynamic。GitHub fetch 自带 5 分钟数据缓存，rate-limit 压力不变。
@@ -148,9 +148,11 @@ export default async function DownloadPage() {
           下载 Mui简历
         </h1>
         <p className="mt-4 max-w-xl text-[15px] leading-[1.7] text-ink-soft">
-          让你不用装 Claude Code 也能跑完整简历工作流：选目录、贴 muirouter key， 打开 app 直接对话。Skills、API、UI
-          都内置，开箱即用。
+          不用装 Claude Code，也不用先理解 skill。打开 app 后先导入简历或记录第一段经历，Mui
+          会带你整理出一份可继续迭代的职业素材库。
         </p>
+
+        <FirstMinute />
 
         {!release ? <NoRelease /> : <ReleasePanel release={release} />}
 
@@ -159,6 +161,28 @@ export default async function DownloadPage() {
 
       <Footer />
     </div>
+  );
+}
+
+function FirstMinute() {
+  const steps = [
+    { title: '登录 muicv 账号', desc: '用浏览器完成授权，app 会自动回到已登录状态。' },
+    { title: '导入简历或从零记录', desc: '上传现有简历，或直接说一段你做过的项目和经历。' },
+    { title: '开始第一段整理对话', desc: 'Mui 会先帮你把材料拆成可复用素材，之后再针对岗位生成版本。' },
+  ];
+  return (
+    <section className="mt-10 rounded-2xl border-2 border-ink bg-corgi/20 p-5 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
+      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">下载后第一分钟</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        {steps.map((step, idx) => (
+          <div key={step.title} className="rounded-xl border-2 border-rule bg-cream px-4 py-3">
+            <span className="font-mono text-[11px] font-bold text-yellow-deep">{String(idx + 1).padStart(2, '0')}</span>
+            <h2 className="mt-2 text-[14px] font-extrabold text-ink">{step.title}</h2>
+            <p className="mt-1.5 text-[12.5px] leading-[1.6] text-ink-soft">{step.desc}</p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

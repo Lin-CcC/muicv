@@ -3,9 +3,9 @@ import { CorgiMascot } from '@/components/corgi-mascot';
 import { ArrowUpRight } from '../_icons';
 
 const NAV_LINKS: { label: string; href: string }[] = [
-  { label: '重点特性', href: '/#features' },
+  { label: '怎么开始', href: '/#workflow' },
+  { label: '能做什么', href: '/#features' },
   { label: '价格', href: '/pricing' },
-  { label: '关于', href: '/about' },
   { label: '下载', href: '/download' },
 ];
 
@@ -50,7 +50,7 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
                 href="/sign-up"
                 className="press ml-1 inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 font-semibold text-ink"
               >
-                注册
+                创建账号
                 <ArrowUpRight />
               </a>
             </>

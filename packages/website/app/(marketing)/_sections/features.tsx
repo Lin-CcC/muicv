@@ -1,12 +1,11 @@
 import { KEY_FEATURES, type KeyFeature } from '../_data';
-import { ChatIcon, CompassIcon, DocIcon, Highlight, RocketIcon, TargetIcon } from '../_icons';
+import { ChatIcon, CompassIcon, DocIcon, Highlight, TargetIcon } from '../_icons';
 
 const ICON_BY_TITLE: Record<string, React.ComponentType<{ className?: string }>> = {
-  智能简历: DocIcon,
-  岗位发现: TargetIcon,
-  模拟面试: ChatIcon,
-  就业辅导: CompassIcon,
-  持续进化: RocketIcon,
+  整理职业素材: DocIcon,
+  针对岗位生成: TargetIcon,
+  评审与导出: ChatIcon,
+  继续练习求职: CompassIcon,
 };
 
 export function KeyFeatures() {
@@ -15,14 +14,14 @@ export function KeyFeatures() {
       <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 重点特性</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 能做什么</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
-              不只是简历，
+              先把素材理顺，
               <br />
-              <Highlight>整个求职链路</Highlight>。
+              <Highlight>再处理投递</Highlight>。
             </h2>
             <p className="mt-5 max-w-sm text-[15px] leading-[1.7] text-ink-soft">
-              我们要帮你拿到更好的 offer——简历只是其中一步。从找岗位到面试演练，能力还在持续扩。
+              Mui 的核心不是替你编故事，而是把真实经历整理成可复用素材，再根据不同岗位调整表达。
             </p>
           </div>
 

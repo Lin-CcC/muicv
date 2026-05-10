@@ -45,6 +45,8 @@ export type AppConfig = {
   customLlmBase: string | null;
   /** 自带 LLM endpoint 的 API key。和 customLlmBase 配套使用。 */
   customLlmKey: string | null;
+  /** 本设备是否已完成首次引导。只存在本地，不上传服务器。 */
+  onboardingCompleted: boolean;
 };
 
 export const DEFAULT_CONFIG: AppConfig = {
@@ -56,6 +58,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   defaultModel: DEFAULT_LLM_MODEL,
   customLlmBase: null,
   customLlmKey: null,
+  onboardingCompleted: false,
 };
 
 /**
@@ -489,7 +492,10 @@ export type RendererApi = {
     get(): Promise<AppConfig>;
     set(
       patch: Partial<
-        Pick<AppConfig, 'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey'>
+        Pick<
+          AppConfig,
+          'muicvApiBase' | 'defaultModel' | 'muicvApiKey' | 'customLlmBase' | 'customLlmKey' | 'onboardingCompleted'
+        >
       >,
     ): Promise<AppConfig>;
   };

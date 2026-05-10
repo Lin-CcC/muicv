@@ -3,19 +3,19 @@ import { Highlight } from '../_icons';
 
 export function Workflow() {
   return (
-    <section className="border-b border-rule">
+    <section id="workflow" className="border-b border-rule">
       <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
         <div className="flex items-end justify-between gap-8">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 端到端</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 怎么开始</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
-              从素材到 offer，
+              第一次打开，
               <br className="hidden md:block" />
-              <Highlight>七步走完</Highlight>。
+              <Highlight>只做三件事</Highlight>。
             </h2>
           </div>
           <p className="hidden max-w-xs text-[14px] leading-[1.65] text-ink-soft md:block">
-            每一步都跟你确认；文件落到你自己电脑或项目里，怎么处置由你决定。
+            先完成第一份职业素材，不急着理解所有功能。后面的简历版本、岗位匹配和导出都会从这里长出来。
           </p>
         </div>
 

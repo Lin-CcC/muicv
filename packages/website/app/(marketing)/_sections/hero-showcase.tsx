@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 
 import { CorgiMascot } from '@/components/corgi-mascot';
 
-import { ChatIcon, CompassIcon, DocIcon, TargetIcon } from '../_icons';
+import { DocIcon } from '../_icons';
 
 const SLIDES = [
-  { key: 'cli', label: 'AI agent' },
-  { key: 'app', label: '桌面 app' },
-  { key: 'resume', label: '简历' },
-  { key: 'capabilities', label: '能力' },
+  { key: 'import', label: '导入素材' },
+  { key: 'library', label: '素材库' },
+  { key: 'resume', label: '定制简历' },
 ] as const;
 
 type SlideKey = (typeof SLIDES)[number]['key'];
@@ -18,7 +17,7 @@ type SlideKey = (typeof SLIDES)[number]['key'];
 const ROTATE_MS = 6000;
 
 export function HeroShowcase() {
-  const [active, setActive] = useState<SlideKey>('cli');
+  const [active, setActive] = useState<SlideKey>('import');
   const pausedRef = useRef(false);
 
   useEffect(() => {
@@ -72,23 +71,20 @@ export function HeroShowcase() {
         </div>
 
         <div className="relative aspect-[4/3.1] w-full">
-          <Slide active={active === 'cli'}>
-            <CliSlide />
+          <Slide active={active === 'import'}>
+            <ImportSlide />
           </Slide>
-          <Slide active={active === 'app'}>
-            <AppSlide />
+          <Slide active={active === 'library'}>
+            <LibrarySlide />
           </Slide>
           <Slide active={active === 'resume'}>
             <ResumeSlide />
-          </Slide>
-          <Slide active={active === 'capabilities'}>
-            <CapabilitiesSlide />
           </Slide>
         </div>
 
         <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-mute">
           <span className="inline-block h-2 w-2 rounded-full bg-yellow" />
-          多种入口，一份数据
+          先整理，再针对岗位迭代
         </div>
       </div>
     </div>
@@ -110,80 +106,73 @@ function Slide({ active, children }: { active: boolean; children: React.ReactNod
   );
 }
 
-function CliSlide() {
+function ImportSlide() {
   return (
-    <div className="relative h-full overflow-hidden rounded-2xl border-2 border-ink/85 bg-[#1a1815] font-mono text-[12.5px] leading-relaxed text-cream/90 shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
-      <div className="flex items-center justify-between border-b border-cream/8 px-4 py-2.5">
+    <div className="relative h-full overflow-hidden rounded-2xl border-2 border-ink bg-cream shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
+      <div className="flex items-center justify-between border-b-2 border-rule bg-paper px-4 py-2.5">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
         </div>
-        <span className="text-[10px] uppercase tracking-wider text-cream/40">~/career — AI agent</span>
+        <span className="font-mono text-[10px] uppercase tracking-wider text-mute">Mui简历 · 第一步</span>
       </div>
-      <pre className="overflow-hidden px-4 py-4">
-        <code>
-          <span className="text-[oklch(0.86_0.13_85)]">$</span> <span className="text-cream">muicv</span>
-          {'\n\n'}
-          <span className="text-cream/55"># 跟它聊：</span>
-          {'\n'}
-          <span className="text-[oklch(0.86_0.13_85)]">{'>'}</span>{' '}
-          <span className="text-cream/95">帮我针对这个岗位准备简历</span>
-          {'\n\n'}
-          <span className="text-[oklch(0.86_0.13_85)]">✓</span> <span className="text-cream/85">抓取岗位</span>
-          {'    '}
-          <span className="text-cream/40">已整理为目标档案</span>
-          {'\n'}
-          <span className="text-[oklch(0.86_0.13_85)]">✓</span> <span className="text-cream/85">匹配度评估</span>
-          {'  '}
-          <span className="text-cream/40">9/12 关键词覆盖</span>
-          {'\n'}
-          <span className="text-[oklch(0.86_0.13_85)]">✓</span> <span className="text-cream/85">定制简历</span>
-          {'    '}
-          <span className="text-cream/40">v1 草稿已生成</span>
-          {'\n'}
-          <span className="text-[oklch(0.86_0.13_85)]">✓</span> <span className="text-cream/85">导出 PDF</span>
-          {'      '}
-          <span className="text-cream/40">→ resume.pdf</span>{' '}
-          <span className="text-[oklch(0.7_0.16_25)]">2 页 · 148 KB</span>
-          {'\n\n'}
-          <span className="text-cream/55">done in 8.2s 🐾</span>
-        </code>
-      </pre>
+      <div className="p-5">
+        <h4 className="text-[18px] font-extrabold text-ink">先放进来一份真实材料</h4>
+        <p className="mt-2 text-[13px] leading-[1.65] text-ink-soft">
+          上传简历、粘贴经历，或者直接说“我想从零整理”。Mui 会从你已经有的内容开始。
+        </p>
+        <div className="mt-5 grid gap-3">
+          {[
+            { title: '现有简历.pdf', desc: '解析成可编辑素材' },
+            { title: '一段项目经历', desc: '补齐背景、动作、结果' },
+            { title: '目标岗位链接', desc: '之后用来生成版本' },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="flex items-center gap-3 rounded-xl border-2 border-rule bg-paper/70 px-4 py-3"
+            >
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-yellow text-ink">
+                <DocIcon className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block text-[13px] font-extrabold text-ink">{item.title}</span>
+                <span className="block text-[11.5px] text-mute">{item.desc}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
-function AppSlide() {
+function LibrarySlide() {
   return (
     <div className="relative h-full overflow-hidden rounded-2xl border-2 border-ink bg-cream shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
       <div className="flex items-center gap-2 border-b-2 border-rule bg-paper px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
-        <span className="ml-3 font-mono text-[11px] uppercase tracking-wider text-mute">Mui简历</span>
-        <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-rule-strong bg-cream px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-mute">
-          <span className="h-1.5 w-1.5 rounded-full bg-mute/60" />
-          coming soon
-        </span>
+        <span className="ml-3 font-mono text-[11px] uppercase tracking-wider text-mute">职业素材库</span>
       </div>
       <div className="grid h-[calc(100%-2.6rem)] grid-cols-[7.5rem_1fr]">
         <aside className="border-r border-rule bg-paper/50 p-3 text-[12px]">
           <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-yellow-deep">导航</p>
           <ul className="mt-2 space-y-1.5 text-ink-soft">
-            <li className="rounded-md bg-yellow/30 px-2 py-1 font-semibold text-ink">岗位</li>
-            <li className="px-2 py-1">简历</li>
-            <li className="px-2 py-1">面试</li>
-            <li className="px-2 py-1">辅导</li>
+            <li className="rounded-md bg-yellow/30 px-2 py-1 font-semibold text-ink">经历</li>
+            <li className="px-2 py-1">项目</li>
+            <li className="px-2 py-1">技能</li>
+            <li className="px-2 py-1">岗位</li>
           </ul>
         </aside>
         <div className="p-4">
-          <h4 className="text-[14px] font-extrabold text-ink">目标岗位</h4>
+          <h4 className="text-[14px] font-extrabold text-ink">可复用素材</h4>
           <ul className="mt-3 space-y-2">
             {[
-              { title: 'Frontend Engineer · Acme', match: '92%' },
-              { title: 'Senior FE · Globex', match: '78%' },
-              { title: 'Lead UI · Initech', match: '64%' },
+              { title: '负责会员增长实验平台', match: '已量化' },
+              { title: '重构前端发布链路', match: '可投递' },
+              { title: '跨团队推进埋点规范', match: '待补充' },
             ].map((item) => (
               <li
                 key={item.title}
@@ -237,30 +226,6 @@ function ResumeSlide() {
           <div className="mt-1 h-1.5 w-2/3 rounded bg-mute/30" />
         </div>
       </div>
-    </div>
-  );
-}
-
-function CapabilitiesSlide() {
-  const items: { title: string; Icon: React.ComponentType<{ className?: string }>; tag: string }[] = [
-    { title: '智能简历', Icon: DocIcon, tag: '已上线' },
-    { title: '岗位发现', Icon: TargetIcon, tag: '已上线' },
-    { title: '模拟面试', Icon: ChatIcon, tag: '即将推出' },
-    { title: '就业辅导', Icon: CompassIcon, tag: '即将推出' },
-  ];
-  return (
-    <div className="grid h-full grid-cols-2 gap-3 rounded-2xl border-2 border-ink bg-cream p-4 shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
-      {items.map(({ title, Icon, tag }) => (
-        <div key={title} className="flex flex-col justify-between rounded-xl border-2 border-rule bg-paper/60 p-3">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-yellow text-ink">
-            <Icon className="h-5 w-5" />
-          </span>
-          <div className="mt-3">
-            <p className="text-[14px] font-extrabold text-ink">{title}</p>
-            <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wider text-mute">{tag}</p>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
