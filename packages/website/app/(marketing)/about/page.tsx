@@ -136,7 +136,7 @@ export default async function AboutPage() {
               href={isLoggedIn ? '/dashboard' : '/sign-up'}
               className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
             >
-              {isLoggedIn ? '进入 Dashboard' : '免费开始'}
+              {isLoggedIn ? '进入控制台' : '免费开始'}
               <ArrowUpRight />
             </a>
             <a

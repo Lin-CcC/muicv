@@ -52,12 +52,12 @@ const SUB_TIERS: SubTier[] = [
 
 const PRICING_FAQ: { q: string; a: string }[] = [
   {
-    q: 'Token 怎么用？',
-    a: 'LLM 调用按上游 prompt + completion token × 1.1（覆盖第三方成本与少量利润），其中 OpenAI 系命中 prompt cache 的部分按 input 价 50% 计费；PDF 渲染每次扣 200 tokens；JD 抓取每次扣 300 tokens。所有调用都会在 dashboard 流水里看到明细。',
+    q: 'MuiCV 是如何计费的？',
+    a: 'LLM 调用直接按上游 prompt + completion token 记录，并按定价换算，包括缓存部分，也按上游标价计费；PDF 渲染每次扣 200 tokens；JD 抓取每次扣 300 tokens。所有调用都会在控制台流水里看到明细。',
   },
   {
     q: '月付和年付有什么区别？',
-    a: '价格上年付有约 20% 折扣；token 上年付一次性给你整年用量，付款当天就能集中用。取消订阅后已发的 token 全部保留，永不过期。月付适合先试一试，年付适合确定要长期用。',
+    a: '价格上年付有约 17% 折扣；token 上年付一次性给你整年用量，付款当天就能集中用。取消订阅后已发的 token 全部保留，永不过期。月付适合先试一试，年付适合确定要长期用。',
   },
   {
     q: '订阅和补充包能同时用吗？',
@@ -65,23 +65,31 @@ const PRICING_FAQ: { q: string; a: string }[] = [
   },
   {
     q: '可以随时升降档 / 取消吗？',
-    a: '可以。在 dashboard 点"管理订阅"会跳到 Stripe Customer Portal，取消、切档、换支付方式都在那里。已发的 tokens 永不过期，取消之后接着用旧余额。',
+    a: '可以。在控制台点"管理订阅"会跳到 Stripe Customer Portal，取消、切档、换支付方式都在那里。已发的 tokens 永不过期，取消之后接着用旧余额。费用按实际使用量结算，不会重复计费。',
   },
   {
     q: 'Free 用户每月会自动续 token 吗？',
-    a: '不会。注册时一次性赠送 10,000 tokens，仅此一次。用完为止；之后要继续用，可以买补充包（最便宜 ¥10 = 10K tokens）、订阅月付 / 年付，或绑 BYOK 让 LLM 走自己的 muirouter（PDF / JD 仍按 muicv tokens 扣）。',
+    a: '不会。注册时一次性赠送 10,000 tokens，仅此一次。用完为止；之后要继续用，可以买补充包（最便宜 ¥10 = 10K tokens）、订阅月付 / 年付，或绑 BYOK 让 LLM 走自己的 API（PDF / JD 仍按 muicv tokens 扣）。',
   },
   {
     q: '不满意能退款吗？',
     a: '订阅 7 天内未消耗主要功能可全额退款，邮件联系。补充包付款立刻入账，原则上不退；如果是误购或重大问题，依然可邮件协商。',
   },
   {
-    q: '我有 BYOK，还要付费吗？',
-    a: '可以选只用 BYOK：把 muirouter key 绑到 dashboard，所有 LLM 调用走你自己的 muirouter 余额，不消耗 muicv tokens。但 PDF 渲染 / JD 抓取仍按 muicv tokens 扣（这两个是 Cloudflare Browser Rendering 的真实成本）。',
+    q: '我买了别家 API，还要付费吗？',
+    a: '可以选只用 BYOK：把你的 API 地址和 API key 绑到控制台，这样所有 LLM 调用都会走你自己的 API 余额，不消耗 muicv tokens。但 PDF 渲染 / JD 抓取等增值服务仍会按 muicv tokens 扣（这些服务只能由我们提供）。',
+  },
+  {
+    q: '我不知道去哪里买 API，你有推荐吗？',
+    a: '我还开发了 muirouter，全部使用原厂 AI，支持全部主流产品。如果你不止在一个地方使用 AI 产品，希望更好的使用你的 AI 预算，推荐你试一下：https://muirouter.com。',
+  },
+  {
+    q: '自带 API（BYOK）有什么好处？',
+    a: '比如我们的套餐你都不喜欢，觉得要么不够要么太多，或者你要使用不止一个 AI 产品，就可以考虑自带 API（BYOK）。这样你在这个平台用不完的额度，还可以用于其他的 AI 产品。',
   },
   {
     q: 'Skill 套件本身收费吗？',
-    a: '不收费。npx skills add 装到 Claude Code / Codex / Cursor 等任意 AI agent 完全免费——平台计费只针对服务端能力（云端 LLM / PDF / JD）和你已购买的 tokens。',
+    a: '不收费。npx skills add 装到 Claude Code / Codex / Cursor 等任意 AI agent 完全免费——平台计费只针对服务端能力（导出PDF / 寻找岗位）。',
   },
 ];
 
@@ -222,7 +230,7 @@ function IntervalToggle({ current }: { current: BillingInterval }) {
           current === 'yearly' ? 'bg-yellow text-ink' : 'text-ink-soft hover:text-ink'
         }`}
       >
-        年付 <span className="ml-1 font-mono text-[10px] text-yellow-deep">省 ≈20%</span>
+        年付 <span className="ml-1 font-mono text-[10px] text-yellow-deep">省 ≈17%</span>
       </a>
     </div>
   );
@@ -230,7 +238,7 @@ function IntervalToggle({ current }: { current: BillingInterval }) {
 
 function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
   const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
-  const ctaLabel = isLoggedIn ? '进入 Dashboard' : '免费注册领 10K tokens';
+  const ctaLabel = isLoggedIn ? '进入控制台' : '免费注册领 10K tokens';
   return (
     <article className="relative flex flex-col rounded-2xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1">
       <h3 className="text-[20px] font-extrabold text-ink">免费起步</h3>

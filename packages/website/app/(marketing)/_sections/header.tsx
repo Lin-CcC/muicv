@@ -35,7 +35,7 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
               href="/dashboard"
               className="press ml-1 inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 font-semibold text-ink"
             >
-              进入 Dashboard
+              进入控制台
               <ArrowUpRight />
             </a>
           ) : (

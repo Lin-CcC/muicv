@@ -10,7 +10,7 @@ export function Workflow() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 怎么开始</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
               第一次打开，
-              <br className="hidden md:block" />
+              <br className="md:hidden" />
               <Highlight>只做三件事</Highlight>。
             </h2>
           </div>

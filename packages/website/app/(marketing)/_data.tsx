@@ -74,16 +74,16 @@ export const FAQ_ITEMS: { q: string; a: ReactNode }[] = [
             <strong>注册一次性赠送 10,000 tokens</strong>，永不过期，用完为止
           </li>
           <li>
-            <strong>订阅</strong>：Pro / Max 月付或年付，按周期自动续 token；年付一次发整年用量，约 8 折
+            <strong>订阅</strong>：Pro / Max 月付或年付，按周期自动续 token；年付一次发整年用量，约 17% 折扣
           </li>
           <li>
             <strong>补充包</strong>：一次性买 10K / 35K / 130K tokens，随用随买
           </li>
           <li>
-            <strong>BYOK</strong>：在 dashboard 绑你自己的 muirouter，LLM 走你余额；PDF / JD 仍按 muicv tokens 扣
+            <strong>BYOK</strong>：在控制台绑你自己的 API 地址和 key，LLM 走你余额；PDF / JD 仍按 muicv tokens 扣
           </li>
         </ul>
-        所有云端服务（云端 LLM、PDF、JD）按 token 扣费。具体价格请看{' '}
+        云端服务（导出 PDF、寻找岗位等）按 token 扣费。具体价格请看{' '}
         <a
           href="/pricing"
           className="font-semibold text-yellow-deep underline decoration-corgi decoration-2 underline-offset-4 hover:decoration-yellow"

@@ -11,7 +11,7 @@ import { Hero } from './_sections/hero';
 import { Install } from './_sections/install';
 import { Workflow } from './_sections/workflow';
 
-// 顶部 nav 要根据登录态切显"登录"或"Dashboard"，所以页面跑 SSR（不要 SSG），
+// 顶部 nav 要根据登录态切显"登录"或"控制台"，所以页面跑 SSR（不要 SSG），
 // 否则 build 时 prerender 会失败：Cloudflare D1 在 build context 拿不到。
 export const dynamic = 'force-dynamic';
 

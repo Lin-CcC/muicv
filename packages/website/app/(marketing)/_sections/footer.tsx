@@ -28,7 +28,7 @@ export function Footer() {
               ['重点特性', '/#features'],
               ['定价', '/pricing'],
               ['桌面 app', '/download'],
-              ['Dashboard', '/dashboard'],
+              ['控制台', '/dashboard'],
             ]}
           />
           <FooterCol
