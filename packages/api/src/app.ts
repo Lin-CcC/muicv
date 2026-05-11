@@ -1,14 +1,34 @@
-import { displayToMicro, JD_FETCH_COST, PDF_RENDER_COST, insufficientBalanceError } from '@muicv/shared';
+import {
+  assertTemplateResumeData,
+  displayToMicro,
+  insufficientBalanceError,
+  isJsonTemplateId,
+  isTemplateLang,
+  JD_FETCH_COST,
+  PDF_RENDER_COST,
+  type TemplateLang,
+  type TemplateResumeData,
+} from '@muicv/shared';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
-import { renderPdf } from './lib/render-pdf.ts';
+import { renderPdf, type RenderPdfInput } from './lib/render-pdf.ts';
 import { charge, ensureBalance } from './lib/wallet.ts';
-import { requireApiKey } from './middleware/api-key.ts';
+import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
 import { handleComment, handleRate } from './routes/feedback.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
+import {
+  handlePreviewCreate,
+  handlePreviewExtend,
+  handlePreviewGet,
+  handlePreviewList,
+  handlePreviewPdf,
+  handlePreviewRevoke,
+  handlePreviewShareMode,
+} from './routes/preview.ts';
+import { handlePhotoHistory, handleUploadPhoto } from './routes/upload-photo.ts';
 import {
   handleResumeBlobHistoryList,
   handleResumeSnapshotBlobDelete,
@@ -65,6 +85,15 @@ app.get('/', (c) =>
     routes: [
       'GET /health',
       'POST /render',
+      'POST /preview（创建可分享预览 URL）',
+      'GET /preview（当前用户预览列表，dashboard 用）',
+      'GET /preview/:token（公开查看预览数据）',
+      'POST /preview/:token/pdf（下载预览对应 PDF）',
+      'POST /preview/:token/revoke',
+      'POST /preview/:token/extend',
+      'POST /preview/:token/share-mode',
+      'POST /upload/photo（multipart/form-data，字段 file）',
+      'GET /upload/photo/history?limit=20（列当前用户最近上传）',
       'POST /jobs/fetch',
       'POST /audio/transcribe（multipart/form-data，字段 file）',
       'POST /waitlist',
@@ -122,8 +151,11 @@ app.post('/waitlist', handleWaitlist);
 /**
  * POST /render
  *
- * Body: { markdown: string, template?: string }
- * 响应：200 application/pdf + PDF bytes / 402 余额不足
+ * 两种 payload 形态（互斥）：
+ *   - markdown 路径（向下兼容，老 skill）：`{ markdown: string, template?: 'default' }`
+ *   - JSON 路径（新模板）：`{ resumeJson: TemplateResumeData, template: 't1-classic'..'t6-academic', lang?: 'zh'|'en' }`
+ *
+ * 响应：200 application/pdf + PDF bytes / 402 余额不足 / 502 渲染异常。
  *
  * 计费：成功才扣 PDF_RENDER_COST tokens；渲染失败 502 但不扣账（避免反复重试被反复扣）。
  *
@@ -136,17 +168,54 @@ app.post('/render', requireApiKey, async (c) => {
     return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
   }
 
-  let payload: { markdown?: unknown; template?: unknown };
+  let payload: Record<string, unknown>;
   try {
-    payload = await c.req.json();
+    payload = (await c.req.json()) as Record<string, unknown>;
   } catch {
     return c.json({ error: '请求体不是合法 JSON' }, 400);
   }
 
-  if (typeof payload.markdown !== 'string' || payload.markdown.trim().length === 0) {
-    return c.json({ error: '字段 `markdown` 必须是非空字符串' }, 400);
+  let renderInput: RenderPdfInput;
+  let templateForLog: string;
+
+  if (payload.resumeJson != null) {
+    if (typeof payload.template !== 'string' || !isJsonTemplateId(payload.template)) {
+      return c.json(
+        {
+          error:
+            'JSON 路径下 `template` 必填且必须是 t1-classic / t2-minimal / t3-sidebar / t4-tech / t5-timeline / t6-academic 之一',
+        },
+        400,
+      );
+    }
+    try {
+      assertTemplateResumeData(payload.resumeJson);
+    } catch (error) {
+      return c.json(
+        {
+          error: 'resumeJson 不符合 TemplateResumeData schema',
+          detail: error instanceof Error ? error.message : String(error),
+        },
+        400,
+      );
+    }
+    const lang: TemplateLang = isTemplateLang(payload.lang) ? payload.lang : 'zh';
+    templateForLog = payload.template;
+    renderInput = {
+      kind: 'json',
+      resume: payload.resumeJson as TemplateResumeData,
+      template: payload.template,
+      lang,
+      ...(typeof payload.accent === 'string' ? { accent: payload.accent } : {}),
+    };
+  } else {
+    if (typeof payload.markdown !== 'string' || payload.markdown.trim().length === 0) {
+      return c.json({ error: '字段 `markdown` 必须是非空字符串（或改用 `resumeJson`）' }, 400);
+    }
+    const template = typeof payload.template === 'string' ? payload.template : 'default';
+    templateForLog = template;
+    renderInput = { kind: 'markdown', markdown: payload.markdown, template };
   }
-  const template = typeof payload.template === 'string' ? payload.template : 'default';
 
   const userId = c.get('userId') as string;
   const pdfCostMicro = displayToMicro(PDF_RENDER_COST);
@@ -157,7 +226,7 @@ app.post('/render', requireApiKey, async (c) => {
 
   let pdf: Uint8Array;
   try {
-    pdf = await renderPdf({ markdown: payload.markdown, template }, c.env);
+    pdf = await renderPdf(renderInput, c.env);
   } catch (error) {
     return c.json(
       {
@@ -169,7 +238,9 @@ app.post('/render', requireApiKey, async (c) => {
   }
 
   // 成功才扣账（异步，不阻塞 PDF 返回）
-  c.executionCtx.waitUntil(charge(c.env, userId, pdfCostMicro, 'pdf_render', { template }).catch(() => {}));
+  c.executionCtx.waitUntil(
+    charge(c.env, userId, pdfCostMicro, 'pdf_render', { template: templateForLog }).catch(() => {}),
+  );
 
   return new Response(pdf, {
     status: 200,
@@ -179,6 +250,34 @@ app.post('/render', requireApiKey, async (c) => {
     },
   });
 });
+
+/**
+ * /preview/* —— 在线预览页 + PDF 下载。
+ *
+ * - POST /preview：登录态（Bearer key）创建一个分享 URL，body 是 TemplateResumeData。
+ * - GET /preview/:token：公开端点，返回 resume JSON 给浏览器 SSR 用。
+ * - POST /preview/:token/pdf：owner 第一次扣 PDF_RENDER_COST 渲染并解锁公开下载；
+ *   后续公开访客复用同一份 D1 记录，不再重复扣 owner 余额。
+ * - POST /preview/:token/revoke / /extend：仅 owner 可操作。
+ *
+ * 详见 src/routes/preview.ts。
+ */
+app.post('/preview', requireApiKey, handlePreviewCreate);
+app.get('/preview', requireApiKey, handlePreviewList);
+app.get('/preview/:token', handlePreviewGet);
+app.post('/preview/:token/pdf', optionalApiKey, handlePreviewPdf);
+app.post('/preview/:token/revoke', requireApiKey, handlePreviewRevoke);
+app.post('/preview/:token/extend', requireApiKey, handlePreviewExtend);
+app.post('/preview/:token/share-mode', requireApiKey, handlePreviewShareMode);
+
+/**
+ * /upload/photo
+ *   - POST：证件照上传到 R2 + 写 photoUpload 审计行，返回公开 URL 写回 TemplateResumeData.photoUrl
+ *   - GET /history?limit=：当前用户最近上传记录，给 dashboard / Electron 历史复用
+ * 详见 src/routes/upload-photo.ts。
+ */
+app.post('/upload/photo', requireApiKey, handleUploadPhoto);
+app.get('/upload/photo/history', requireApiKey, handlePhotoHistory);
 
 /**
  * POST /jobs/fetch

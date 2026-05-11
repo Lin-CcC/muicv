@@ -2,9 +2,27 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-05-07
+最后更新：2026-05-11
 
 ---
+
+## 简历模板 + 在线预览（新）
+
+- **两种数据模型并存**：
+  - `versions/*.md` + frontmatter（老路径）→ `parseResume(marked)` → `default` 模板 CSS
+  - `versions/*.resume.json`（`TemplateResumeData` schema，见 `packages/shared/src/domain/template-resume.ts`）→ `t1-classic` / `t2-minimal` / `t3-sidebar` / `t4-tech` / `t5-timeline` / `t6-academic` 任一
+  - `/render` 端点 body 互斥：`{markdown}` 或 `{resumeJson}`；KV value 加 `kind: 'markdown' | 'json'` 给 SSR 分支
+  - JSON 路径 puppeteer margin 设 0 + `preferCSSPageSize: true`（模板自带 A4 padding）；markdown 路径保留 14mm 边距
+- **CSS Modules + `noUncheckedIndexedAccess`**：`styles.tN` 会返 `string | undefined`，所以 `TemplatePage` 的 `className` / `accent` 必须显式 `string | undefined`，否则 6 个模板都过不了 typecheck
+- **6 个模板共用单一 `templates.module.css`**：BEM 命名 `.t1__head` / `.t2__top` 等不冲突；嵌套选择器 `.t3__skillGroup .name` 不要用——CSS module 会两边都 hash，descendant 失效，要么扁平命名（`.t3__skillName`）要么 JSX 里写 `styles.name`
+- **在线预览页**：`packages/website/app/preview/[token]/page.tsx`，公开端点，**直读 D1**（OpenNext + `MUICV_DB` binding 已经能拿到 D1，不必走 API 转发）。SSR 完外面包 `<PreviewToolbar>` client component 跑下载 / 分享
+- **预览 PDF 计费**：D1 `preview` 表 `pdfCredit` 字段记 owner 已扣过多少次 PDF_RENDER_COST。公开访客下载只有 `pdfCredit > 0` 才允许，避免 token 公开后被刷爆余额。逻辑见 `packages/api/src/routes/preview.ts`
+- **R2 `MUICV_PHOTOS` 桶**：公开读，CNAME `i.muicv.com`（已绑定）。`/upload/photo` 不收费、不在服务端 resize（客户端先压到 600×800 内），key `<userId>/<uuid>.<ext>`，cache 31536000 + immutable。审计行写在 D1 `photoUpload` 表，按 userId 索引，过期清理留 Phase 3 做
+- **Phase 2 入口三件套**：
+  - skill：`POST /preview` + `muicv-render` 文档已写
+  - Electron：`window.muicv.preview.{uploadPhoto,listPhotos,create}` 走主进程；preview-drawer 检测 `*.resume.json` 显示「在线预览」按钮；设置页加 `PhotosCard` 管理证件照（[settings/photos-card.tsx](packages/app/src/renderer/components/settings/photos-card.tsx)）
+  - dashboard：`/dashboard/previews` 列出当前用户预览（生效 / 过期 / 撤销三态），支持复制 URL / 续期 / 改 share-mode / 撤销，外加证件照历史。dashboard 路径直接读 D1 + 自己的 `/api/previews/...` 内部路由（better-auth session），**不**绑 mui_ key
+- **shareMode 'link' vs 'public' 的真正区别**：layout 不再统一塞 noindex；改到 [preview/[token]/page.tsx](packages/website/app/preview/[token]/page.tsx) 的 `generateMetadata` 里按记录决定——`public` 才 `robots: index/follow` + og/twitter meta，其它（link / 过期 / 撤销 / 损坏）一律 noindex。loadPreview 用 React.cache 包一层，generateMetadata 和 default 渲染共用一次 D1 查询。**没有公开 listings 页**——public 模式只是把单条 URL 暴露给搜索引擎抓，方便 SEO / 招聘平台爬虫，不做汇总目录
 
 ## Cloudflare Worker / OpenNext（packages/website）
 

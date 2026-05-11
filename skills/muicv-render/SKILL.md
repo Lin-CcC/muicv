@@ -15,6 +15,10 @@ description: 把 `versions/` 下的简历 Markdown 渲染成 PDF，调 Mui简历
 2. 用户指定了哪份？
    - 明确指定（文件名或路径）→ 用它
    - 没指定 → 列出最近 3 个 version 让用户选（按 mtime 排序）
+3. **选数据源**：一份 version 实际上有 `.md` 和 `.resume.json` 一对兄弟文件。
+   - 用户没指定模板 / 指定了 `default` → 用 `.md` markdown 路径
+   - 用户指定 t1~t6 任一模板 → 用 `.resume.json` JSON 路径；JSON 不存在就提示用户调 `muicv-generate` 重新生成（老版本可能只产 `.md`）
+   - 用户问"哪个模板好"→ 简单建议：投递大公司 t1，工程岗 t4，申请学术 t6，其它默认 t2
 3. 确认 API 地址。**按以下顺序**解析：
    1. 用户在本次对话明确指定的 URL（"渲染到 localhost:8787"）
    2. 环境变量 `MUICV_API_BASE`（如果用户在 shell 里 export 了）
@@ -59,21 +63,44 @@ description: 把 `versions/` 下的简历 Markdown 渲染成 PDF，调 Mui简历
 
 ### 1. 读取 version 文件
 
-用 Read 读 `versions/<file>.md` 的完整内容（含 frontmatter，API 那边也会解析）。
+按上面"选数据源"的结果二选一：
+
+- **markdown 路径**：用 Read 读 `versions/<file>.md` 的完整内容（含 frontmatter，API 那边也会解析）
+- **JSON 路径**：用 Read 读 `versions/<file>.resume.json`，解析成对象后塞到 `/render` body 的 `resumeJson` 字段。**直接传整份对象**，不要 stringify 两层
+- 二者**不要混着读**——比如调 markdown 路径但其实读了 JSON 文件，body 校验会 400
 
 ### 2. 调用 API
 
+**两种 payload 形态**（互斥），根据用户的素材选其一：
+
 ```bash
+# A. markdown 路径（兼容老 versions/*.md，目前只有 default 模板）
 curl -X POST "${MUICV_API_BASE}/render" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${MUICV_API_KEY}" \
   -d '{"markdown": "<整个 .md 文件内容>", "template": "default"}' \
   --output "<version 文件同名的 .pdf>"
+
+# B. JSON 路径（versions/*.resume.json 双语结构化资料，配 t1~t6 视觉模板）
+curl -X POST "${MUICV_API_BASE}/render" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${MUICV_API_KEY}" \
+  -d '{
+        "resumeJson": <整个 .resume.json 内容>,
+        "template": "t3-sidebar",
+        "lang": "zh"
+      }' \
+  --output "<.resume.json 同名的 .pdf>"
 ```
 
 参数：
-- `markdown`（必填）：version md 文件的**完整内容**（含 frontmatter）
-- `template`（可选，默认 `default`）：目前只有 `default` 一个模板
+- `markdown`（A 路径必填）：version md 文件的**完整内容**（含 frontmatter）
+- `resumeJson`（B 路径必填）：`TemplateResumeData` 结构化对象，schema 定义见 `@muicv/shared` 的 `domain/template-resume.ts`
+- `template`：
+  - A 路径默认 `default`
+  - B 路径必传 `t1-classic` / `t2-minimal` / `t3-sidebar` / `t4-tech` / `t5-timeline` / `t6-academic` 之一
+- `lang`（B 路径可选）：`'zh'` 或 `'en'`，默认 `'zh'`
+- `accent`（B 路径可选）：覆盖模板默认主色，CSS 颜色字符串（如 `oklch(0.42 0.08 270)`）
 
 响应：
 - `200` + `application/pdf`：直接是 PDF 二进制
@@ -97,16 +124,23 @@ PDF 路径：把 `.md` 后缀换成 `.pdf`，和 version 同目录。
 
 能读到页数就顺便告诉用户（可从 PDF 头部解析，或粗略按"每页约 N KB"估算；不必精确）。
 
-## 使用模板（MVP）
+## 模板矩阵
 
-当前只有 `default` 模板：A4、单栏、黑白、中英字体兼容。
+| id            | 风格                                 | 适合谁                                 | 字体     |
+| ------------- | ------------------------------------ | -------------------------------------- | -------- |
+| `default`     | A4 单栏 markdown 直接出              | 老 versions/\*.md，兼容路径            | Noto SC  |
+| `t1-classic`  | 经典商务·居中衬线·深海军蓝           | 大公司投递、传统行业                   | serif    |
+| `t2-minimal`  | 现代极简·瑞士留白·暖沙               | 设计/产品岗、注重排版                  | sans     |
+| `t3-sidebar`  | 双栏侧边·深绿侧栏·圆角方照           | 想突出技能矩阵、有头像                 | sans     |
+| `t4-tech`     | 技术工程·mono 点缀+项目卡片·雾青     | 工程师 / 开发岗                        | sans+mono |
+| `t5-timeline` | 时间线·垂直轨道串经历·靛蓝           | 经历较多、想强调路径                   | sans     |
+| `t6-academic` | 学术 CV·论文编号·密集衬线·墨红       | 申请学术 / 研究岗、带 publications     | serif    |
 
-未来（规划，非 MVP）：
-- `compact`：密度更高，适合 5 年以上经验
-- `academic`：带论文列表的学术版
-- `bilingual`：中英对照
-
-用户可以在调用时说"换个模板 compact"，skill 把 `template` 参数改一下。MVP 阶段告诉用户"暂时只有 default"。
+挑选规则：
+- 用户没指定 → 默认 `default`（向下兼容）
+- 用户素材是 `versions/*.resume.json` → 默认 `t2-minimal`，根据职位类型可主动建议（投技术岗换 `t4-tech`，投学术换 `t6-academic`）
+- 用户明确说"换个模板 X" → 用 X
+- 模板都是 A4，跨页能力一致，不必担心溢出
 
 ## 调用示例
 
@@ -127,6 +161,48 @@ Claude：
 - **网络异常时的提示**：如果 curl 超时或连接错，先建议用户检查网络 / API 地址；不要重试 >2 次
 - **不要对 PDF 做后处理**：拿到就存，不要改文件名以外的任何事
 - **保留源 md**：渲染 PDF 不删除源 md；用户可能想再渲染一次
+
+## 生成在线预览链接（可选）
+
+当用户说"生成一个能发给 HR 看的链接"、"在浏览器里看一下"、"分享给我朋友"等场景，
+**不要走 `/render`**（那是直接拿 PDF），而是走 `POST /preview`：
+
+```bash
+curl -X POST "${MUICV_API_BASE}/preview" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${MUICV_API_KEY}" \
+  -d '{
+        "resumeJson": <.resume.json 内容>,
+        "template": "t3-sidebar",
+        "lang": "zh",
+        "shareMode": "link",
+        "ttlDays": 7
+      }'
+```
+
+参数：
+- `resumeJson` / `template` / `lang` / `accent`：同 `/render` 的 JSON 路径
+- `shareMode`：`'link'`（默认，noindex 仅持链接者可见）或 `'public'`（全网公开 / 可被搜索抓取）
+- `ttlDays`：1 / 7 / 30，默认 7
+
+响应（201）：
+```json
+{
+  "token": "uuid-v4",
+  "url": "https://muicv.com/preview/<token>",
+  "template": "t3-sidebar",
+  "lang": "zh",
+  "shareMode": "link",
+  "expiresAt": 1700000000000
+}
+```
+
+把 `url` 直接打给用户。**第一次有人点页面上的「下载 PDF」时按 `PDF_RENDER_COST` 扣 owner 余额**，
+之后访客复用同一份记录免扣（防 token 被刷爆余额）。
+
+撤销 / 续期：
+- `POST /preview/<token>/revoke`（Bearer key）— 立刻失效
+- `POST /preview/<token>/extend` body `{ "ttlDays": 30 }` — 把 expiresAt 往后推
 
 ## 与其他 skill 的协作
 

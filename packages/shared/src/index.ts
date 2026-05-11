@@ -1,4 +1,5 @@
 export * from './domain/resume-json.ts';
+export * from './domain/template-resume.ts';
 export * from './format.ts';
 export * from './hsm-client.ts';
 export * from './muirouter-oauth.ts';

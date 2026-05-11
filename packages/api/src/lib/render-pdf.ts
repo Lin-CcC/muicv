@@ -1,9 +1,22 @@
 import puppeteer, { type BrowserWorker } from '@cloudflare/puppeteer';
 
-export type RenderPdfInput = {
+import type { TemplateLang, TemplateResumeData } from '@muicv/shared';
+
+export type RenderPdfMarkdownInput = {
+  kind: 'markdown';
   markdown: string;
   template: string;
 };
+
+export type RenderPdfJsonInput = {
+  kind: 'json';
+  resume: TemplateResumeData;
+  template: string;
+  lang: TemplateLang;
+  accent?: string;
+};
+
+export type RenderPdfInput = RenderPdfMarkdownInput | RenderPdfJsonInput;
 
 export type RenderPdfEnv = {
   BROWSER: BrowserWorker;
@@ -17,25 +30,38 @@ const TOKEN_TTL_SECONDS = 300;
 const NAVIGATION_TIMEOUT_MS = 20_000;
 
 /**
- * 简历 markdown → PDF。
+ * 简历 → PDF。markdown / json 两种 payload 都支持：
+ *   - markdown：写 KV 后由 packages/website /r/render/[token] 走 marked → default 模板
+ *   - json：写 KV 后由 /r/render/[token] 选 t1~t6 模板渲染
  *
- * 流程：
- *   1. 写 KV：`resume:${uuid}` → { markdown, template }，5min TTL
- *   2. puppeteer.goto packages/website 的 /r/render/[token]，由那边 SSR 出 HTML
- *   3. await document.fonts.ready，等 Google Fonts 的 Noto Sans SC 加载完
- *   4. page.pdf 生成 A4 PDF
- *   5. 清理 KV，关闭 browser
- *
- * 任何中间步骤异常都会抛错，由 caller 转成 502。
+ * 输出 margin 跟 payload 模板有关：
+ *   - default：保留 14mm 边距（与旧版兼容）
+ *   - t1~t6：模板自带 padding 已经把 A4 内边距处理好，puppeteer margin 设 0
  */
 export async function renderPdf(input: RenderPdfInput, env: RenderPdfEnv): Promise<Uint8Array> {
   const token = crypto.randomUUID();
   const kvKey = `${KV_KEY_PREFIX}${token}`;
   const url = `${env.RENDER_BASE_URL}/r/render/${token}`;
 
-  await env.MUICV_KV.put(kvKey, JSON.stringify({ markdown: input.markdown, template: input.template }), {
+  const stored =
+    input.kind === 'json'
+      ? {
+          kind: 'json' as const,
+          resume: input.resume,
+          template: input.template,
+          lang: input.lang,
+          ...(input.accent ? { accent: input.accent } : {}),
+        }
+      : { kind: 'markdown' as const, markdown: input.markdown, template: input.template };
+
+  await env.MUICV_KV.put(kvKey, JSON.stringify(stored), {
     expirationTtl: TOKEN_TTL_SECONDS,
   });
+
+  const isJsonTemplate = input.kind === 'json';
+  const margin = isJsonTemplate
+    ? { top: '0', bottom: '0', left: '0', right: '0' }
+    : { top: '14mm', bottom: '14mm', left: '14mm', right: '14mm' };
 
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
   try {
@@ -46,7 +72,8 @@ export async function renderPdf(input: RenderPdfInput, env: RenderPdfEnv): Promi
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '14mm', bottom: '14mm', left: '14mm', right: '14mm' },
+      margin,
+      preferCSSPageSize: isJsonTemplate,
     });
     return pdf;
   } finally {

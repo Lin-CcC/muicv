@@ -487,6 +487,53 @@ export type UpdaterStatus = {
 };
 
 /** preload 注入到 window.muicv 的 API 形状。 */
+export type PhotoUploadInput = {
+  name: string;
+  mimeType: string;
+  bytes: Uint8Array;
+};
+
+export type PreviewApiFailure = { ok: false; status: number; message: string };
+
+export type PhotoUploadResult =
+  | { ok: true; url: string; key: string; contentType: string; size: number; createdAt: number }
+  | PreviewApiFailure;
+
+export type PhotoHistoryItem = {
+  id: number;
+  r2Key: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  originalName: string | null;
+  createdAt: number;
+};
+
+export type PhotoHistoryResult = { ok: true; items: PhotoHistoryItem[] } | PreviewApiFailure;
+
+export type CreatePreviewInput = {
+  /** TemplateResumeData JSON（双语结构化） */
+  resumeJson: unknown;
+  /** t1-classic / t2-minimal / t3-sidebar / t4-tech / t5-timeline / t6-academic */
+  template: string;
+  lang?: 'zh' | 'en';
+  accent?: string;
+  shareMode?: 'link' | 'public';
+  ttlDays?: 1 | 7 | 30;
+};
+
+export type CreatePreviewResult =
+  | {
+      ok: true;
+      token: string;
+      url: string;
+      template: string;
+      lang: 'zh' | 'en';
+      shareMode: 'link' | 'public';
+      expiresAt: number;
+    }
+  | PreviewApiFailure;
+
 export type RendererApi = {
   config: {
     get(): Promise<AppConfig>;
@@ -616,6 +663,20 @@ export type RendererApi = {
      * 在 main 进程提取文本写到同名 `.txt` sidecar，agent 直接 `read_file` 读 sidecar。
      */
     save(profileId: string, file: AttachmentUploadInput): Promise<AttachmentSaveResult>;
+  };
+  preview: {
+    /**
+     * 上传证件照到 R2（i.muicv.com）。失败统一返回 `{ ok: false, status, message }`。
+     * 文件类型限 jpeg/png/webp，≤ 2MB，客户端先压到 600×800 内更经济。
+     */
+    uploadPhoto(input: PhotoUploadInput): Promise<PhotoUploadResult>;
+    /** 当前账号最近上传过的照片，按时间倒序。 */
+    listPhotos(limit?: number): Promise<PhotoHistoryResult>;
+    /**
+     * 把一份 TemplateResumeData + 模板名提交到 muicv 后端，得到一个可分享的 https URL。
+     * 第一次有人在预览页点「下载 PDF」时由 owner 扣 PDF_RENDER_COST 解锁公开下载。
+     */
+    create(input: CreatePreviewInput): Promise<CreatePreviewResult>;
   };
   chatInput: {
     /**

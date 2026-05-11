@@ -14,6 +14,9 @@ description: 对 `versions/` 下已生成的简历版本做质量评审，从 ST
    - 明确指定（文件名或路径）→ 用它
    - 没指定 → 列出最近 3 个 version 让用户选（按 mtime 排序）
 3. 该 version 的 frontmatter 里是否有 `target`？有 → 同时 Read 对应 target 做关键词对齐检查
+4. 如果同 slug 下还有 `*.resume.json`：**只评 markdown 版本**（JSON 跟 markdown 应该是同一份事实的两种格式）。
+   - 评审建议里如果让用户改 bullets / summary / 项目描述，**提醒用户两份都改**——不然 t1~t6 模板渲出来跟 markdown 不一致
+   - 评审本身不做 JSON 校验（schema 校验由 `assertTemplateResumeData` 在 render 阶段把关）
 
 ## 评审维度
 

@@ -14,6 +14,16 @@ import type {
   ConversationType,
   Profile,
 } from '../shared/types.ts';
+import {
+  type CreatePreviewInput,
+  type CreatePreviewResult,
+  createPreview,
+  listPhotos,
+  type PhotoHistoryResult,
+  type PhotoUploadInput,
+  type PhotoUploadResult,
+  uploadPhoto,
+} from './api-preview.ts';
 import { abortRun, runAgent } from './agent/runtime.ts';
 import { saveAttachment } from './attachments.ts';
 import { type WriteResult, writeFileToWorkspace } from './fs-edit.ts';
@@ -537,6 +547,20 @@ async function transcribeWavPayloadToOutcome(
     };
   }
 }
+
+// -------------------- IPC: 在线预览 + 证件照（muicv 后端 API 封装）--------------------
+
+ipcMain.handle('preview:uploadPhoto', async (_e, input: PhotoUploadInput): Promise<PhotoUploadResult> => {
+  return uploadPhoto(getConfig(), input);
+});
+
+ipcMain.handle('preview:listPhotos', async (_e, limit?: number): Promise<PhotoHistoryResult> => {
+  return listPhotos(getConfig(), typeof limit === 'number' ? limit : 20);
+});
+
+ipcMain.handle('preview:create', async (_e, input: CreatePreviewInput): Promise<CreatePreviewResult> => {
+  return createPreview(getConfig(), input);
+});
 
 // 本地 whisper.cpp 引擎插件（issue #1 M3）。进度事件用 mainWindow.webContents 推送。
 registerWhisperEngineIpc(() => mainWindow?.webContents ?? null);

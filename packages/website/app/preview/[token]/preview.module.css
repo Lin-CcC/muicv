@@ -1,0 +1,180 @@
+/* 预览页外壳：暖灰背景烘托白色 A4 artboard。 */
+.shell {
+  min-height: 100vh;
+  background: #f0eee9;
+  color: #1a1a1a;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font:
+    13px / 1.4 "Inter",
+    "Noto Sans SC",
+    system-ui,
+    sans-serif;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #4a4a4a;
+}
+.toolbarBadge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #7a7a7a;
+}
+.toolbarMeta {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.button {
+  appearance: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #ffffff;
+  color: #1a1a1a;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.05s;
+}
+.button:hover:not(:disabled) {
+  background: #fafafa;
+  border-color: rgba(0, 0, 0, 0.2);
+}
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.buttonPrimary {
+  background: #1a1a1a;
+  color: #ffffff;
+  border-color: #1a1a1a;
+}
+.buttonPrimary:hover:not(:disabled) {
+  background: #2a2a2a;
+}
+
+.shareWrapper {
+  position: relative;
+}
+.shareMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  padding: 14px 16px 12px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  color: #2a2a2a;
+}
+.shareMenuRow {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.shareMenuInput {
+  flex: 1;
+  font: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: #fafafa;
+}
+.shareModeNote {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #7a7a7a;
+  line-height: 1.5;
+}
+
+.stage {
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 64px;
+}
+.stageInner {
+  /* 缩放容器：A4 实际 794×1123，缩放靠 transform。 */
+  position: relative;
+  width: 794px;
+  margin: 0;
+  box-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.04),
+    0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.statusPanel {
+  max-width: 480px;
+  margin: 80px auto;
+  padding: 28px 32px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  font:
+    14px / 1.55 "Inter",
+    "Noto Sans SC",
+    system-ui,
+    sans-serif;
+  color: #2a2a2a;
+}
+.statusPanel h1 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.statusPanel p {
+  margin: 0 0 8px;
+}
+
+.downloadHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #7a7a7a;
+}
+
+@media (max-width: 820px) {
+  .stage {
+    padding: 16px 8px 32px;
+  }
+  .stageInner {
+    transform: scale(0.5);
+    transform-origin: top center;
+    margin-bottom: -562px; /* 1123 * 0.5 = 562 抵消 transform 留白 */
+  }
+  .toolbar {
+    padding: 10px 12px;
+  }
+  .toolbarMeta {
+    display: none;
+  }
+}

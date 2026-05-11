@@ -1,0 +1,60 @@
+/* 所有 t1~t6 共用的 A4 尺寸 + reset。
+ * CSS module：`.page` 会被 hash，但 :root / 元素选择器仍然全局。 */
+:root {
+  --resume-w: 794px;
+  --resume-h: 1123px;
+  --ink: #1a1a1a;
+  --ink-2: #4a4a4a;
+  --ink-3: #7a7a7a;
+  --rule: rgba(0, 0, 0, 0.12);
+  --paper: #ffffff;
+
+  --font-sans: "Inter", "Noto Sans SC", -apple-system, "Helvetica Neue", sans-serif;
+  --font-serif: "Source Serif 4", "Noto Serif SC", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+}
+
+.page {
+  width: 794px;
+  height: 1123px;
+  background: #ffffff;
+  color: #1a1a1a;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.5;
+  position: relative;
+  overflow: hidden;
+  font-feature-settings:
+    "tnum" 1,
+    "kern" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+.page p {
+  margin: 0;
+}
+.page ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.page h1,
+.page h2,
+.page h3,
+.page h4 {
+  margin: 0;
+  font-weight: inherit;
+}
+.page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}

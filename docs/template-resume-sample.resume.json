@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "photoUrl": "https://photos.muicv.com/u_demo/example.jpg",
+  "name": { "zh": "李 凌", "en": "Ling Wei" },
+  "title": { "zh": "产品设计师 · 前端工程师", "en": "Product Designer · Frontend Engineer" },
+  "tagline": {
+    "zh": "在工程与设计之间，构建有温度的产品体验。",
+    "en": "Building product experiences at the seam of engineering and design."
+  },
+  "contact": {
+    "location": { "zh": "上海 · 中国", "en": "Shanghai, China" },
+    "email": "lingwei.design@hey.io",
+    "phone": "+86 138 0000 1234",
+    "web": "lingwei.studio",
+    "github": "github.com/lingwei"
+  },
+  "summary": {
+    "zh": "清华大学计算机科学与技术（设计辅修）应届硕士，三段产品/前端实习，关注信息密度与可读性。",
+    "en": "Recent MS in CS (Design minor) from Tsinghua. Three product/frontend internships shipping at scale."
+  },
+  "experience": [
+    {
+      "org": { "zh": "字节跳动 · 抖音设计中心", "en": "ByteDance · Douyin Design Lab" },
+      "role": { "zh": "产品设计实习生", "en": "Product Design Intern" },
+      "period": "2025.06 — 2025.12",
+      "location": { "zh": "上海", "en": "Shanghai" },
+      "bullets": {
+        "zh": [
+          "主导抖音商家后台的数据看板改版，关键转化路径效率提升 23%；",
+          "搭建 12 个核心组件的设计规范，跨 4 个产品线复用。"
+        ],
+        "en": [
+          "Led the merchant analytics dashboard redesign — key task-completion lift +23%.",
+          "Shipped 12 core components into the org-wide spec, reused across 4 product lines."
+        ]
+      }
+    }
+  ],
+  "education": [
+    {
+      "school": { "zh": "清华大学", "en": "Tsinghua University" },
+      "degree": { "zh": "计算机科学与技术 · 硕士", "en": "MS · Computer Science & Technology" },
+      "period": "2023 — 2026",
+      "detail": {
+        "zh": "GPA 3.92 / 4.0；信息可视化方向；设计学辅修。",
+        "en": "GPA 3.92/4.0. Concentration: Information Visualization. Design Minor."
+      }
+    }
+  ],
+  "projects": [
+    {
+      "name": { "zh": "Vela 可视化框架", "en": "Vela — Visualization Framework" },
+      "stack": "TypeScript · D3 · WebGL",
+      "period": "2024 — present",
+      "desc": {
+        "zh": "面向数据记者的图表 DSL，已被 3 家媒体在生产环境采用，GitHub 1.4k★。",
+        "en": "Chart DSL for data journalists; in production at 3 newsrooms; 1.4k★ on GitHub."
+      }
+    }
+  ],
+  "publications": [
+    {
+      "title": {
+        "zh": "「Reading Density: 中文长文阅读速度的视觉影响因素」",
+        "en": "Reading Density: Visual Factors Affecting Long-form Chinese Reading Speed"
+      },
+      "venue": "CHI 2025 · Late-Breaking Work",
+      "authors": "Wei, L., Zhang, M., Chen, K."
+    }
+  ],
+  "skills": {
+    "design": ["Figma", "Sketch", "Framer", "Principle"],
+    "code": ["TypeScript", "React", "Swift", "Rust", "Python", "WebGL"],
+    "research": {
+      "zh": ["用户访谈", "可用性测试", "卡片分类", "竞品分析"],
+      "en": ["User Interviews", "Usability Testing", "Card Sorting", "Competitive Analysis"]
+    }
+  },
+  "languages": [
+    { "name": { "zh": "中文 (普通话)", "en": "Chinese (Mandarin)" }, "level": { "zh": "母语", "en": "Native" } },
+    { "name": { "zh": "英语", "en": "English" }, "level": "TOEFL 113 · IELTS 8.0" }
+  ],
+  "awards": [
+    { "year": "2025", "title": { "zh": "国家奖学金 (硕士)", "en": "National Scholarship (Graduate)" } }
+  ],
+  "interests": {
+    "zh": ["山地车", "黑胶收藏", "活字印刷", "纪录片"],
+    "en": ["Mountain biking", "Vinyl collecting", "Letterpress", "Documentary film"]
+  }
+}

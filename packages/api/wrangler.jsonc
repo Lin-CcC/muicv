@@ -44,10 +44,15 @@
     }
   ],
   // 简历素材加密同步 blob，公开域名 i.muicv.com（按需开启 access policy）。
+  // MUICV_PHOTOS：在线预览 / PDF 用的证件照，公开读取（puppeteer 要能 fetch 到外链）。
   "r2_buckets": [
     {
       "binding": "MUICV_RESUME_BLOB",
       "bucket_name": "muicv"
+    },
+    {
+      "binding": "MUICV_PHOTOS",
+      "bucket_name": "muicv-photos"
     }
   ],
   // Readability / turndown 在 puppeteer page 内 addScriptTag，作为文本资源 import。
@@ -60,6 +65,8 @@
   ],
   "vars": {
     "RENDER_BASE_URL": "https://muicv.com",
+    "PHOTOS_PUBLIC_BASE_URL": "https://i.muicv.com",
+    "PREVIEW_PUBLIC_BASE_URL": "https://muicv.com",
     "STRIPE_PRICE_PRO_MONTHLY": "price_1TRwa8EpkXm2vxXTYEgJaDVp",
     "STRIPE_PRICE_PRO_YEARLY": "price_1TRwb4EpkXm2vxXTP56EkfBh",
     "STRIPE_PRICE_MAX_MONTHLY": "price_1TRwcYEpkXm2vxXTolTABRBM",

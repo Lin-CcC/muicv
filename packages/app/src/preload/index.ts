@@ -15,9 +15,14 @@ import type {
   Conversation,
   ConversationSummary,
   ConversationType,
+  CreatePreviewInput,
+  CreatePreviewResult,
   FeedbackCommentOutcome,
   FeedbackRateOutcome,
   MuirouterLinkResult,
+  PhotoHistoryResult,
+  PhotoUploadInput,
+  PhotoUploadResult,
   Profile,
   RendererApi,
   SessionCheckResult,
@@ -107,6 +112,12 @@ const api: RendererApi = {
   attachments: {
     save: (profileId: string, file: AttachmentUploadInput) =>
       ipcRenderer.invoke('attachments:save', profileId, file) as Promise<AttachmentSaveResult>,
+  },
+  preview: {
+    uploadPhoto: (input: PhotoUploadInput) =>
+      ipcRenderer.invoke('preview:uploadPhoto', input) as Promise<PhotoUploadResult>,
+    listPhotos: (limit?: number) => ipcRenderer.invoke('preview:listPhotos', limit) as Promise<PhotoHistoryResult>,
+    create: (input: CreatePreviewInput) => ipcRenderer.invoke('preview:create', input) as Promise<CreatePreviewResult>,
   },
   chatInput: {
     showContextMenu: (opts) => ipcRenderer.send('chatInput:showContextMenu', opts ?? {}),

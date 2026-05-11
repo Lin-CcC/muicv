@@ -89,6 +89,34 @@ function mockEnv(opts: MockOptions = {}): unknown {
     return stmt;
   };
   const r2Store = new Map<string, Uint8Array>();
+  function makeR2Stub(store: Map<string, Uint8Array>) {
+    return {
+      put: async (key: string, body: ReadableStream | Blob | Uint8Array | ArrayBuffer) => {
+        const u8 =
+          body instanceof Uint8Array
+            ? body
+            : body instanceof ArrayBuffer
+              ? new Uint8Array(body)
+              : body instanceof Blob
+                ? new Uint8Array(await body.arrayBuffer())
+                : new Uint8Array(await new Response(body).arrayBuffer());
+        store.set(key, u8);
+        return { key, size: u8.length };
+      },
+      get: async (key: string) => {
+        const u8 = store.get(key);
+        if (!u8) return null;
+        return {
+          body: new Response(u8).body,
+          size: u8.length,
+          writeHttpMetadata: (_h: Headers) => {},
+        };
+      },
+      delete: async (key: string) => {
+        store.delete(key);
+      },
+    };
+  }
   const env: Record<string, unknown> = {
     MUICV_API_DB: {
       prepare: (sql: string) => makeStmt(sql),
@@ -103,31 +131,12 @@ function mockEnv(opts: MockOptions = {}): unknown {
       delete: async () => {},
     },
     // R2 mock：内存 Map，覆盖 put / get / delete 三件套；handler 不依赖 list / multipart upload
-    MUICV_RESUME_BLOB: {
-      put: async (key: string, body: ReadableStream | Blob | Uint8Array) => {
-        const u8 =
-          body instanceof Uint8Array
-            ? body
-            : body instanceof Blob
-              ? new Uint8Array(await body.arrayBuffer())
-              : new Uint8Array(await new Response(body).arrayBuffer());
-        r2Store.set(key, u8);
-        return { key, size: u8.length };
-      },
-      get: async (key: string) => {
-        const u8 = r2Store.get(key);
-        if (!u8) return null;
-        return {
-          body: new Response(u8).body,
-          size: u8.length,
-          writeHttpMetadata: (_h: Headers) => {},
-        };
-      },
-      delete: async (key: string) => {
-        r2Store.delete(key);
-      },
-    },
+    MUICV_RESUME_BLOB: makeR2Stub(r2Store),
+    // 证件照桶：和 RESUME_BLOB 用同一份 mock 实现，handler 不区分。
+    MUICV_PHOTOS: makeR2Stub(r2Store),
     RENDER_BASE_URL: 'https://muicv.com',
+    PHOTOS_PUBLIC_BASE_URL: 'https://i.muicv.com',
+    PREVIEW_PUBLIC_BASE_URL: 'https://muicv.com',
   };
   if (opts.openaiKey !== null) env.OPENAI_API_KEY = opts.openaiKey ?? 'sk-fake-openai';
   if (opts.mimoKey !== null) env.MIMO_API_KEY = opts.mimoKey ?? 'sk-fake-mimo';

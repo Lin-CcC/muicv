@@ -94,7 +94,17 @@ generate 自己保住 baseline 的关键环节，不依赖用户事后调 critiq
 
 ### 5. 输出结构
 
-**必须用 `write_file` 工具**写到 `versions/<target-slug>-<YYYY-MM-DD>.md`（相对素材库根）。
+**必须用 `write_file` 工具**写两份文件（同 slug + 同日期，一对兄弟）：
+
+1. `versions/<target-slug>-<YYYY-MM-DD>.md` —— markdown 版，旧 default 模板 / 阅读用
+2. `versions/<target-slug>-<YYYY-MM-DD>.resume.json` —— 结构化双语版，新 t1~t6 模板用
+
+两份从**同一批 source_files** 提取，事实必须一致；只是格式不同。
+JSON 的 schema 看 [references/resume-json-schema.md](references/resume-json-schema.md)（必读，里面有最小可用骨架可以直接抄）。
+
+> 为什么必须双写？markdown 给老 default 模板 + 用户文本阅读；JSON 给 6 套新视觉模板
+> （经典商务 / 现代极简 / 双栏侧边 / 技术工程 / 时间线 / 学术 CV）。用户没法预判
+> 想用哪套模板，所以 generate 阶段就两个都吐出来，让 render / preview 按需挑。
 
 > **不要把整份简历内容在对话里粘出来给用户看**——那样产物只是聊天记录，没法
 > 在右栏预览、没法导出 PDF、没法进入 critique / render 后续流程。整份内容
@@ -171,11 +181,65 @@ Senior Frontend Engineer · 北京 · zhang@example.com · https://github.com/zh
 
 字段留空规则：缺的字段就省略该行，**不要写"未填写"或"N/A"**。
 
+#### 配套的 `.resume.json` 长这样（最小示例）
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "张三",
+  "title": "Senior Frontend Engineer",
+  "contact": {
+    "location": "北京",
+    "email": "zhang@example.com",
+    "github": "github.com/zhang"
+  },
+  "summary": "Summary 段落，2~4 句。",
+  "experience": [
+    {
+      "org": "ACME Corp",
+      "role": "Senior Frontend Engineer",
+      "period": "2023-03 — 至今",
+      "location": "北京 (Remote)",
+      "bullets": [
+        "动词开头的 highlight 1",
+        "动词开头的 highlight 2"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "school": "某大学",
+      "degree": "计算机科学 · 本科",
+      "period": "2017-09 — 2021-06"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Mui CMS",
+      "stack": "Node.js · PostgreSQL",
+      "period": "2024-01 — 2024-06",
+      "desc": "一句话讲清项目影响。"
+    }
+  ],
+  "skills": {
+    "code": ["TypeScript", "JavaScript"]
+  }
+}
+```
+
+**详细字段（含双语形式、可选字段、publications / awards / languages 等）**：
+[references/resume-json-schema.md](references/resume-json-schema.md)
+
+- `schemaVersion` 写死 `1`
+- 中英双语字段（如果素材里只有中文）写成纯字符串即可，`pickLang` 会兜底；
+  写成 `{ zh: "...", en: "..." }` 是显式双语
+- bullets 跟 markdown 输出**完全同一批**（已经经过第 4 步自检），不要单独再改
+
 ### 6. 交付
 
-write_file 完成后：
+两次 write_file 完成后（一份 `.md`、一份 `.resume.json`）：
 
-1. 告诉用户文件路径（host 会自动在右栏给出预览卡片）
+1. 告诉用户**两个**文件路径（host 会自动在右栏给 markdown 预览卡片；JSON 的也会列出）
 2. 简短摘要："相关度最高的 3 条 highlight 是 ..."（这只是摘要，整份在文件里）
 3. **报告自检结果**：
    - `self_check: passed` → 一句话："P0 自检通过（无空话 / 无编造 / 关键词覆盖到位）"
@@ -183,8 +247,9 @@ write_file 完成后：
      - "1 条 SPEECH 未修正：experience/acme-2023.md 的『负责前端开发工作』，素材里就只有这一句，建议用 muicv-core 补具体动作和结果"
      - "KW-MISS: Golang，素材里未找到，未在简历中虚构。建议补素材或评估岗位匹配度"
 4. 建议下一步：
-   - `self_check: passed`：可直接用 `muicv-render` 渲染 PDF。如需更深度审查（量化比例、
-     STAR 完整度、表达套话等 P1/P2 维度），再调 `muicv-critique`
+   - `self_check: passed`：可直接用 `muicv-render` 渲染 PDF（markdown 走 default 模板；JSON 可挑 t1~t6 任一模板）；
+     或者跟 muicv-render 说"生成在线预览链接"会用 JSON + 默认 `t2-minimal` 出一个 https URL 投递给 HR。
+     如需更深度审查（量化比例、STAR 完整度、表达套话等 P1/P2 维度），再调 `muicv-critique`
    - `self_check: partial`：建议先按上面的提示补素材或确认接受现状，再 render；
      调 `muicv-critique` 可拿到完整 P1/P2 清单
 
@@ -198,6 +263,9 @@ write_file 完成后：
 - ❌ frontmatter 用 tab 缩进（必须 2-space），会让 PDF 渲染走兜底路径丢字段
 - ❌ 跳过第 4 步自检直接 write_file（必跑；这是把简历从"勉强能看"变成"baseline 合格"的关键）
 - ❌ 自检命中后陷入 3 轮、5 轮的修正循环（最多 1 轮；改不动就标 `partial` 让用户决定，不要硬撑）
+- ❌ 只写 `.md` 不写 `.resume.json`（两份都必须，新模板靠 JSON）
+- ❌ `.resume.json` 跟 `.md` 内容对不上（必须用同一份事实，bullets / summary 完全一致；只是格式差异）
+- ❌ JSON 里编 `photoUrl` URL（要么真上传过的 R2 URL，要么直接不写这个字段）
 
 ## Prompt 细节参考
 

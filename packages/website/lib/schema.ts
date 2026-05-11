@@ -263,3 +263,44 @@ export const resumeSnapshotBlobHistory = sqliteTable('resumeSnapshotBlobHistory'
   sizeBytes: integer('sizeBytes').notNull(),
   archivedAt: integer('archivedAt', { mode: 'timestamp_ms' }).notNull(),
 });
+
+/**
+ * 在线预览：由 packages/api 的 POST /preview 写入（mui_ key 鉴权）。
+ * dashboard 用 better-auth session 读 / 改（revoke / extend / share-mode）。
+ *
+ * 字段语义详见 migrations/0014_preview.sql。
+ * createdAt / expiresAt / revokedAt 都是 epoch 毫秒（integer，不走 timestamp_ms mode，
+ * 因为 packages/api 也直接 bind 数字而不是 Date）。
+ */
+export const preview = sqliteTable('preview', {
+  token: text('token').primaryKey(),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  resumeJson: text('resumeJson').notNull(),
+  template: text('template').notNull(),
+  lang: text('lang').notNull(),
+  accent: text('accent'),
+  shareMode: text('shareMode').notNull(),
+  pdfCredit: integer('pdfCredit').notNull(),
+  createdAt: integer('createdAt').notNull(),
+  expiresAt: integer('expiresAt').notNull(),
+  revokedAt: integer('revokedAt'),
+});
+
+/**
+ * 证件照上传审计（packages/api/POST /upload/photo 写入）。
+ * dashboard 上可以列出来给用户挑老照片复用，不做主键存储照片本身（在 R2）。
+ */
+export const photoUpload = sqliteTable('photoUpload', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('userId')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  r2Key: text('r2Key').notNull().unique(),
+  url: text('url').notNull(),
+  contentType: text('contentType').notNull(),
+  sizeBytes: integer('sizeBytes').notNull(),
+  originalName: text('originalName'),
+  createdAt: integer('createdAt').notNull(),
+});

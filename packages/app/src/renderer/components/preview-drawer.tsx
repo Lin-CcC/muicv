@@ -1,6 +1,8 @@
-import { FolderOpenIcon, XIcon } from '@phosphor-icons/react';
+import { FolderOpenIcon, GlobeIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+
+import { assertTemplateResumeData, isJsonTemplateId, type TemplateResumeData } from '@muicv/shared';
 
 import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
@@ -91,6 +93,7 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
 
   const fileName = path.split(/[/\\]/).pop() ?? path;
   const isPdf = /\.pdf$/i.test(path);
+  const isResumeJson = /\.resume\.json$/i.test(path);
 
   useEffect(() => {
     // PDF 走 muicv-pdf:// 让 Chromium 内置 viewer 自己 fetch，
@@ -178,7 +181,94 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
         >
           复制路径
         </button>
+        {isResumeJson && content !== null && <ResumeJsonPreviewButton content={content} />}
       </footer>
+    </>
+  );
+}
+
+/**
+ * 把当前 `*.resume.json` 文件 POST 到 muicv 后端 /preview，
+ * 拿到 https://muicv.com/preview/<token> URL 后用 shell.openExternal 打开默认浏览器。
+ *
+ * 模板选择：从 frontmatter 里读 `_template` / `template` 字段，没有就 fallback 到 t2-minimal。
+ * 语言选择：从 `_lang` / `lang` 字段读，否则 fallback zh。
+ *
+ * UX 哲学：失败 toast 限本组件内显示 6 秒，不影响用户继续读 JSON；成功直接打开浏览器并 toast 链接。
+ */
+function ResumeJsonPreviewButton({ content }: { content: string }) {
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), 6_000);
+    return () => clearTimeout(t);
+  }, [message]);
+
+  async function onClick() {
+    if (pending) return;
+    setPending(true);
+    setMessage(null);
+    try {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(content);
+      } catch (err) {
+        setMessage({ kind: 'err', text: `JSON 解析失败：${err instanceof Error ? err.message : String(err)}` });
+        return;
+      }
+      let resume: TemplateResumeData;
+      try {
+        assertTemplateResumeData(parsed);
+        resume = parsed;
+      } catch (err) {
+        setMessage({
+          kind: 'err',
+          text: `不符合 TemplateResumeData schema：${err instanceof Error ? err.message : String(err)}`,
+        });
+        return;
+      }
+
+      // template / lang 可以塞在 resume json 顶层（不在 schema 里也兼容）；否则默认 t2-minimal + zh。
+      const ext = parsed as { _template?: unknown; template?: unknown; _lang?: unknown; lang?: unknown };
+      const rawTemplate = typeof ext._template === 'string' ? ext._template : ext.template;
+      const template = typeof rawTemplate === 'string' && isJsonTemplateId(rawTemplate) ? rawTemplate : 't2-minimal';
+      const rawLang = typeof ext._lang === 'string' ? ext._lang : ext.lang;
+      const lang: 'zh' | 'en' = rawLang === 'en' ? 'en' : 'zh';
+
+      const res = await window.muicv.preview.create({ resumeJson: resume, template, lang });
+      if (!res.ok) {
+        setMessage({ kind: 'err', text: res.message });
+        return;
+      }
+      await window.muicv.shell.openExternal(res.url);
+      setMessage({ kind: 'ok', text: `已打开浏览器：${res.url}` });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => void onClick()}
+        disabled={pending}
+        className="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 font-bold text-ink hover:bg-fluff disabled:opacity-60"
+        title="POST /preview 拿可分享 URL，并打开默认浏览器"
+      >
+        <GlobeIcon size={12} />
+        <span>{pending ? '生成中…' : '在线预览'}</span>
+      </button>
+      {message && (
+        <span
+          className={`max-w-[40%] truncate text-[10.5px] ${message.kind === 'ok' ? 'text-yellow-deep' : 'text-tongue'}`}
+          title={message.text}
+        >
+          {message.text}
+        </span>
+      )}
     </>
   );
 }

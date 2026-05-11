@@ -8,6 +8,7 @@ import { Avatar } from './settings/bits';
 import { CustomLlmCard } from './settings/custom-llm-card';
 import { ModelCard } from './settings/model-card';
 import { MuirouterCard } from './settings/muirouter-card';
+import { PhotosCard } from './settings/photos-card';
 import { PlanCard } from './settings/plan-card';
 import { WhisperEngineCard } from './settings/whisper-engine-card';
 
@@ -78,6 +79,8 @@ export function SettingsView() {
       <MuirouterCard hasBYOK={session.hasBYOK} muirouter={session.muirouter} onRefresh={refreshSession} />
 
       <CustomLlmCard />
+
+      <PhotosCard />
 
       <WhisperEngineCard />
 
