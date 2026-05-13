@@ -17,7 +17,10 @@ import { basename, dirname, extname, join, resolve, sep } from 'node:path';
  */
 
 const MAX_BYTES = 1_000_000;
-const ALLOWED_EXTS = new Set(['.md', '.markdown']);
+// .json 加进白名单是为了 `*.resume.json`（预览 drawer 内"上传头像"会 patch 这种
+// 文件的 photoUrl 字段）；其他 .json（conversation / config）都在 .claude/ 子树
+// 被 isProtected 兜住，扩展面 limited。
+const ALLOWED_EXTS = new Set(['.md', '.markdown', '.json']);
 
 export type WriteResult = { ok: true } | { ok: false; error: WriteError };
 

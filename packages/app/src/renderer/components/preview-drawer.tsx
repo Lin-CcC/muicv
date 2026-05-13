@@ -1,5 +1,5 @@
-import { FolderOpenIcon, GlobeIcon, PencilSimpleIcon, XIcon } from '@phosphor-icons/react';
-import { useEffect, useMemo, useState } from 'react';
+import { FolderOpenIcon, GlobeIcon, ImageSquareIcon, PencilSimpleIcon, XIcon } from '@phosphor-icons/react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { assertTemplateResumeData, isJsonTemplateId, JSON_TEMPLATE_IDS, type TemplateResumeData } from '@muicv/shared';
@@ -8,6 +8,9 @@ import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
 import { EditDrawer } from './edit-drawer';
 import { MarkdownView } from './markdown-view';
+
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+const ALLOWED_PHOTO_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 type JsonTemplateId = (typeof JSON_TEMPLATE_IDS)[number];
 
@@ -34,6 +37,41 @@ function readTemplateFromJson(content: string | null): JsonTemplateId | null {
   } catch {
     return null;
   }
+}
+
+function readPhotoUrlFromJson(content: string | null): string | null {
+  if (!content) return null;
+  try {
+    const parsed = JSON.parse(content) as { photoUrl?: unknown };
+    return typeof parsed.photoUrl === 'string' && parsed.photoUrl.length > 0 ? parsed.photoUrl : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * patch `.resume.json` 的 photoUrl 字段。JSON parse + re-stringify with 2-space indent，
+ * 写完返回新文件内容（调用方 setContent 直接 refresh，不必再 fs.read）。
+ * 失败返回 null + reason，UI 显示给用户。
+ */
+async function patchPhotoUrlInResumeJson(
+  path: string,
+  oldContent: string,
+  photoUrl: string,
+): Promise<{ ok: true; newContent: string } | { ok: false; reason: string }> {
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(oldContent) as Record<string, unknown>;
+  } catch (err) {
+    return { ok: false, reason: `简历 JSON 解析失败：${err instanceof Error ? err.message : String(err)}` };
+  }
+  parsed.photoUrl = photoUrl;
+  const newContent = `${JSON.stringify(parsed, null, 2)}\n`;
+  const res = await window.muicv.fs.write(path, newContent);
+  if (!res.ok) {
+    return { ok: false, reason: `写回失败：${res.error}` };
+  }
+  return { ok: true, newContent };
 }
 
 const TRANSITION_MS = 220;
@@ -130,6 +168,10 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
   // EditDrawer 保存的时间戳，用于触发 PreviewContent 重新读取文件
   const editorLastSavedAt = useAppStore((s) => s.editorLastSavedAt);
   const editorOpenPath = useAppStore((s) => s.editorOpenPath);
+  // 头像上传：仅 .resume.json 显示。成功后直接 patch 文件，setContent 触发预览刷新。
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const fileName = path.split(/[/\\]/).pop() ?? path;
   const isPdf = /\.pdf$/i.test(path);
@@ -148,7 +190,47 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
 
   useEffect(() => {
     setOverrideTemplate(null);
+    setPhotoError(null);
   }, [path]);
+
+  const currentPhotoUrl = useMemo(() => readPhotoUrlFromJson(content), [content]);
+
+  async function handlePhotoPick(e: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 同一文件再选也能触发 change
+    if (!file) return;
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const mime = file.type.toLowerCase();
+      if (!ALLOWED_PHOTO_MIME.has(mime)) {
+        setPhotoError(`只支持 jpeg / png / webp，当前是 ${file.type || '未知'}`);
+        return;
+      }
+      if (file.size > MAX_PHOTO_BYTES) {
+        setPhotoError(`不超过 ${MAX_PHOTO_BYTES / 1024 / 1024} MB（当前 ${(file.size / 1024 / 1024).toFixed(2)} MB）`);
+        return;
+      }
+      if (!content) {
+        setPhotoError('简历内容未加载，稍后再试');
+        return;
+      }
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const upload = await window.muicv.preview.uploadPhoto({ name: file.name, mimeType: mime, bytes });
+      if (!upload.ok) {
+        setPhotoError(upload.message);
+        return;
+      }
+      const patch = await patchPhotoUrlInResumeJson(path, content, upload.url);
+      if (!patch.ok) {
+        setPhotoError(patch.reason);
+        return;
+      }
+      setContent(patch.newContent);
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
 
   useEffect(() => {
     // PDF / 图片走 muicv-pdf:// 让 Chromium 内置 viewer 直接渲染，不能走 fs.read
@@ -269,6 +351,44 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
         </button>
         {isResumeJson && content !== null && (
           <>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => void handlePhotoPick(e)}
+            />
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={photoUploading}
+              title={
+                currentPhotoUrl
+                  ? '更换简历头像（覆盖 .resume.json 的 photoUrl）'
+                  : '上传简历头像（写回 .resume.json 的 photoUrl）'
+              }
+              className="inline-flex items-center gap-1.5 rounded px-2 py-1 hover:bg-fluff hover:text-ink disabled:opacity-60"
+            >
+              {currentPhotoUrl ? (
+                <img
+                  src={currentPhotoUrl}
+                  alt=""
+                  className="h-5 w-4 shrink-0 rounded-sm border border-rule object-cover"
+                  onError={(e) => {
+                    // R2 公开 URL 临时挂掉就降级到 icon，不阻断 UI
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <ImageSquareIcon size={12} />
+              )}
+              <span>{photoUploading ? '上传中…' : currentPhotoUrl ? '更换头像' : '上传头像'}</span>
+            </button>
+            {photoError && (
+              <span className="max-w-[220px] truncate text-[10.5px] text-tongue" title={photoError}>
+                {photoError}
+              </span>
+            )}
             <TemplateSelect value={jsonTemplate} onChange={setOverrideTemplate} />
             <ResumeJsonPreviewButton content={content} template={jsonTemplate} />
           </>

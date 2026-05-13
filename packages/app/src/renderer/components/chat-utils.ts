@@ -63,9 +63,9 @@ const KIND_LABEL: Record<AttachmentKind, string> = {
  * - PDF / DOCX：已经在 main 进程提取出 sidecar，明确告知 agent 走哪个 .txt
  * - 图像：分支处理——
  *     supportsVision=true：本条消息已经把图 base64 进 input_image，agent 直接看图
- *     supportsVision=false：模型看不到图（如 mimo 系），提示 agent 用 upload_photo
- *       上传到 R2（适合证件照）；其他场景下让用户描述图片内容
+ *     supportsVision=false：模型看不到图（如 mimo 系），请用户用文字描述图片内容
  *   两种情况下 agent 都**禁止 read_file 二进制图片**——会拿到一堆乱码。
+ *   简历用的证件照上传走"预览 drawer → 上传头像"UI 路径，agent 不参与。
  */
 export function formatAttachmentsFooter(refs: AttachmentRef[], opts: { supportsVision: boolean }): string {
   if (refs.length === 0) return '';
@@ -74,7 +74,7 @@ export function formatAttachmentsFooter(refs: AttachmentRef[], opts: { supportsV
     if (r.kind === 'image') {
       return opts.supportsVision
         ? `${head}，已随消息附图，agent 直接看图，不要 read_file）`
-        : `${head}，当前模型不支持 vision，看不到图。若用户暗示是证件照，调 upload_photo 上传到 R2；其他场景请用户描述图片内容。不要 read_file）`;
+        : `${head}，当前模型不支持 vision，看不到图；请用户用文字描述图片内容。不要 read_file）`;
     }
     return r.textPath ? `${head}，已提取文本：${r.textPath}）` : `${head}）`;
   });
