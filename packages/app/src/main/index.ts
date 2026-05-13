@@ -565,6 +565,26 @@ ipcMain.handle('preview:create', async (_e, input: CreatePreviewInput): Promise<
 // 本地 whisper.cpp 引擎插件（issue #1 M3）。进度事件用 mainWindow.webContents 推送。
 registerWhisperEngineIpc(() => mainWindow?.webContents ?? null);
 
+/**
+ * muicv-pdf:// 协议的白名单 + MIME 映射。
+ * 只允许 chromium 内置 viewer 能 inline 渲染的本地受信任文件（PDF 走 PDF viewer、
+ * 图片走 image viewer / <img>）。其他类型一律 400。
+ */
+function mimeForLocalAsset(filePath: string): string | null {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.bmp')) return 'image/bmp';
+  if (lower.endsWith('.avif')) return 'image/avif';
+  if (lower.endsWith('.heic')) return 'image/heic';
+  if (lower.endsWith('.heif')) return 'image/heif';
+  return null;
+}
+
 // -------------------- App lifecycle --------------------
 
 app.whenReady().then(() => {
@@ -572,8 +592,9 @@ app.whenReady().then(() => {
   // 启动时按 dir 合并一次。
   dedupeProfiles();
 
-  // muicv-pdf://local/<absolute-path> → 本地 PDF 文件。
-  // 安全：必须在当前激活 profile 的 workspaceDir 之内，且后缀 .pdf。
+  // muicv-pdf://local/<absolute-path> → 本地"让 Chromium 内置 viewer 直接 stream"的文件。
+  // 历史命名带 pdf，现在泛化为服务 PDF + 常见图片格式（renderer 用 <iframe> / <img> 渲染）。
+  // 安全：必须在当前激活 profile 的 workspaceDir 之内，且后缀在白名单。
   protocol.handle('muicv-pdf', async (request) => {
     const url = new URL(request.url);
     if (url.hostname !== 'local') {
@@ -588,8 +609,9 @@ app.whenReady().then(() => {
     if (!cfg.workspaceDir || !inWorkspace(cfg.workspaceDir, filePath)) {
       return new Response('Forbidden: out of workspace', { status: 403 });
     }
-    if (!/\.pdf$/i.test(filePath)) {
-      return new Response('Not a PDF', { status: 400 });
+    const contentType = mimeForLocalAsset(filePath);
+    if (!contentType) {
+      return new Response('Unsupported file type', { status: 400 });
     }
     try {
       const [buf, meta] = await Promise.all([readFile(filePath), stat(filePath)]);
@@ -598,7 +620,7 @@ app.whenReady().then(() => {
       return new Response(ab, {
         status: 200,
         headers: {
-          'content-type': 'application/pdf',
+          'content-type': contentType,
           'content-length': String(meta.size),
           'cache-control': 'no-store',
         },

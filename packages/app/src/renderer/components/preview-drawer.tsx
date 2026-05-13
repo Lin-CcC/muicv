@@ -129,9 +129,13 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
 
   const fileName = path.split(/[/\\]/).pop() ?? path;
   const isPdf = /\.pdf$/i.test(path);
+  const isImage = /\.(png|jpe?g|gif|webp|svg|bmp|avif|heic|heif)$/i.test(path);
   const isResumeJson = /\.resume\.json$/i.test(path);
   const isMarkdown = /\.(md|markdown)$/i.test(path);
   const isEditable = isMarkdown || isResumeJson;
+  // PDF / 图片走 muicv-pdf:// 让 Chromium 内置 viewer 直接 stream，不能走 fs.read
+  // （fs.read 是 utf-8 解码，二进制文件会变乱码）。
+  const isBinaryAsset = isPdf || isImage;
 
   const jsonTemplate = useMemo<JsonTemplateId>(() => {
     if (!isResumeJson) return 't2-minimal';
@@ -143,9 +147,9 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
   }, [path]);
 
   useEffect(() => {
-    // PDF 走 muicv-pdf:// 让 Chromium 内置 viewer 自己 fetch，
-    // 不需要在 renderer 这边 fs.read 二进制内容。
-    if (isPdf) {
+    // PDF / 图片走 muicv-pdf:// 让 Chromium 内置 viewer 直接渲染，不能走 fs.read
+    // （fs.read 是 utf-8 解码，二进制内容会变乱码）。
+    if (isBinaryAsset) {
       setContent(null);
       setError(null);
       setLoading(false);
@@ -165,7 +169,7 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
       cancelled = true;
     };
     // editorLastSavedAt 变化（且当前文件正在被 EditDrawer 编辑）→ 重新 read 让预览同步。
-  }, [path, isPdf, editorLastSavedAt, editorOpenPath]);
+  }, [path, isBinaryAsset, editorLastSavedAt, editorOpenPath]);
 
   return (
     <>
@@ -199,16 +203,24 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
         </button>
       </header>
 
-      <div className={`flex-1 ${isPdf ? 'flex flex-col' : 'overflow-y-auto px-4 py-4'}`}>
-        {loading && !isPdf && <div className="text-[12px] text-mute">读取中…</div>}
-        {error && !isPdf && (
+      <div
+        className={`flex-1 ${
+          isPdf
+            ? 'flex flex-col'
+            : isImage
+              ? 'flex items-center justify-center overflow-auto p-4'
+              : 'overflow-y-auto px-4 py-4'
+        }`}
+      >
+        {loading && !isBinaryAsset && <div className="text-[12px] text-mute">读取中…</div>}
+        {error && !isBinaryAsset && (
           <div className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] text-tongue">
             {error}
           </div>
         )}
-        {content !== null && !error && !isPdf && /\.md$/i.test(path) && <MarkdownView source={content} />}
-        {content !== null && !error && !isPdf && !/\.md$/i.test(path) && (
-          <pre className="overflow-x-auto whitespace-pre-wrap font-mono text-[12px] leading-[1.55] text-ink-soft">
+        {content !== null && !error && !isBinaryAsset && /\.md$/i.test(path) && <MarkdownView source={content} />}
+        {content !== null && !error && !isBinaryAsset && !/\.md$/i.test(path) && (
+          <pre className="select-text overflow-x-auto whitespace-pre-wrap font-mono text-[12px] leading-[1.55] text-ink-soft">
             {content}
           </pre>
         )}
@@ -221,6 +233,16 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
             src={pathToMuicvPdfUrl(path)}
             className="border-0 bg-white"
             style={{ width: '100%', height: '100%', flex: 1 }}
+          />
+        )}
+        {isImage && (
+          // 图片走同一个 muicv-pdf:// 协议（main 端协议白名单含 PNG/JPEG/WebP 等）。
+          // <img> 而不是 <iframe>：避免 chromium 把图片包一层默认背景 / viewer chrome。
+          <img
+            key={path}
+            src={pathToMuicvPdfUrl(path)}
+            alt={fileName}
+            className="max-h-full max-w-full select-text rounded-md border border-rule bg-paper object-contain shadow-[0_2px_0_0_var(--color-rule)]"
           />
         )}
       </div>
