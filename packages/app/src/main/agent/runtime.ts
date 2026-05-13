@@ -290,8 +290,8 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       const rawMsg = causeMsg ? `${baseMsg} (cause: ${causeMsg})` : baseMsg;
       const msg = isContextLengthError(rawMsg)
         ? '本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。'
-        : isReasoningContentError(rawMsg)
-          ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.5 / gpt-5.4）。详见 muicv issue#7。`
+        : isReasoningContentError(error, rawMsg)
+          ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.5 / gpt-5.4）。`
           : rawMsg;
       send({ type: 'error', message: msg });
       send({ type: 'finish', reason: 'error' });
@@ -351,8 +351,19 @@ function isContextLengthError(msg: string): boolean {
  * mimo / DeepSeek 等"thinking mode 推理模型"在多轮 tool calling 时要求
  * 把上一轮 assistant 消息的 reasoning_content 字段回传，否则 400。
  * OpenAI Agents SDK 不知道这个私有字段会把它丢掉 → 第二轮调用挂掉。
- * 看到这条错误就提示用户切回 GPT 系列。
+ *
+ * mimo 的 400 响应：
+ *   { error: { message: "Param Incorrect", param: "The reasoning_content in
+ *              the thinking mode must be passed back to the API." } }
+ * OpenAI SDK 把 message 当 baseMsg、把整个 body.error 挂到 (err as APIError).error。
+ * 必须同时检测 message **和** error.param，否则 baseMsg 只有 "Param Incorrect"
+ * 检测漏掉。
  */
-function isReasoningContentError(msg: string): boolean {
-  return msg.toLowerCase().includes('reasoning_content');
+function isReasoningContentError(error: unknown, msg: string): boolean {
+  if (msg.toLowerCase().includes('reasoning_content')) return true;
+  if (msg.toLowerCase().includes('thinking mode')) return true;
+  const e = error as { error?: { param?: unknown; message?: unknown } };
+  const param = typeof e?.error?.param === 'string' ? e.error.param.toLowerCase() : '';
+  if (param.includes('reasoning_content') || param.includes('thinking mode')) return true;
+  return false;
 }
