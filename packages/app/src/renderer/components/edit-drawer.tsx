@@ -21,16 +21,16 @@ const TRANSITION_MS = 220;
  * 动画：跟 PreviewDrawer 一致的双 rAF + translate / opacity 切换。
  */
 export function EditDrawer({ path, onClose }: { path: string | null; onClose: () => void }) {
+  // 状态订阅（触发 re-render）和 actions（直接调用、不进 useEffect deps）分开。
+  // zustand action 引用理论上稳定，但放进 useEffect deps 一旦不稳定就会让动画 effect
+  // 反复 cleanup → cancelRAF → 永远进不了 visible=true。用 getState() 调用避免这个隐患。
   const editorOpenPath = useAppStore((s) => s.editorOpenPath);
   const editorBuffer = useAppStore((s) => s.editorBuffer);
   const editorOriginal = useAppStore((s) => s.editorOriginal);
   const editorSaving = useAppStore((s) => s.editorSaving);
   const editorLastSavedAt = useAppStore((s) => s.editorLastSavedAt);
   const editorError = useAppStore((s) => s.editorError);
-  const openEditorFile = useAppStore((s) => s.openEditorFile);
   const setEditorBuffer = useAppStore((s) => s.setEditorBuffer);
-  const saveEditor = useAppStore((s) => s.saveEditor);
-  const closeEditorFile = useAppStore((s) => s.closeEditorFile);
 
   const [mountedPath, setMountedPath] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
@@ -40,11 +40,11 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
   const dirty = editorBuffer !== editorOriginal;
   const fileName = mountedPath?.split(/[/\\]/).pop() ?? '';
 
-  // path 变化 → 进/出场动画 + 装载 / 卸载文件
+  // path 变化 → 进/出场动画 + 装载 / 卸载文件。deps 只放 path，杜绝引用稳定性问题。
   useEffect(() => {
     if (path) {
       setMountedPath(path);
-      void openEditorFile(path);
+      void useAppStore.getState().openEditorFile(path);
       let raf2 = 0;
       const raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => setVisible(true));
@@ -57,10 +57,10 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
     setVisible(false);
     const t = setTimeout(() => {
       setMountedPath(null);
-      closeEditorFile();
+      useAppStore.getState().closeEditorFile();
     }, TRANSITION_MS);
     return () => clearTimeout(t);
-  }, [path, openEditorFile, closeEditorFile]);
+  }, [path]);
 
   // 保存成功后 2 秒内闪一下"已保存 hh:mm:ss"
   useEffect(() => {
@@ -91,9 +91,9 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
   }, [mountedPath, requestClose]);
 
   const handleSave = useCallback(async () => {
-    const r = await saveEditor();
+    const r = await useAppStore.getState().saveEditor();
     if (r.ok) setSavedJustNow(true);
-  }, [saveEditor]);
+  }, []);
 
   if (!mountedPath) return null;
 
