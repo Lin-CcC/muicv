@@ -1,5 +1,7 @@
 import { useCallback } from 'react';
 
+import { modelSupportsVision } from '@muicv/shared';
+
 import type { AgentChunk, ArtifactRef, AttachmentRef, ToolCallRecord } from '../../shared/types.ts';
 import { classifyError, cryptoRandomId, formatAttachmentsFooter, safeParseJson } from '../components/chat-utils';
 import { useAppStore } from './store';
@@ -27,6 +29,7 @@ export function useAgentDispatch(callbacks: DispatchCallbacks): AgentDispatchApi
   const activeProfile = useAppStore((s) => s.activeProfile);
   const activeConversation = useAppStore((s) => s.activeConversation);
   const activeChannel = useAppStore((s) => s.activeChannel);
+  const defaultModel = useAppStore((s) => s.config.defaultModel);
   const pushMessage = useAppStore((s) => s.pushMessage);
   const appendAssistantText = useAppStore((s) => s.appendAssistantText);
   const attachToolCall = useAppStore((s) => s.attachToolCall);
@@ -64,7 +67,7 @@ export function useAgentDispatch(callbacks: DispatchCallbacks): AgentDispatchApi
       onError(null);
       onNeedsAiSetup(false);
 
-      const footer = formatAttachmentsFooter(attachments);
+      const footer = formatAttachmentsFooter(attachments, { supportsVision: modelSupportsVision(defaultModel) });
       const userContent = text ? `${text}${footer}` : footer.replace(/^\n\n/, '');
       const userMsg = {
         id: cryptoRandomId(),

@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { modelSupportsVision } from '@muicv/shared';
-
 import type { AttachmentRef } from '../../shared/types.ts';
 import { CONVERSATION_TYPE_META } from '../../shared/types.ts';
 import { CONVERSATION_TYPE_ICON } from '../lib/conversation-type-icon';
@@ -37,17 +35,14 @@ export function ChatView() {
   const clearOnboardingDraft = useAppStore((s) => s.clearOnboardingDraft);
   const setView = useAppStore((s) => s.setView);
   const openRightPanel = useAppStore((s) => s.openRightPanel);
-  const defaultModel = useAppStore((s) => s.config.defaultModel);
 
   const [error, setError] = useState<string | null>(null);
   const [needsAiSetup, setNeedsAiSetup] = useState(false);
   const [historyPreview, setHistoryPreview] = useState<AttachmentRef | null>(null);
 
-  const attachments = useChatAttachments(
-    activeProfile,
-    activeConversation?.id ?? null,
-    modelSupportsVision(defaultModel),
-  );
+  // 图片永远接收：vision 模型走 input_image 直接看图；非 vision 模型走 upload_photo
+  // tool 链路（用户拖证件照 → AI 上传到 R2 → 写回 .resume.json）。不再在入口拦图。
+  const attachments = useChatAttachments(activeProfile, activeConversation?.id ?? null, true);
   const dispatch = useAgentDispatch({ onError: setError, onNeedsAiSetup: setNeedsAiSetup });
 
   // 黏底滚动：切会话强制滚到最底；消息更新（含流式 chunk）若用户当前贴底则跟随，

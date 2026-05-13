@@ -5,7 +5,7 @@ import OpenAI from 'openai';
 
 import { randomUUID } from 'node:crypto';
 
-import { LLM_DISPLAY_META, modelSupportsVision } from '@muicv/shared';
+import { modelSupportsVision } from '@muicv/shared';
 
 import type { AgentChunk, AppConfig, ChatMessage, ConversationType, ToolCallRecord } from '../../shared/types.ts';
 import { getConversation, saveConversation } from '../conversations.ts';
@@ -129,22 +129,12 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     return;
   }
 
-  // Vision 能力 gate：当前模型路由到的 endpoint 不收图（如 mimo 系走 muirouter
-  // → OpenRouter 没勾 image capability，见 issue #7），就别把图发上去碰 404。
-  // 只看本轮 user 的附件——历史图本来就在历史里，只要本轮没新加图就放行。
-  const hasNewImage = (lastUser.attachments ?? []).some((a) => a.kind === 'image');
-  if (hasNewImage && !modelSupportsVision(config.defaultModel)) {
-    const visionPicks = Object.entries(LLM_DISPLAY_META)
-      .filter(([, m]) => m.supportsVision)
-      .map(([, m]) => m.label)
-      .join(' / ');
-    send({
-      type: 'error',
-      message: `当前模型「${LLM_DISPLAY_META[config.defaultModel]?.label ?? config.defaultModel}」暂不支持图片输入，请在设置里切到 ${visionPicks}`,
-    });
-    send({ type: 'finish', reason: 'error' });
-    return;
-  }
+  // Vision 能力分支：模型路由到的 endpoint 不收图（如 mimo 系走 muirouter →
+  // OpenRouter 没勾 image capability，见 issue #7）时，**不再硬错**——v0.4.x 起
+  // 图片有第二种用途（upload_photo agent tool 上传证件照到 R2），不需要 vision。
+  // 仅在 model 支持 vision 时把图 base64 进 input_image；不支持就跳过 imageReader，
+  // 让 footer 的"调 upload_photo"提示引导 agent 走 R2 上传路径。
+  const supportsVision = modelSupportsVision(config.defaultModel);
 
   // 把历史按 SDK 原生 AgentInputItem[] 组装，并按 token budget 做滑动窗口裁剪。
   // 历史里所有 user message 的图都重新 base64 进 input_image content block——
@@ -156,7 +146,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     estimatedTokens,
   } = await buildAgentInput(messages, {
     budgetTokens: getModelBudget(config.defaultModel),
-    imageReader: (ref) => readImageAsDataUrl(workspaceDir, ref),
+    ...(supportsVision ? { imageReader: (ref) => readImageAsDataUrl(workspaceDir, ref) } : {}),
   });
   if (droppedCount > 0) {
     console.log(
