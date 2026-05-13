@@ -1,4 +1,4 @@
-import { FolderOpenIcon, GlobeIcon, XIcon } from '@phosphor-icons/react';
+import { FolderOpenIcon, GlobeIcon, PencilSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -6,6 +6,7 @@ import { assertTemplateResumeData, isJsonTemplateId, JSON_TEMPLATE_IDS, type Tem
 
 import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
+import { EditDrawer } from './edit-drawer';
 import { MarkdownView } from './markdown-view';
 
 type JsonTemplateId = (typeof JSON_TEMPLATE_IDS)[number];
@@ -120,10 +121,17 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
   // 用户在 footer 切换的预览模板。null = 跟随 JSON 里的 _template 字段 / 兜底 t2-minimal。
   // path 变化时重置，避免上一份 .resume.json 的选择"穿透"到下一份。
   const [overrideTemplate, setOverrideTemplate] = useState<JsonTemplateId | null>(null);
+  // EditDrawer 控制：null = 不显示；string = 编辑该 path
+  const [editingPath, setEditingPath] = useState<string | null>(null);
+  // EditDrawer 保存的时间戳，用于触发 PreviewContent 重新读取文件
+  const editorLastSavedAt = useAppStore((s) => s.editorLastSavedAt);
+  const editorOpenPath = useAppStore((s) => s.editorOpenPath);
 
   const fileName = path.split(/[/\\]/).pop() ?? path;
   const isPdf = /\.pdf$/i.test(path);
   const isResumeJson = /\.resume\.json$/i.test(path);
+  const isMarkdown = /\.(md|markdown)$/i.test(path);
+  const isEditable = isMarkdown || isResumeJson;
 
   const jsonTemplate = useMemo<JsonTemplateId>(() => {
     if (!isResumeJson) return 't2-minimal';
@@ -156,7 +164,8 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
     return () => {
       cancelled = true;
     };
-  }, [path, isPdf]);
+    // editorLastSavedAt 变化（且当前文件正在被 EditDrawer 编辑）→ 重新 read 让预览同步。
+  }, [path, isPdf, editorLastSavedAt, editorOpenPath]);
 
   return (
     <>
@@ -167,6 +176,18 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
             {fileName}
           </p>
         </div>
+        {isEditable && (
+          <button
+            type="button"
+            onClick={() => setEditingPath(path)}
+            title="编辑（在叠加层打开 CodeMirror）"
+            aria-label="编辑文件"
+            className="flex shrink-0 items-center gap-1 rounded-md border-2 border-rule-strong bg-paper px-2 py-1 text-[11.5px] font-bold text-ink hover:bg-fluff"
+          >
+            <PencilSimpleIcon size={12} weight="bold" />
+            编辑
+          </button>
+        )}
         <button
           type="button"
           onClick={onClose}
@@ -227,6 +248,8 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
           </>
         )}
       </footer>
+
+      <EditDrawer path={editingPath} onClose={() => setEditingPath(null)} />
     </>
   );
 }
