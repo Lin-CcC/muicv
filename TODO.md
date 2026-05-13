@@ -18,3 +18,13 @@
 
 - 入职辅导 skill：劳动纪律介绍、员工手册解读等
 - 理解保险 skill：五险一金、年轻人的第一份保险等
+- offer 分析 skill：解读 offer letter（薪资结构、期权、福利、竞业条款等），横向对比多个 offer，给出风险点和谈判建议
+
+## 待复现 / 跨平台
+
+- **Windows 下下载 whisper 出错**：本期已把 install.ts 的 fetch / sha256 / pipeline 错误细化成 URL + 阶段 + cause 链（v0.4.0），等用户提供新的详细错误日志再针对性修。
+
+## 待手工验证
+
+- **t2 模板"下方一大块色块"**：bullet 已修（disc + accent ::marker），色块来源不明，跑通完整渲染流程复测。
+- **证件照上传完整流程**：代码 review 无明显 bug，需 pick → upload → R2 → 复制 URL → 用到 .resume.json 一遍。
