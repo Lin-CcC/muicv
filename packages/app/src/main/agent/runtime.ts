@@ -290,7 +290,9 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       const rawMsg = causeMsg ? `${baseMsg} (cause: ${causeMsg})` : baseMsg;
       const msg = isContextLengthError(rawMsg)
         ? '本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。'
-        : rawMsg;
+        : isReasoningContentError(rawMsg)
+          ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.5 / gpt-5.4）。详见 muicv issue#7。`
+          : rawMsg;
       send({ type: 'error', message: msg });
       send({ type: 'finish', reason: 'error' });
     }
@@ -343,4 +345,14 @@ function isContextLengthError(msg: string): boolean {
     lower.includes('context length') ||
     lower.includes('too many tokens')
   );
+}
+
+/**
+ * mimo / DeepSeek 等"thinking mode 推理模型"在多轮 tool calling 时要求
+ * 把上一轮 assistant 消息的 reasoning_content 字段回传，否则 400。
+ * OpenAI Agents SDK 不知道这个私有字段会把它丢掉 → 第二轮调用挂掉。
+ * 看到这条错误就提示用户切回 GPT 系列。
+ */
+function isReasoningContentError(msg: string): boolean {
+  return msg.toLowerCase().includes('reasoning_content');
 }

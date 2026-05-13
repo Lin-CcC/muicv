@@ -64,6 +64,14 @@ export function ModelCard({ isBYOK, currentModel }: { isBYOK: boolean; currentMo
                       默认
                     </span>
                   )}
+                  {!meta.supportsToolCalls && (
+                    <span
+                      className="rounded-md border border-tongue/60 bg-tongue/10 px-1.5 py-0.5 font-mono text-[9.5px] font-bold uppercase tracking-wider text-tongue"
+                      title="thinking-mode 推理模型，muicv agent 流程（多轮工具调用）不兼容；简单单轮对话可用"
+                    >
+                      ⚠ 不支持 agent
+                    </span>
+                  )}
                   <span className="font-mono text-[10px] uppercase tracking-wider text-mute">
                     {meta.vendor === 'openai' ? 'OpenAI' : 'Xiaomi'}
                   </span>

@@ -135,6 +135,15 @@ export const LLM_DISPLAY_META: Record<
      * 等 muirouter 那边修好了，把对应 model 的这个值改回 true 即可。
      */
     supportsVision: boolean;
+    /**
+     * 是否兼容 muicv 的 multi-turn 工具调用（agent 流程）。
+     * 当前 false 的：mimo 系列——是 thinking-mode 推理模型，多轮调 tool 时
+     * 要求把上一轮 assistant 的 reasoning_content 字段回传给 API，OpenAI Agents
+     * SDK 不知道这个私有字段会丢掉，导致第二轮 400 "Param Incorrect"。
+     * 这里 false 的模型在 ModelCard 显示警告 chip，引导用户切兼容模型；
+     * 简单单轮 chat 不调 tool 时其实还能用，只是 agent 工作流不行。
+     */
+    supportsToolCalls: boolean;
   }
 > = {
   'gpt-5.5': {
@@ -144,6 +153,7 @@ export const LLM_DISPLAY_META: Record<
     outputPrice: '$30 / 1M',
     hint: '最强，最贵',
     supportsVision: true,
+    supportsToolCalls: true,
   },
   'gpt-5.4': {
     label: 'GPT-5.4',
@@ -153,6 +163,7 @@ export const LLM_DISPLAY_META: Record<
     hint: '通用首选',
     isDefault: true,
     supportsVision: true,
+    supportsToolCalls: true,
   },
   'mimo-v2.5-pro': {
     label: 'MiMo v2.5 Pro',
@@ -161,6 +172,7 @@ export const LLM_DISPLAY_META: Record<
     outputPrice: '¥21 / 1M',
     hint: '中文友好',
     supportsVision: false,
+    supportsToolCalls: false,
   },
   'mimo-v2.5': {
     label: 'MiMo v2.5',
@@ -169,8 +181,14 @@ export const LLM_DISPLAY_META: Record<
     outputPrice: '¥14 / 1M',
     hint: '最便宜',
     supportsVision: false,
+    supportsToolCalls: false,
   },
 };
+
+/** 模型是否能跟着 muicv 走完整 agent 流程（多轮工具调用）。未知 id 默认 true。 */
+export function modelSupportsToolCalls(modelId: string): boolean {
+  return LLM_DISPLAY_META[modelId]?.supportsToolCalls ?? true;
+}
 
 /** 平台路径下当前 model id 是否能接受图像 input。未知 id 默认按"不支持"算，避免再炸 404。 */
 export function modelSupportsVision(modelId: string): boolean {
