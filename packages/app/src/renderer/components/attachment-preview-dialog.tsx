@@ -57,7 +57,9 @@ export function AttachmentPreviewDialog({ attachment, onClose }: Props) {
   const absTextPath = mounted.textPath ? resolveWorkspacePath(activeProfile?.dir ?? null, mounted.textPath) : null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6 py-8">
+    // titlebar-no-drag：避免 TitleBar 的 -webkit-app-region: drag 在顶部 44px
+    // 吃掉 dialog 内的 backdrop / 关闭按钮 click（参见 preview-drawer.tsx 同名注释）。
+    <div className="titlebar-no-drag fixed inset-0 z-[100] flex items-center justify-center px-6 py-8">
       <div
         className={`absolute inset-0 bg-ink/40 backdrop-blur-[3px] transition-opacity duration-200 ease-out ${
           visible ? 'opacity-100' : 'opacity-0'

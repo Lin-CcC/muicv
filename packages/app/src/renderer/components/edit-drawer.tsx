@@ -98,7 +98,9 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
   if (!mountedPath) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex justify-end">
+    // titlebar-no-drag：同 PreviewDrawer，避免 TitleBar 的 -webkit-app-region: drag
+    // 在顶部 44px 内吃掉按钮 click（参见 preview-drawer.tsx 同名注释）。
+    <div className="titlebar-no-drag fixed inset-0 z-[100] flex justify-end">
       <div
         className={`absolute inset-0 bg-ink/40 backdrop-blur-[2px] transition-opacity duration-200 ease-out ${
           visible ? 'opacity-100' : 'opacity-0'

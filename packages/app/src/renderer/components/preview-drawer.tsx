@@ -90,7 +90,11 @@ export function PreviewDrawer() {
   if (!mountedPath) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex justify-end">
+    // titlebar-no-drag：portal 是叠在 TitleBar 之上的全屏对话层，TitleBar 的
+    // -webkit-app-region: drag 是 OS 级 hit-testing，z-index 拦不住，会让顶部
+    // 44px 区域的 button click 被 OS 当窗口拖动吃掉（编辑按钮就这么消失了，
+    // X 按钮碰巧落在 TitleBar 右侧 no-drag 区域才幸免）。整个 portal 显式 no-drag。
+    <div className="titlebar-no-drag fixed inset-0 z-[90] flex justify-end">
       <div
         className={`absolute inset-0 bg-ink/30 backdrop-blur-[2px] transition-opacity duration-200 ease-out ${
           visible ? 'opacity-100' : 'opacity-0'

@@ -239,7 +239,7 @@ export function RecordPanel(): ReactElement | null {
   const remainSec = Math.max(0, limitSec - elapsedSec);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
+    <div className="titlebar-no-drag fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
       <div className="w-[420px] rounded-2xl border-2 border-rule-strong bg-cream p-6 shadow-xl">
         <h2 className="mb-2 text-lg font-bold text-ink">模拟面试录音</h2>
         <p className="mb-4 text-sm text-mute">

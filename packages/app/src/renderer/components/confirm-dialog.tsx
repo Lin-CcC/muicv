@@ -57,7 +57,10 @@ export function ConfirmDialog({
   // titlebar 自己用了 backdrop-blur-sm，dropdown 又是这个组件的祖先，
   // 直接渲染会让 dialog 被困在 dropdown 内。
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+    // titlebar-no-drag：portal 到 body 的全屏 dialog 跟 TitleBar 在像素上重叠，
+    // TitleBar 的 -webkit-app-region: drag 是 OS 级 hit-testing，按 z-index 拦不住。
+    // 整个 portal 显式 no-drag，避免顶部 44px 内 backdrop / 按钮 click 被吃。
+    <div className="titlebar-no-drag fixed inset-0 z-[100] flex items-center justify-center px-6">
       <div className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]" aria-hidden onClick={onCancel} />
       <div
         role="dialog"
