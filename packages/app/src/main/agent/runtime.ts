@@ -61,10 +61,33 @@ function ensureConfigured(config: AppConfig): boolean {
   if (configuredKey === apiKey && configuredBase === baseURL) return true;
   setOpenAIAPI('chat_completions');
   setDefaultOpenAIKey(apiKey);
-  setDefaultOpenAIClient(new OpenAI({ apiKey, baseURL }));
+  setDefaultOpenAIClient(new OpenAI({ apiKey, baseURL, fetch: loggingFetch }));
   configuredKey = apiKey;
   configuredBase = baseURL;
   return true;
+}
+
+/**
+ * OpenAI SDK 自定义 fetch wrapper：non-ok 响应时打印完整 body + 请求摘要。
+ *
+ * 用途：mimo / muirouter 经常返回 400 "Param Incorrect" 之类语义稀薄的错误，
+ * SDK message 拆完只剩 status+短文本，根本看不出哪个 param 不对。这里在 main
+ * 终端把整个 response body 打出来，便于定位真实根因（哪个 message / tool / schema 不合规）。
+ *
+ * 注意：req body 可能含敏感内容（用户对话原文），日志只截 1.5KB 摘要。
+ */
+async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> {
+  const res = await fetch(input, init);
+  if (!res.ok) {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const cloned = res.clone();
+    const body = await cloned.text().catch(() => '<read body failed>');
+    const reqBody = typeof init?.body === 'string' ? init.body.slice(0, 1500) : '<non-string body>';
+    console.error(
+      `[OpenAI fetch] ${res.status} ${res.statusText} ${url}\n  resp body: ${body.slice(0, 2000)}\n  req body (≤1500): ${reqBody}`,
+    );
+  }
+  return res;
 }
 
 const activeRuns = new Map<string, AbortController>();
