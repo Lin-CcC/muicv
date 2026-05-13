@@ -161,7 +161,24 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   let assistantText = '';
   const assistantToolCalls: ToolCallRecord[] = [];
 
+  // 空转看门狗：如果 stream open 后 30s 内没收到任何 event（mimo / 第三方代理偶发
+  // silent hang），主动 abort 并报错，避免 UI 永远卡在"思考中"。任何 event 到达
+  // 就 reset 计时。30s 经验值——mimo 经 muirouter 冷启动通常 8-15s，留 2 倍 headroom。
+  const STREAM_IDLE_TIMEOUT_MS = 30_000;
+  let lastEventAt = Date.now();
+  let timedOut = false;
+  const watchdog = setInterval(() => {
+    if (Date.now() - lastEventAt > STREAM_IDLE_TIMEOUT_MS) {
+      timedOut = true;
+      console.warn(`[agent runtime] stream silent > ${STREAM_IDLE_TIMEOUT_MS}ms, aborting`);
+      abort.abort();
+    }
+  }, 5_000);
+
   try {
+    console.log(
+      `[agent runtime] starting run with model=${config.defaultModel}, items=${input.length}, est=${estimatedTokens}t`,
+    );
     const stream = await run(agent, input, {
       stream: true,
       signal: abort.signal,
@@ -170,6 +187,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
 
     // assistantText / assistantToolCalls 已在 try 外定义；这里不再 redeclare
     for await (const event of stream) {
+      lastEventAt = Date.now();
       if (event.type === 'raw_model_stream_event') {
         const data = event.data as unknown as { type?: string; delta?: string; text?: string };
         if (data?.type && /text.*delta/i.test(data.type) && typeof data.delta === 'string') {
@@ -229,8 +247,14 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     } catch {
       /* 存盘失败不再二次报错 */
     }
-    if (aborted) {
+    if (aborted && !timedOut) {
       send({ type: 'finish', reason: 'aborted' });
+    } else if (timedOut) {
+      send({
+        type: 'error',
+        message: `模型 ${config.defaultModel} 超过 ${STREAM_IDLE_TIMEOUT_MS / 1000}s 无响应，已中断。可能 endpoint 卡住或不支持本轮输入。看 electron-vite 终端日志查具体原因。`,
+      });
+      send({ type: 'finish', reason: 'error' });
     } else {
       // OpenAI SDK 经常把 fetch 失败包成 "Connection error."，真实原因藏在 .cause
       // 把 cause 链全打到主进程 console + 一并传给 renderer，方便定位
@@ -248,6 +272,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       send({ type: 'finish', reason: 'error' });
     }
   } finally {
+    clearInterval(watchdog);
     activeRuns.delete(channelId);
   }
 
