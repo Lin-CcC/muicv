@@ -118,9 +118,9 @@ export function WhisperEngineCard() {
       </div>
 
       {error && (
-        <p className="mt-3 rounded-md border border-tongue/40 bg-tongue/10 px-3 py-2 text-[12px] text-tongue">
+        <pre className="mt-3 max-h-48 select-text overflow-auto whitespace-pre-wrap rounded-md border border-tongue/40 bg-tongue/10 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-tongue">
           {error}
-        </p>
+        </pre>
       )}
 
       {/* 引擎本体 */}

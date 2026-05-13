@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { modelSupportsVision } from '@muicv/shared';
 
@@ -50,6 +50,30 @@ export function ChatView() {
   );
   const dispatch = useAgentDispatch({ onError: setError, onNeedsAiSetup: setNeedsAiSetup });
 
+  // 黏底滚动：切会话强制滚到最底；消息更新（含流式 chunk）若用户当前贴底则跟随，
+  // 用户向上滚阅读历史则中断跟随，避免被强制拉回。
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+  const conversationId = activeConversation?.id ?? null;
+  const messagesRef = activeConversation?.messages;
+
+  useEffect(() => {
+    stickToBottomRef.current = true;
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (!stickToBottomRef.current) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [conversationId, messagesRef]);
+
+  function handleScroll(): void {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }
+
   if (!session || !activeProfile) {
     return (
       <CenteredCard
@@ -90,6 +114,8 @@ export function ChatView() {
       />
 
       <div
+        ref={scrollRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-y-auto px-6 py-6"
         onContextMenu={(e) => {
           // 拦下 Chromium 默认菜单，弹 native 只读菜单（复制 / 全选），方便从历史消息复制

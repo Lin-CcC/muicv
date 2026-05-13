@@ -7,6 +7,7 @@ import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
+import { describeCause } from './error-format.ts';
 import {
   type ModelName,
   MODEL_CATALOG,
@@ -68,9 +69,15 @@ async function fetchToFile(
   dest: string,
   onProgress?: (received: number, total: number | null) => void,
 ): Promise<void> {
-  const res = await fetch(url, { redirect: 'follow' });
+  let res: Response;
+  try {
+    res = await fetch(url, { redirect: 'follow' });
+  } catch (err) {
+    throw new Error(`下载失败（连接 ${url}）：${describeCause(err)}`);
+  }
   if (!res.ok || !res.body) {
-    throw new Error(`下载失败 ${res.status}：${url}`);
+    const status = res.statusText ? `${res.status} ${res.statusText}` : String(res.status);
+    throw new Error(`下载失败（HTTP ${status}）：${url}`);
   }
   const totalHeader = res.headers.get('content-length');
   const total = totalHeader ? Number(totalHeader) : null;
@@ -82,7 +89,11 @@ async function fetchToFile(
     received += chunk.length;
     onProgress?.(received, total);
   });
-  await pipeline(reader, sink);
+  try {
+    await pipeline(reader, sink);
+  } catch (err) {
+    throw new Error(`下载失败（写入 ${dest}）：${describeCause(err)}`);
+  }
 }
 
 async function sha256OfFile(path: string): Promise<string> {
@@ -133,7 +144,15 @@ export async function installEngine(opts: { engineVersion: string; onProgress?: 
 
     // 2) 校验 sha256（拉远端 sha256 文档对比）
     opts.onProgress?.({ phase: 'verify', fraction: 0 });
-    const remoteSha = parseSha256Doc(await (await fetch(sha256Url)).text());
+    let shaDoc: string;
+    try {
+      const r = await fetch(sha256Url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}${r.statusText ? ` ${r.statusText}` : ''}`);
+      shaDoc = await r.text();
+    } catch (err) {
+      throw new Error(`下载 sha256 文档失败（${sha256Url}）：${describeCause(err)}`);
+    }
+    const remoteSha = parseSha256Doc(shaDoc);
     if (!remoteSha) throw new Error(`sha256 文档格式不对：${sha256Url}`);
     const localSha = await sha256OfFile(tmpFile);
     if (localSha !== remoteSha) {

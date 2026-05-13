@@ -398,25 +398,21 @@
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
-.t2__expBullets {
-  display: grid;
-  gap: 4px;
+.t2 .t2__expBullets {
+  list-style: disc outside;
+  padding-left: 18px;
   color: var(--ink-2);
   font-size: 12.5px;
   line-height: 1.55;
 }
-.t2__expBullets li {
-  padding-left: 14px;
-  position: relative;
+.t2 .t2__expBullets li {
+  margin-bottom: 4px;
 }
-.t2__expBullets li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 9px;
-  width: 6px;
-  height: 1px;
-  background: var(--accent);
+.t2 .t2__expBullets li:last-child {
+  margin-bottom: 0;
+}
+.t2 .t2__expBullets li::marker {
+  color: var(--accent);
 }
 .t2__eduRow {
   display: grid;

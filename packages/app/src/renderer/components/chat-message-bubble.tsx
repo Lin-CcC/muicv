@@ -62,7 +62,7 @@ export function MessageBubble({
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex max-w-[85%] flex-col ${isUser ? 'items-end' : 'items-start'}`}>
         <div
-          className={`w-full space-y-2 rounded-2xl px-4 py-3 text-[14px] leading-relaxed ${
+          className={`w-full select-text space-y-2 rounded-2xl px-4 py-3 text-[14px] leading-relaxed ${
             isUser ? 'border-2 border-ink bg-yellow text-ink' : 'border-2 border-rule bg-paper text-ink-soft'
           }`}
         >
