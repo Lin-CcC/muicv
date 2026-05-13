@@ -10,7 +10,7 @@
 | `name` | `Bilingual` | ✅ | 中英姓名 |
 | `title` | `Bilingual` | ✅ | 一行职业 tag，对齐 target JD |
 | `tagline` | `Bilingual?` | | 可选的座右铭/价值主张（仅 t5 用） |
-| `photoUrl` | `string?` | | R2 上传后拿到的 https URL（用 muicv-photo 子命令上传，或留空） |
+| `photoUrl` | `string?` | | R2 上传后拿到的 https URL（让用户把图拖进对话，调 `upload_photo` agent tool；不要凭空 fabricate URL） |
 | `contact` | `Contact` | ✅ | 见下 |
 | `summary` | `Bilingual` | ✅ | 2~4 句自我介绍，对齐 target |
 | `experience` | `Experience[]` | ✅ | 工作经历 |

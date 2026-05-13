@@ -109,6 +109,10 @@ export async function handleUploadPhoto(c: Context<AppEnv>): Promise<Response> {
  * dashboard / Electron app 用这条路径展示「我上传过的照片」让用户一键复用。
  *
  * 不分页（每个用户最多几十张，没必要做 cursor）；limit clamp 到 [1, 100]。
+ *
+ * 错误处理：D1 异常（migration 没跑 → "no such table"、binding 缺失等）以前会让
+ * hono 默认抛 500 + 字符串 "Internal Server Error"，客户端看不出根因。这里包
+ * try/catch，把真实错误 message 冒到 response body，便于运维排查。
  */
 export async function handlePhotoHistory(c: Context<AppEnv>): Promise<Response> {
   const userId = c.get('userId') as string;
@@ -116,20 +120,28 @@ export async function handlePhotoHistory(c: Context<AppEnv>): Promise<Response> 
   const limit =
     Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, HISTORY_MAX_LIMIT) : HISTORY_DEFAULT_LIMIT;
 
-  const result = await c.env.MUICV_API_DB.prepare(
-    `SELECT id, r2Key, url, contentType, sizeBytes, originalName, createdAt
-     FROM photoUpload WHERE userId = ? ORDER BY createdAt DESC LIMIT ?`,
-  )
-    .bind(userId, limit)
-    .all<{
-      id: number;
-      r2Key: string;
-      url: string;
-      contentType: string;
-      sizeBytes: number;
-      originalName: string | null;
-      createdAt: number;
-    }>();
-
-  return c.json({ items: result.results ?? [] });
+  try {
+    const result = await c.env.MUICV_API_DB.prepare(
+      `SELECT id, r2Key, url, contentType, sizeBytes, originalName, createdAt
+       FROM photoUpload WHERE userId = ? ORDER BY createdAt DESC LIMIT ?`,
+    )
+      .bind(userId, limit)
+      .all<{
+        id: number;
+        r2Key: string;
+        url: string;
+        contentType: string;
+        sizeBytes: number;
+        originalName: string | null;
+        createdAt: number;
+      }>();
+    return c.json({ items: result.results ?? [] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('handlePhotoHistory failed', { userId, message });
+    return c.json(
+      { error: `读取上传历史失败：${message}`, hint: 'D1 binding 或 photoUpload 表可能未就绪（看 migration 0015）' },
+      500,
+    );
+  }
 }

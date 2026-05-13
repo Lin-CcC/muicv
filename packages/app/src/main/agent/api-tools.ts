@@ -1,10 +1,11 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { basename, dirname, relative, resolve, sep } from 'node:path';
+import { basename, dirname, extname, relative, resolve, sep } from 'node:path';
 
 import { tool } from '@openai/agents';
 import { z } from 'zod';
 
 import type { AppConfig } from '../../shared/types.ts';
+import { uploadPhoto } from '../api-preview.ts';
 import type { ArtifactEmitter } from './tools.ts';
 
 /**
@@ -166,7 +167,58 @@ export function buildApiTools(config: AppConfig, emitArtifact?: ArtifactEmitter)
     },
   });
 
-  return [renderResumePdf, fetchJd];
+  const uploadResumePhoto = tool({
+    name: 'upload_photo',
+    description: [
+      '把工作目录下的本地图片（通常是 inbox/xxx.jpg 这种用户刚拖进对话的附件）上传到 R2，拿到一个公开 https URL。',
+      '使用时机：',
+      '  - 用户说"这是我的照片"/"给简历放张证件照"/"用这张作为头像"等明确意图，且对话里有图片附件；',
+      '  - muicv-generate 检查到 .resume.json 没 photoUrl，且用户给了图。',
+      '返回值含 url 字段，把它填到 .resume.json 顶层的 `photoUrl` 字段后保存，模板就能渲染照片。',
+      '不要凭空 fabricate URL；没有真实上传过的就不写 photoUrl 字段。',
+    ].join('\n'),
+    parameters: z.object({
+      path: z.string().describe('工作目录下的图片路径，例如 inbox/20260507-image.jpg；jpeg/png/webp，≤ 2 MB'),
+    }),
+    execute: async ({ path }) => {
+      if (!config.workspaceDir) return '工作目录未配置';
+      const abs = resolveInWorkspace(config.workspaceDir, path);
+      const ext = extname(abs).toLowerCase().replace(/^\./, '');
+      const mimeByExt: Record<string, string> = {
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        png: 'image/png',
+        webp: 'image/webp',
+      };
+      const mimeType = mimeByExt[ext];
+      if (!mimeType) {
+        return `不支持的图片格式：${ext}。仅接受 jpeg / png / webp。`;
+      }
+
+      let bytes: Uint8Array;
+      try {
+        bytes = new Uint8Array(await readFile(abs));
+      } catch {
+        return `读不到图片：${path}`;
+      }
+      if (bytes.byteLength > 2 * 1024 * 1024) {
+        const mb = (bytes.byteLength / 1024 / 1024).toFixed(2);
+        return `图片超过 2 MB（当前 ${mb} MB），请压缩后再传。`;
+      }
+
+      const result = await uploadPhoto(config, { name: basename(abs), mimeType, bytes });
+      if (!result.ok) {
+        return `上传失败（HTTP ${result.status}）：${result.message}`;
+      }
+      return [
+        `照片已上传到 R2：${result.url}`,
+        `把这个 URL 填到 .resume.json 顶层的 \`photoUrl\` 字段（用 write_file 改文件）。`,
+        `文件大小 ${(result.size / 1024).toFixed(1)} KB，content-type ${result.contentType}。`,
+      ].join('\n');
+    },
+  });
+
+  return [renderResumePdf, fetchJd, uploadResumePhoto];
 }
 
 function slugify(s: string): string {

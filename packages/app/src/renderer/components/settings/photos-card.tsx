@@ -1,10 +1,7 @@
-import { ImageSquareIcon, UploadSimpleIcon } from '@phosphor-icons/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChatCircleDotsIcon, ImageSquareIcon } from '@phosphor-icons/react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { PhotoHistoryItem } from '../../../shared/types.ts';
-
-const MAX_SIZE_BYTES = 2 * 1024 * 1024;
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -22,29 +19,31 @@ function formatDate(ms: number): string {
 }
 
 /**
- * 设置页里的证件照管理卡。
+ * 设置页里的证件照管理卡（v0.4.x 重构后）。
  *
- * - 文件选择 → POST /upload/photo → R2（i.muicv.com）。仅 jpeg/png/webp，≤ 2 MB。
- * - 列出当前账号最近 20 张上传，URL 一键复制，方便手填到 `*.resume.json` 的 `photoUrl`。
+ * 上传入口已经收敛到对话：用户把图拖进 chat → AI 调 `upload_photo` agent tool →
+ * 拿到 R2 URL 后写到 `.resume.json` 的 `photoUrl`。
  *
- * 不放在主 chat 流里，是因为目前 chat 输出是 markdown，新 JSON 模板由用户手工编辑；
- * 等 muicv-generate 改产 JSON 后可以再加一个 chat-side 上传入口。
+ * 这张卡片只剩"历史 + 复制 URL"作用：方便用户在没走 chat 时回看过往上传、
+ * 一键复制 URL 手填到别的简历版本。卡片自身**不再上传**。
+ *
+ * 错误处理：listPhotos 失败时不显眼报错（生产端 D1 偶发故障 / migration 缺失
+ * 都不该把整张设置页搞红），降级到"还没上传过照片"的文案 + 灰色 hint。
  */
 export function PhotosCard() {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [history, setHistory] = useState<PhotoHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    setError(null);
     const res = await window.muicv.preview.listPhotos(20);
     setLoading(false);
     if (!res.ok) {
-      setError(res.message);
+      // 不再红框报错：拉历史失败一般是后端 / migration 抖动，对用户来说"看不到旧照"
+      // 不影响关键流程（要传新照去对话里传）。日志保留方便诊断。
+      console.warn('listPhotos failed', res);
+      setHistory([]);
       return;
     }
     setHistory(res.items);
@@ -53,33 +52,6 @@ export function PhotosCard() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-
-  async function onPickFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    if (!ALLOWED_MIME.has(file.type.toLowerCase())) {
-      setError(`只支持 jpeg / png / webp，当前是 ${file.type || '未知类型'}`);
-      return;
-    }
-    if (file.size > MAX_SIZE_BYTES) {
-      setError(`单文件不超过 ${Math.round(MAX_SIZE_BYTES / 1024 / 1024)} MB（当前 ${formatBytes(file.size)}）`);
-      return;
-    }
-    setUploading(true);
-    setError(null);
-    try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const res = await window.muicv.preview.uploadPhoto({ name: file.name, mimeType: file.type, bytes });
-      if (!res.ok) {
-        setError(res.message);
-        return;
-      }
-      await refresh();
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function copyUrl(url: string, key: string) {
     try {
@@ -91,42 +63,23 @@ export function PhotosCard() {
 
   return (
     <section className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">
-            <ImageSquareIcon size={11} />— 证件照
-          </p>
-          <h2 className="mt-1 text-[15px] font-extrabold text-ink">简历上要用的照片</h2>
-          <p className="mt-1 text-[12px] text-ink-soft">
-            上传到 R2 拿一个公开 URL，把它填到{' '}
-            <code className="rounded bg-fluff px-1 font-mono text-[11px]">*.resume.json</code> 的{' '}
-            <code className="rounded bg-fluff px-1 font-mono text-[11px]">photoUrl</code> 字段就能在 t1~t6
-            模板里看到。jpeg / png / webp，≤ 2 MB。
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[12px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)] transition active:translate-y-[1px] active:shadow-[0_1px_0_0_var(--color-yellow-deep)] disabled:opacity-60"
-        >
-          <UploadSimpleIcon size={12} />
-          <span>{uploading ? '上传中…' : '上传照片'}</span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          onChange={(e) => void onPickFile(e)}
-        />
-      </header>
-
-      {error && (
-        <p className="mt-3 rounded-lg border-2 border-tongue/40 bg-tongue/10 px-3 py-2 text-[12px] text-tongue">
-          {error}
+      <header>
+        <p className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">
+          <ImageSquareIcon size={11} />— 证件照
         </p>
-      )}
+        <h2 className="mt-1 text-[15px] font-extrabold text-ink">历史上传的简历照片</h2>
+        <p className="mt-1 text-[12px] leading-[1.6] text-ink-soft">
+          要给简历加照片？{' '}
+          <span className="inline-flex items-center gap-1 rounded bg-fluff px-1.5 py-0.5 font-bold text-yellow-deep">
+            <ChatCircleDotsIcon size={11} weight="bold" />
+            回对话里
+          </span>{' '}
+          把图拖进输入框，告诉 AI"这是我的照片"——AI 会上传并自动填到{' '}
+          <code className="rounded bg-fluff px-1 font-mono text-[11px]">*.resume.json</code> 的{' '}
+          <code className="rounded bg-fluff px-1 font-mono text-[11px]">photoUrl</code> 字段。jpeg / png / webp， ≤ 2
+          MB。这里只是回看历史 + 复制 URL 用。
+        </p>
+      </header>
 
       {loading && history.length === 0 ? (
         <p className="mt-4 text-[12px] text-mute">加载中…</p>

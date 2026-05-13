@@ -242,6 +242,21 @@ Senior Frontend Engineer · 北京 · zhang@example.com · https://github.com/zh
   写成 `{ zh: "...", en: "..." }` 是显式双语
 - bullets 跟 markdown 输出**完全同一批**（已经经过第 4 步自检），不要单独再改
 
+### 5.5 证件照（可选，但要提醒用户）
+
+写完 `.resume.json` 之前，**检查顶层 `photoUrl` 字段**：
+
+- 已有 https URL → 跳过本步
+- 空 / 缺字段 → **在交付摘要里**温和提醒一句：
+  > "简历里可以放一张证件照（t1/t2/t3 模板都有照片位）。把图拖进对话告诉我『这是我的照片』就行，我帮你上传到 R2 并填到 `photoUrl`。要继续就跳过。"
+
+**不要主动猜或编造 URL**。如果用户已经把图拖进了本轮对话（最后一条 user 有 image 附件），且消息里有"证件照 / 头像 / 照片 / 这张图当头像"之类暗示：
+
+1. 调 `upload_photo` agent tool，参数是 `inbox/<image-filename>`（看 attachment 的 path）
+2. 拿到返回的 R2 URL
+3. **重新写 `.resume.json`**（用 write_file），把 URL 填到 `photoUrl` 字段
+4. 在交付摘要里告诉用户 URL 已经填上
+
 ### 6. 交付
 
 两次 write_file 完成后（一份 `.md`、一份 `.resume.json`）：
@@ -272,7 +287,7 @@ Senior Frontend Engineer · 北京 · zhang@example.com · https://github.com/zh
 - ❌ 自检命中后陷入 3 轮、5 轮的修正循环（最多 1 轮；改不动就标 `partial` 让用户决定，不要硬撑）
 - ❌ 只写 `.md` 不写 `.resume.json`（两份都必须，新模板靠 JSON）
 - ❌ `.resume.json` 跟 `.md` 内容对不上（必须用同一份事实，bullets / summary 完全一致；只是格式差异）
-- ❌ JSON 里编 `photoUrl` URL（要么真上传过的 R2 URL，要么直接不写这个字段）
+- ❌ JSON 里编 `photoUrl` URL（要么真用 `upload_photo` agent tool 上传过的 R2 URL，要么直接不写这个字段）
 
 ## Prompt 细节参考
 
