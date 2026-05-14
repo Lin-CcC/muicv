@@ -164,6 +164,18 @@
   `maximum context length` / `too many tokens` 等中英文表述，统一替换成
   「本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。」
   原始 OpenAI 错码不再透出给用户。
+- **mimo thinking-mode reasoning_content 透传**（2026-05，issue #8）：mimo / DeepSeek
+  系 thinking-mode 模型在多轮 tool calling 时，要求上一轮 assistant 响应里的
+  `reasoning_content` 字段在下次请求里**回传到对应 assistant message 上**，否则 400
+  `Param Incorrect`。`@openai/agents` SDK 0.9+ 走 chat_completions 路径时**不知道**
+  这个非标准字段会直接丢掉。上游修复（[PR #792](https://github.com/openai/openai-agents-js/pull/792)
+  / [#814](https://github.com/openai/openai-agents-js/pull/814)）只在
+  `agents-extensions` 的 `aisdk()` 路径，gate 写死 `isDeepSeekModel`——伪装方案得
+  改 provider 名 + 加 2 个 deps，不可控。我们在 [runtime.ts](packages/app/src/main/agent/runtime.ts)
+  的 `loggingFetch` 层自己拦截：response 侧 `body.tee()` 一份 SSE stream 后台累计
+  `delta.reasoning_content`，request 侧把缓存注入 `body.messages` 最后一条 assistant，
+  单 slot 模块级缓存——依赖 SDK 在单 run 内严格串行调用 fetch 的事实。后续上游若
+  在 chat_completions 路径修了，删 mimo 分支 revert 即可。
 
 ## API Key / 鉴权（packages/api）
 

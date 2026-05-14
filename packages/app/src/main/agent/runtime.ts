@@ -68,26 +68,139 @@ function ensureConfigured(config: AppConfig): boolean {
 }
 
 /**
- * OpenAI SDK 自定义 fetch wrapper：non-ok 响应时打印完整 body + 请求摘要。
+ * mimo / DeepSeek 系 thinking-mode 模型在多轮 tool calling 时要求把上一轮
+ * assistant 响应的 reasoning_content 字段回传，OpenAI Agents SDK 走 chat_completions
+ * 路径时不知道这个非标准字段会直接丢掉 → mimo 400。上游修复只在 agents-extensions
+ * 的 aisdk() 路径，且 gate 写死 isDeepSeekModel；我们在 fetch 层自己拦截：
  *
- * 用途：mimo / muirouter 经常返回 400 "Param Incorrect" 之类语义稀薄的错误，
- * SDK message 拆完只剩 status+短文本，根本看不出哪个 param 不对。这里在 main
- * 终端把整个 response body 打出来，便于定位真实根因（哪个 message / tool / schema 不合规）。
+ *   Response 侧：检测 mimo streaming 响应，tee 出一份 SSE 流，后台累计
+ *               delta.reasoning_content 存到 pendingReasoning 单 slot 缓存。
+ *   Request 侧：下次 mimo 请求出去前，把缓存的 reasoning_content 注入到
+ *               body.messages 最后一条 assistant 上，然后清空缓存。
+ *
+ * 并发假设：@openai/agents 在一次 run() 内严格串行调用 fetch（每轮等 stream
+ * 流完 + tool 跑完才发下一轮），单 slot 不会被并发覆盖。跨 run 残留也无害——
+ * 下次 request 注入后立即清空，且新 run 第一轮 messages 里没有 in-flight
+ * assistant，注入循环找不到目标自然跳过。
+ *
+ * 上游参考：https://github.com/openai/openai-agents-js/pull/792（DeepSeek 同款问题）。
+ */
+let pendingReasoning: { model: string; content: string } | null = null;
+
+function isMimoModel(modelId: unknown): modelId is string {
+  return typeof modelId === 'string' && modelId.startsWith('mimo-');
+}
+
+/**
+ * OpenAI SDK 自定义 fetch wrapper，承担两件事：
+ *   1. non-ok 响应时打印完整 body + 请求摘要（mimo / muirouter 经常返回 400
+ *      "Param Incorrect" 之类语义稀薄的错误，没这层日志根本看不出哪个 param 不对）
+ *   2. mimo thinking-mode reasoning_content 双向透传（见 pendingReasoning 注释）
  *
  * 注意：req body 可能含敏感内容（用户对话原文），日志只截 1.5KB 摘要。
  */
 async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> {
-  const res = await fetch(input, init);
+  // Request 侧：mimo 请求 + 上一轮缓存命中 → 注入 reasoning_content 到 last assistant
+  let mutatedInit = init;
+  if (init?.body && typeof init.body === 'string' && pendingReasoning) {
+    try {
+      const body = JSON.parse(init.body);
+      if (isMimoModel(body.model) && body.model === pendingReasoning.model && Array.isArray(body.messages)) {
+        const cached = pendingReasoning;
+        pendingReasoning = null;
+        for (let i = body.messages.length - 1; i >= 0; i--) {
+          const msg = body.messages[i];
+          if (msg && typeof msg === 'object' && msg.role === 'assistant') {
+            msg.reasoning_content = cached.content;
+            mutatedInit = { ...init, body: JSON.stringify(body) };
+            break;
+          }
+        }
+      }
+    } catch {
+      /* 非 JSON body 不动 */
+    }
+  }
+
+  const res = await fetch(input, mutatedInit);
+
   if (!res.ok) {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     const cloned = res.clone();
     const body = await cloned.text().catch(() => '<read body failed>');
-    const reqBody = typeof init?.body === 'string' ? init.body.slice(0, 1500) : '<non-string body>';
+    const reqBody = typeof mutatedInit?.body === 'string' ? mutatedInit.body.slice(0, 1500) : '<non-string body>';
     console.error(
       `[OpenAI fetch] ${res.status} ${res.statusText} ${url}\n  resp body: ${body.slice(0, 2000)}\n  req body (≤1500): ${reqBody}`,
     );
   }
+
+  // Response 侧：mimo streaming 响应 → tee 一份流到后台 tap，抓 delta.reasoning_content
+  const reqModel = extractModelFromRequestBody(mutatedInit?.body);
+  const isStream = res.ok && !!res.body && (res.headers.get('content-type') ?? '').includes('text/event-stream');
+  if (isStream && isMimoModel(reqModel)) {
+    const [streamForSDK, streamForUs] = res.body!.tee();
+    tapMimoReasoning(streamForUs, reqModel).catch((err) => {
+      console.warn('[mimo reasoning tap] failed:', err);
+    });
+    return new Response(streamForSDK, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: res.headers,
+    });
+  }
+
   return res;
+}
+
+function extractModelFromRequestBody(body: unknown): string | null {
+  if (typeof body !== 'string') return null;
+  try {
+    const parsed = JSON.parse(body) as { model?: unknown };
+    return typeof parsed.model === 'string' ? parsed.model : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 后台读 SSE stream，按 OpenAI streaming 格式逐 chunk 解析，累计
+ * `choices[0].delta.reasoning_content`，整段存到 pendingReasoning。
+ *
+ * SDK 在同一 run 内严格串行（等本轮 stream 完 + tool 跑完才发下一轮），
+ * 所以 tap 一定在下一轮 request 前完成，缓存写入有 happens-before 保证。
+ */
+async function tapMimoReasoning(stream: ReadableStream<Uint8Array>, model: string): Promise<void> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let acc = '';
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx: number;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const event = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        for (const line of event.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const json = JSON.parse(payload) as { choices?: Array<{ delta?: { reasoning_content?: unknown } }> };
+            const delta = json.choices?.[0]?.delta?.reasoning_content;
+            if (typeof delta === 'string') acc += delta;
+          } catch {
+            /* 半包 / 非 JSON 行忽略 */
+          }
+        }
+      }
+    }
+    if (acc) pendingReasoning = { model, content: acc };
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 const activeRuns = new Map<string, AbortController>();

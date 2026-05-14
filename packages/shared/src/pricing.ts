@@ -172,7 +172,7 @@ export const LLM_DISPLAY_META: Record<
     outputPrice: '¥21 / 1M',
     hint: '中文友好',
     supportsVision: false,
-    supportsToolCalls: false,
+    supportsToolCalls: true,
   },
   'mimo-v2.5': {
     label: 'MiMo v2.5',
@@ -181,7 +181,7 @@ export const LLM_DISPLAY_META: Record<
     outputPrice: '¥14 / 1M',
     hint: '最便宜',
     supportsVision: false,
-    supportsToolCalls: false,
+    supportsToolCalls: true,
   },
 };
 
