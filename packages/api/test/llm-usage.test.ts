@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { extractUsageFromSseStream, stripUsageChunkFromSse } from '../src/lib/llm-usage.ts';
+import {
+  extractUsageFromResponsesJson,
+  extractUsageFromResponsesSseStream,
+  extractUsageFromSseStream,
+  stripUsageChunkFromSse,
+} from '../src/lib/llm-usage.ts';
 
 function sseStream(blocks: string[]): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
@@ -85,6 +90,70 @@ test('stripUsageChunkFromSse 不去掉含 choices 的正常 chunk', async () => 
   assert.match(out, /hi/);
   assert.match(out, /world/);
   assert.match(out, /\[DONE\]/);
+});
+
+// === Responses API（/v1/responses）SSE / JSON 抽 usage ===
+
+test('extractUsageFromResponsesSseStream 在 response.completed 事件里找到 usage', async () => {
+  const stream = sseStream([
+    'event: response.created\ndata: {"type":"response.created","response":{"id":"resp_1"}}',
+    'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"hi"}',
+    'event: response.completed\ndata: {"type":"response.completed","response":{"id":"resp_1","usage":{"input_tokens":42,"output_tokens":7,"total_tokens":49,"input_tokens_details":{"cached_tokens":10}}}}',
+  ]);
+  const usage = await extractUsageFromResponsesSseStream(stream);
+  assert.equal(usage?.prompt_tokens, 42);
+  assert.equal(usage?.completion_tokens, 7);
+  assert.equal(usage?.total_tokens, 49);
+  assert.equal(usage?.cached_tokens, 10);
+});
+
+test('extractUsageFromResponsesSseStream 缺 cached_tokens 时回 0', async () => {
+  const stream = sseStream([
+    'event: response.completed\ndata: {"type":"response.completed","response":{"usage":{"input_tokens":12,"output_tokens":5}}}',
+  ]);
+  const usage = await extractUsageFromResponsesSseStream(stream);
+  assert.equal(usage?.prompt_tokens, 12);
+  assert.equal(usage?.completion_tokens, 5);
+  assert.equal(usage?.cached_tokens, 0);
+});
+
+test('extractUsageFromResponsesSseStream 没拿到 completed 事件 → null', async () => {
+  const stream = sseStream([
+    'event: response.created\ndata: {"type":"response.created","response":{"id":"resp_1"}}',
+    'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"hi"}',
+  ]);
+  const usage = await extractUsageFromResponsesSseStream(stream);
+  assert.equal(usage, null);
+});
+
+test('extractUsageFromResponsesSseStream 忽略其他事件里残留的 usage 形状（防误识别）', async () => {
+  const stream = sseStream([
+    // 假事件：有 usage 但不是 response.completed —— 必须不能抽
+    'event: response.in_progress\ndata: {"response":{"usage":{"input_tokens":999,"output_tokens":999}}}',
+  ]);
+  const usage = await extractUsageFromResponsesSseStream(stream);
+  assert.equal(usage, null);
+});
+
+test('extractUsageFromResponsesJson 抽 input_tokens / output_tokens', () => {
+  const usage = extractUsageFromResponsesJson({
+    id: 'resp_1',
+    usage: {
+      input_tokens: 100,
+      output_tokens: 30,
+      total_tokens: 130,
+      input_tokens_details: { cached_tokens: 50 },
+    },
+  });
+  assert.equal(usage?.prompt_tokens, 100);
+  assert.equal(usage?.completion_tokens, 30);
+  assert.equal(usage?.cached_tokens, 50);
+});
+
+test('extractUsageFromResponsesJson 没 usage 返回 null', () => {
+  assert.equal(extractUsageFromResponsesJson({ id: 'resp_1' }), null);
+  assert.equal(extractUsageFromResponsesJson(null), null);
+  assert.equal(extractUsageFromResponsesJson({ usage: { input_tokens: 'oops' } }), null);
 });
 
 test('stripUsageChunkFromSse 跨 chunk 边界正确处理', async () => {

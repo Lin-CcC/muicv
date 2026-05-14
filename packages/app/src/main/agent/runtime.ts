@@ -20,16 +20,24 @@ import { type ArtifactEmitter, buildFileTools } from './tools.ts';
 /**
  * 配置 OpenAI Agents SDK 全局 client，让它走 muicv API 的 OpenAI 兼容代理：
  *
- *   electron → POST ${muicvApiBase}/llm/v1/chat/completions
+ *   electron → POST ${muicvApiBase}/llm/v1/{chat/completions|responses}
  *           Authorization: Bearer mui_xxx
- *      muicv worker requireApiKey → 查 muirouterLink → 替换 Authorization
- *           为用户的 sk-gw-xxx → 转发到 https://api.muirouter.com/v1
+ *      muicv worker requireApiKey → 按余额走平台 OpenAI / Xiaomi 上游，
+ *           或 fallback 转发到 https://api.muirouter.com/v1
  *
  * 这样：
  *   - 桌面 app 只需要 mui_ key 一个凭证
  *   - LLM 调用统一被 muicv 后端审计 / 计费 / 路由
  *   - 用户付费档位 (Free/Pro/Max) + BYOK 状态完全由 muicv 后端控制，
  *     电脑端不需要知道
+ *
+ * Endpoint 分流（每次 runAgent 起点 selectOpenAIAPI 决策）：
+ *   - mimo / deepseek 系 thinking-mode 模型 → chat_completions（reasoning_content
+ *     双向透传依赖 chat_completions SSE 解析，见 loggingFetch / tapReasoningStream）
+ *   - 自带 customLlmBase 的第三方 OpenAI 兼容代理（Groq/Together 等） →
+ *     chat_completions（这些代理普遍没实现 /v1/responses）
+ *   - 其余（含 OpenAI gpt-5.x 等 reasoning 模型） → responses
+ *     （function tools + reasoning_effort 在 chat_completions 端会被官方 400 拒绝）
  */
 let configuredKey: string | null = null;
 let configuredBase: string | null = null;
@@ -59,12 +67,23 @@ function ensureConfigured(config: AppConfig): boolean {
   }
 
   if (configuredKey === apiKey && configuredBase === baseURL) return true;
-  setOpenAIAPI('chat_completions');
   setDefaultOpenAIKey(apiKey);
   setDefaultOpenAIClient(new OpenAI({ apiKey, baseURL, fetch: loggingFetch }));
   configuredKey = apiKey;
   configuredBase = baseURL;
   return true;
+}
+
+/**
+ * 按模型 + 用户 endpoint 决定走 chat_completions 还是 responses。详见上面注释段。
+ *
+ * 这个调用在每次 runAgent 起点都跑一次（不可缓存）——同一个 muicv key 可能在不同 run
+ * 之间切换 model（用户去设置改），endpoint 必须跟着 model 变。
+ */
+function selectOpenAIAPI(config: AppConfig): 'chat_completions' | 'responses' {
+  if (config.customLlmBase && config.customLlmKey) return 'chat_completions';
+  if (isThinkingModeModel(config.defaultModel)) return 'chat_completions';
+  return 'responses';
 }
 
 /**
@@ -289,6 +308,8 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     send({ type: 'finish', reason: 'error' });
     return;
   }
+  // 按当前 model 选 endpoint：mimo/deepseek/自带 → chat_completions，OpenAI gpt-5.x → responses
+  setOpenAIAPI(selectOpenAIAPI(config));
   // 清掉上一轮 run 残留的 reasoning 队列，避免序号错位注入本轮 assistant
   resetReasoningState();
   // 把推理过程实时转发给 renderer，让 UI 展示真正的"思考中"内容而不是静态提示

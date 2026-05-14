@@ -658,6 +658,92 @@ test('POST /llm/v1/chat/completions 余额=0 + 没绑 muirouter → 402 insuffic
   assert.equal(body.error.code, 'insufficient_balance');
 });
 
+// === /llm/v1/responses（OpenAI reasoning 模型必经端点）===
+
+function makeResponsesJsonResponse(model: string): Response {
+  return new Response(
+    JSON.stringify({
+      id: 'resp_test',
+      object: 'response',
+      model,
+      output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: 'hi' }] }],
+      usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15, input_tokens_details: { cached_tokens: 3 } },
+    }),
+    { status: 200, headers: { 'content-type': 'application/json' } },
+  );
+}
+
+test('POST /llm/v1/responses model=gpt-5.5 → 上游 OpenAI /v1/responses', async () => {
+  const captures: FetchCapture[] = [];
+  const restore = withMockedFetch(captures, makeResponsesJsonResponse('gpt-5.5'));
+  try {
+    const res = await app.request(
+      '/llm/v1/responses',
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...AUTH },
+        body: JSON.stringify({ model: 'gpt-5.5', input: 'hi' }),
+      },
+      mockEnv({ authenticated: true, walletMicro: 100_000_000, openaiKey: 'sk-openai-test' }),
+      ctx,
+    );
+    assert.equal(res.status, 200);
+    assert.equal(captures[0]?.url, 'https://api.openai.com/v1/responses');
+    const headers = new Headers(captures[0]?.init?.headers as HeadersInit);
+    assert.equal(headers.get('authorization'), 'Bearer sk-openai-test');
+  } finally {
+    restore();
+  }
+});
+
+test('POST /llm/v1/responses model=mimo-v2.5-pro → 400 unsupported_endpoint（mimo 没 responses）', async () => {
+  const res = await app.request(
+    '/llm/v1/responses',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ model: 'mimo-v2.5-pro', input: 'hi' }),
+    },
+    mockEnv({ authenticated: true, walletMicro: 100_000_000, mimoKey: 'sk-mimo-test' }),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'unsupported_endpoint');
+});
+
+test('POST /llm/v1/responses 缺 model → 400 unsupported_model', async () => {
+  const res = await app.request(
+    '/llm/v1/responses',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ input: 'hi' }),
+    },
+    mockEnv({ authenticated: true, walletMicro: 100_000_000 }),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'unsupported_model');
+});
+
+test('POST /llm/v1/responses model=gpt-4o-mini（表外）→ 400 unsupported_model', async () => {
+  const res = await app.request(
+    '/llm/v1/responses',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...AUTH },
+      body: JSON.stringify({ model: 'gpt-4o-mini', input: 'hi' }),
+    },
+    mockEnv({ authenticated: true, walletMicro: 100_000_000 }),
+    ctx,
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'unsupported_model');
+});
+
 // === /resume/sync/blob 加密路径 ===
 
 test('POST /resume/sync/blob 缺 Authorization → 401', async () => {

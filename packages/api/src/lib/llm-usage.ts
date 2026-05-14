@@ -7,10 +7,21 @@
  * 我们在 BYOK 之外的平台路径上**强制注入**这个字段以便扣账；如果 client 没主动声明，
  * 转发响应时把这个 chunk 吞掉，保持 OpenAI SDK 的流契约。
  *
- * SSE chunk 标准形态：
+ * SSE chunk 标准形态（chat_completions）：
  *   data: { ... "choices":[...], "usage": null }\n\n
  *   data: { ... "choices":[],    "usage": {...} }\n\n   <-- 我们要 strip 这条
  *   data: [DONE]\n\n
+ *
+ * Responses API（/v1/responses）走另一套事件流：
+ *   event: response.created\ndata: {...}\n\n
+ *   event: response.output_text.delta\ndata: {...}\n\n
+ *   ...
+ *   event: response.completed\ndata: { "response": { ..., "usage": {...} } }\n\n
+ *
+ * Responses usage 字段名也不同：input_tokens / output_tokens
+ * （而非 chat_completions 的 prompt_tokens / completion_tokens），下面做映射。
+ * Responses 不需要 strip——usage 自然嵌在 response.completed 事件内，客户端 SDK
+ * 依赖该事件结束 stream。
  */
 
 export type LlmUsage = {
@@ -91,6 +102,89 @@ export async function extractUsageFromSseStream(stream: ReadableStream<Uint8Arra
     reader.releaseLock();
   }
   return last;
+}
+
+/**
+ * 从单个 SSE block 抽 responses API 的 usage——只在 `response.completed` 事件里找。
+ * 其它事件（response.created / output_text.delta 等）不带 usage。
+ */
+function tryReadResponsesUsageFromBlock(block: string): LlmUsage | null {
+  let isCompletedEvent = false;
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event:')) {
+      const ev = line.slice(6).trim();
+      if (ev === 'response.completed') isCompletedEvent = true;
+    } else if (line.startsWith(DATA_PREFIX) && isCompletedEvent) {
+      const payload = line.slice(DATA_PREFIX.length).trim();
+      if (!payload) continue;
+      try {
+        const obj = JSON.parse(payload);
+        const usage = obj?.response?.usage;
+        if (usage?.input_tokens != null && usage?.output_tokens != null) {
+          return {
+            prompt_tokens: usage.input_tokens,
+            completion_tokens: usage.output_tokens,
+            total_tokens: usage.total_tokens,
+            cached_tokens: usage.input_tokens_details?.cached_tokens ?? 0,
+          };
+        }
+      } catch {
+        // ignore malformed
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 消费整个 responses API SSE 流，返回 `response.completed` 事件里的 usage。
+ * 流结束都没找到（异常 / failed 事件）返回 null。
+ */
+export async function extractUsageFromResponsesSseStream(stream: ReadableStream<Uint8Array>): Promise<LlmUsage | null> {
+  const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
+  let last: LlmUsage | null = null;
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += value;
+      let idx: number;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const block = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        const u = tryReadResponsesUsageFromBlock(block);
+        if (u) last = u;
+      }
+    }
+    if (buf) {
+      const u = tryReadResponsesUsageFromBlock(buf);
+      if (u) last = u;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return last;
+}
+
+/**
+ * 从 responses API 非流式 JSON 响应抽 usage。字段映射同上：
+ * input_tokens → prompt_tokens / output_tokens → completion_tokens。
+ */
+export function extractUsageFromResponsesJson(json: unknown): LlmUsage | null {
+  if (!json || typeof json !== 'object') return null;
+  const usage = (json as { usage?: Record<string, unknown> }).usage;
+  if (!usage) return null;
+  const inputTokens = usage.input_tokens;
+  const outputTokens = usage.output_tokens;
+  if (typeof inputTokens !== 'number' || typeof outputTokens !== 'number') return null;
+  const details = usage.input_tokens_details as { cached_tokens?: number } | undefined;
+  return {
+    prompt_tokens: inputTokens,
+    completion_tokens: outputTokens,
+    total_tokens: usage.total_tokens as number | undefined,
+    cached_tokens: details?.cached_tokens ?? 0,
+  };
 }
 
 /**

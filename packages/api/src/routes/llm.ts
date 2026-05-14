@@ -8,7 +8,12 @@ import {
   SUPPORTED_LLM_MODELS,
 } from '@muicv/shared';
 
-import { extractUsageFromSseStream, stripUsageChunkFromSse } from '../lib/llm-usage.ts';
+import {
+  extractUsageFromResponsesJson,
+  extractUsageFromResponsesSseStream,
+  extractUsageFromSseStream,
+  stripUsageChunkFromSse,
+} from '../lib/llm-usage.ts';
 import { getMuirouterUpstreamCreds } from '../lib/muirouter-token.ts';
 import { charge, ensureBalance } from '../lib/wallet.ts';
 import type { AppEnv } from '../middleware/api-key.ts';
@@ -29,7 +34,9 @@ import type { AppEnv } from '../middleware/api-key.ts';
  * 平台路径（1+2）只接受 LLM_PRICING 表里的 model；表外 model（如老的 gpt-4o-mini）
  * → 400 unsupported_model，让客户端显式升级 default。muirouter 路径不受本表约束。
  *
- * Path 映射：/llm/v1/chat/completions → <upstream>/v1/chat/completions。
+ * Path 映射：/llm/v1/{chat/completions|responses} → <upstream>/v1/...。
+ * `/v1/responses` 是 OpenAI 的 reasoning 模型必经端点（function tools + reasoning_effort
+ * 在 chat_completions 端不支持），mimo 系列不实现该端点，请求会被这里直接 400 挡掉。
  */
 
 const OPENAI_BASE = 'https://api.openai.com';
@@ -37,6 +44,7 @@ const XIAOMI_BASE = 'https://token-plan-sgp.xiaomimimo.com';
 const MUIROUTER_BASE = 'https://api.muirouter.com';
 
 const CHAT_COMPLETIONS_PATH = '/v1/chat/completions';
+const RESPONSES_PATH = '/v1/responses';
 
 type PlatformProvider = {
   name: 'openai' | 'xiaomi';
@@ -67,18 +75,21 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   const incoming = new URL(c.req.url);
   const upstreamPath = incoming.pathname.replace(/^\/llm\//, '/');
   const isChatCompletions = upstreamPath === CHAT_COMPLETIONS_PATH;
+  const isResponses = upstreamPath === RESPONSES_PATH;
+  const isLlmGeneration = isChatCompletions || isResponses;
 
   let bodyText: string | null = null;
   let parsedBody: { stream?: boolean; stream_options?: { include_usage?: boolean }; model?: string } | null = null;
   let isStreaming = false;
   let clientWantedUsage = false;
 
-  if (isChatCompletions && c.req.method === 'POST') {
+  if (isLlmGeneration && c.req.method === 'POST') {
     bodyText = await c.req.text();
     try {
       parsedBody = JSON.parse(bodyText);
       isStreaming = parsedBody?.stream === true;
-      if (parsedBody?.stream_options?.include_usage === true) {
+      // include_usage 只在 chat_completions 有意义；responses 默认就在 response.completed 事件带 usage
+      if (isChatCompletions && parsedBody?.stream_options?.include_usage === true) {
         clientWantedUsage = true;
       }
     } catch {
@@ -92,8 +103,8 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   let injectedModel: string | null = null;
 
   if (wallet.balance > 0) {
-    // 平台路径：chat/completions 必须带支持的 model；其它端点（/v1/models 等）默认走 OpenAI。
-    if (isChatCompletions) {
+    // 平台路径：chat/completions + responses 必须带支持的 model；其它端点（/v1/models 等）默认走 OpenAI。
+    if (isLlmGeneration) {
       const model = parsedBody?.model;
       if (typeof model !== 'string' || !isSupportedLlmModel(model)) {
         return c.json(
@@ -106,6 +117,16 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
         );
       }
       const provider = pickPlatformProvider(model, c.env);
+      // mimo 系列没有 /v1/responses 端点，直接挡掉避免转发到上游 404
+      if (isResponses && provider.name === 'xiaomi') {
+        return c.json(
+          {
+            error: 'unsupported_endpoint',
+            message: `model "${model}" 走 mimo 上游，不支持 /v1/responses，请用 /v1/chat/completions`,
+          },
+          400,
+        );
+      }
       if (!provider.key) {
         return c.json(
           {
@@ -146,12 +167,14 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
 
   const upstreamUrl = `${upstreamBase}${upstreamPath}${incoming.search}`;
 
-  // body 修改：平台路径 stream 时注入 include_usage 用于聚合扣账；
-  // muirouter 路径在客户端没传 model 时注入 defaultModel。
-  if (isChatCompletions && c.req.method === 'POST' && parsedBody) {
+  // body 修改：
+  //   - chat_completions 平台路径 stream 时注入 include_usage 用于聚合扣账；
+  //   - responses 端点不需要 include_usage（usage 必在 response.completed 事件里）；
+  //   - muirouter 路径在客户端没传 model 时注入 defaultModel（两端通用）。
+  if (isLlmGeneration && c.req.method === 'POST' && parsedBody) {
     let mutated = false;
 
-    if (isPlatform && isStreaming) {
+    if (isChatCompletions && isPlatform && isStreaming) {
       if (parsedBody.stream_options?.include_usage !== true) {
         parsedBody.stream_options = { ...(parsedBody.stream_options ?? {}), include_usage: true };
         mutated = true;
@@ -223,8 +246,8 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
     responseHeaders.set(k, v);
   }
 
-  // muirouter 不扣账；上游 4xx/5xx 不扣账；非 chat/completions 不扣账
-  if (!isPlatform || upstreamRes.status >= 400 || !isChatCompletions) {
+  // muirouter 不扣账；上游 4xx/5xx 不扣账；非 LLM 生成端点（如 /v1/models）不扣账
+  if (!isPlatform || upstreamRes.status >= 400 || !isLlmGeneration) {
     return new Response(upstreamRes.body, {
       status: upstreamRes.status,
       headers: responseHeaders,
@@ -235,8 +258,9 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
 
   if (isStreaming && upstreamRes.body) {
     const [a, b] = upstreamRes.body.tee();
+    const usagePromise = isResponses ? extractUsageFromResponsesSseStream(b) : extractUsageFromSseStream(b);
     c.executionCtx.waitUntil(
-      extractUsageFromSseStream(b).then(async (usage) => {
+      usagePromise.then(async (usage) => {
         if (!usage) return;
         const cachedTokens = usage.cached_tokens ?? 0;
         const cost = computeLlmCharge(model, usage.prompt_tokens, usage.completion_tokens, cachedTokens);
@@ -250,7 +274,9 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
       }),
     );
 
-    const outBody = clientWantedUsage ? a : stripUsageChunkFromSse(a);
+    // responses 流不需要 strip——usage 事件本来就是契约的一部分；
+    // chat_completions 当客户端没主动声明 include_usage 时把我们偷偷注入的那个 chunk 吞掉
+    const outBody = isResponses ? a : clientWantedUsage ? a : stripUsageChunkFromSse(a);
     return new Response(outBody, {
       status: upstreamRes.status,
       headers: responseHeaders,
@@ -261,21 +287,25 @@ export async function handleLlmProxy(c: Context<AppEnv>): Promise<Response> {
   const text = await upstreamRes.text();
   try {
     const json = JSON.parse(text);
-    if (json?.usage?.prompt_tokens != null && json?.usage?.completion_tokens != null) {
-      const cachedTokens = json.usage.prompt_tokens_details?.cached_tokens ?? 0;
-      const cost = computeLlmCharge(
-        json.model ?? model,
-        json.usage.prompt_tokens,
-        json.usage.completion_tokens,
-        cachedTokens,
-      );
+    const usage = isResponses
+      ? extractUsageFromResponsesJson(json)
+      : json?.usage?.prompt_tokens != null && json?.usage?.completion_tokens != null
+        ? {
+            prompt_tokens: json.usage.prompt_tokens as number,
+            completion_tokens: json.usage.completion_tokens as number,
+            cached_tokens: (json.usage.prompt_tokens_details?.cached_tokens ?? 0) as number,
+          }
+        : null;
+    if (usage) {
+      const chargedModel = json?.model ?? model;
+      const cost = computeLlmCharge(chargedModel, usage.prompt_tokens, usage.completion_tokens, usage.cached_tokens);
       if (cost != null) {
         c.executionCtx.waitUntil(
           charge(c.env, userId, cost, 'llm', {
-            model: json.model ?? model,
-            promptTokens: json.usage.prompt_tokens,
-            completionTokens: json.usage.completion_tokens,
-            cachedTokens,
+            model: chargedModel,
+            promptTokens: usage.prompt_tokens,
+            completionTokens: usage.completion_tokens,
+            cachedTokens: usage.cached_tokens ?? 0,
           })
             .then(() => {})
             .catch(() => {}),
