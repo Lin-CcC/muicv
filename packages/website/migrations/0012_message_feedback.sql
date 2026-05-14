@@ -1,9 +1,9 @@
--- 消息级反馈（赞 / 踩 / 聊聊）。每条 AI 消息一组反馈记录。
+-- 消息级反馈（赞 / 踩 / 意见建议）。每条 AI 消息一组反馈记录。
 --
 -- kind = 'rating' —— 赞 / 踩二选一，rating 列存 'praise' | 'dislike'，
 --                    每个 user × messageId 至多一行（partial unique index 见下）。
 --                    切换 praise <-> dislike 走 UPDATE，不再插新行也不再发奖励。
--- kind = 'comment' —— 自由文本（"聊聊"），text 列存原文。同一条消息可有多条评论。
+-- kind = 'comment' —— 自由文本（"意见建议"），text 列存原文。同一条消息可有多条评论。
 --                    text 长度 ≥ FEEDBACK_COMMENT_MIN_CHARS（50）才入 token 奖励。
 --
 -- awarded：本条反馈实际入账的 μtoken。

@@ -12,13 +12,13 @@ import type { ChatMessageFeedback } from '../../shared/types.ts';
 import { useAppStore } from '../lib/store';
 
 /**
- * 一条 AI 消息底部的反馈条：赞 / 踩 / 聊聊。
+ * 一条 AI 消息底部的反馈条：赞 / 踩 / 意见建议。
  *
  * 触发奖励的契约：
  *   - 赞 / 踩首次（这条消息从未评分过）→ +1000 显示 token
  *   - 切换 praise ↔ dislike → 状态更新但不再发奖
- *   - 聊聊 ≥ FEEDBACK_COMMENT_MIN_CHARS 字 → +50_000 显示 token，不限次数
- *   - 聊聊 < 50 字 → 仍然提交保存，但不发奖
+ *   - 意见建议 ≥ FEEDBACK_COMMENT_MIN_CHARS 字 → +50_000 显示 token，不限次数
+ *   - 意见建议 < 50 字 → 仍然提交保存，但不发奖
  *
  * 服务端是 source of truth，本地 feedback 缓存只用于按钮选中态恢复（重启 / 切对话回来）。
  * 组件本身不持久化奖励金额——飘字动画结束后只剩按钮选中态。
@@ -126,7 +126,7 @@ export function MessageFeedbackBar({
           <ThumbsDownIcon size={14} weight={rating === 'dislike' ? 'fill' : 'regular'} />
         </RatingButton>
         <RatingButton
-          label="聊聊"
+          label="意见建议"
           active={showCommentBox}
           disabled={noKey}
           onClick={() => {

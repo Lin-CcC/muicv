@@ -42,7 +42,7 @@ export function Install() {
           </div>
 
           <div className="grid gap-4 lg:col-span-7">
-            <InstallCard title="npx skills" meta="多 agent 通用 / 40+ 兼容" code={`npx skills add muicv -g`} />
+            <InstallCard title="npx skills" meta="多 agent 通用 / 40+ 兼容" code={`npx skills add meathill/muicv -g`} />
           </div>
         </div>
       </div>

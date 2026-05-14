@@ -56,7 +56,7 @@ export async function handleRate(c: Context<AppEnv>): Promise<Response> {
 }
 
 /**
- * POST /feedback/comment —— 给一条 AI 消息留文字反馈（"聊聊"）。
+ * POST /feedback/comment —— 给一条 AI 消息留文字反馈（"意见建议"）。
  *
  * Body: { messageId, conversationId, text }
  * Resp: { ok: true, feedbackId, charCount, awarded, balance, minChars, maxChars }

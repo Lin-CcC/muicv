@@ -1,7 +1,7 @@
 import { getConfig } from './store.ts';
 
 /**
- * Feedback 模块（main 进程）：把 renderer 的"赞 / 踩 / 聊聊"请求转成 HTTPS 调
+ * Feedback 模块（main 进程）：把 renderer 的"赞 / 踩 / 意见建议"请求转成 HTTPS 调
  * packages/api 的 /feedback/* 端点。API key 走 main 进程是因为 muicvApiKey 加密存在
  * electron-store 里，renderer 不该直接拿到原文。
  *

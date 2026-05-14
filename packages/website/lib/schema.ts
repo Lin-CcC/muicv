@@ -146,7 +146,7 @@ export const tokenLedger = sqliteTable('tokenLedger', {
 });
 
 /**
- * 消息级反馈（赞 / 踩 / 聊聊），见 migrations/0012_message_feedback.sql 注释。
+ * 消息级反馈（赞 / 踩 / 意见建议），见 migrations/0012_message_feedback.sql 注释。
  *
  * 与 tokenLedger 的关系：每条带奖励的反馈通过 wallet.credit() 写一条 type='feedback_reward'
  * 的 ledger，ledgerId = messageFeedback.id 实现幂等（重放不会重复发奖）。
