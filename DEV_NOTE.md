@@ -2,7 +2,7 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-05-11
+最后更新：2026-05-15
 
 ---
 
@@ -139,6 +139,24 @@
 - **Buffer → ArrayBuffer**：返回 `Response(buf.buffer.slice(...))` 而不是
   `Response(buf)`，否则 Buffer 在某些环境下会被识别成 SharedArrayBuffer。
 
+## STT / 录音架构（packages/app + packages/api，Phase 13 沉淀）
+
+- **provider switch（local / cloud / local-preferred）**：本地 = whisper.cpp + 用户挑的
+  model；云端 = `POST /audio/transcribe`（Cloudflare Workers AI Whisper-large-v3-turbo，
+  25 MB / 10 min 上限，按分钟扣 `stt_transcribe` token）。`local-preferred` **不**自动
+  fallback：本地失败直接报错——隐私优先（用户选了本地就别偷偷上传）。
+- **whisper.cpp 走 plugin 模式 / 跟主 app 解耦升版**：独立 workflow
+  [whisper-engine.yml](.github/workflows/whisper-engine.yml) 多平台 build + Developer ID 签 +
+  Apple notarize → GitHub Release `whisper-engine-vX.Y.Z`；app 按需从 release + HuggingFace
+  下载到 `<userData>/whisper-engine/`。设置页 `WhisperEngineCard` 管引擎 / 模型 / 偏好。
+- **audio format**：renderer 用 `OfflineAudioContext` 把任意输入（mp3 / m4a / webm / ogg /
+  flac / live MediaRecorder 流）解到 16 kHz mono PCM 再 WAV 编码——云端 / 本地共用一份格式，
+  不在主进程跑 ffmpeg / lamejs。
+- **macOS 麦克风**：Hardened Runtime + `NSMicrophoneUsageDescription` + manual TCC prompt。
+  没这三件套发 dmg 上线后用户会"按了说话没声音"且控制台无报错。
+- **MiMo ASR（小米开源中文 ASR）已调研排除**：8B PyTorch + CUDA-only，桌面端不可行；
+  中文方言识别强但只能做云端 provider（待用户量上来再考虑接，P2）。
+
 ## Agent 运行时上下文管理（packages/app/src/main/agent）
 
 > OpenAI Agents SDK 0.9+ 的 `AgentInputItem[]` 是 agent loop 的内存表示。
@@ -193,6 +211,23 @@
 
   上游若在 chat_completions 路径修了 reasoning_content 透传，删这层 revert 即可。
   跟踪：cron 周扫 `@openai/agents` release notes（设置：`/schedule list`）。
+
+- **Endpoint 选择（chat_completions vs responses，2026-05-15）**：OpenAI gpt-5.x 系是
+  reasoning 模型，function tools + `reasoning_effort` 在 `/v1/chat/completions` 端
+  **不支持**（官方 400：「Please use /v1/responses instead」）；mimo / deepseek 系
+  又必须走 chat_completions（reasoning_content 双向透传依赖 chat 端 SSE 解析）。
+  `runtime.ts:selectOpenAIAPI(config)` 在每次 `runAgent` 起点决策一次：
+  - 自带 `customLlmBase` 第三方代理（Groq / Together / OpenRouter 等）→ chat_completions
+    （这些代理普遍没实现 /v1/responses）
+  - `isThinkingModeModel(model)` 命中 → chat_completions
+  - 其余 → responses
+
+  之所以**每次 run 都调一次** `setOpenAIAPI(...)`：同一个 muicv key 可能在两次 run
+  之间被用户切了 model，cache 不住。
+- **agent run 起手先把 user msg 落盘**（commit `dc8a020`）：在 SDK 启动 stream 之前
+  做一次 `getConversation → push lastUser → saveConversation`，按 id 幂等。这是兜
+  `dev 重启 / 主进程崩 / 网络 stream 中段挂` 等场景：哪怕 stream 一个字符都没回，
+  用户刚敲的这条至少不会丢；`flushConversation` 末尾再 push 时按 id 去重不会重复。
 
 ## API Key / 鉴权（packages/api）
 
@@ -288,12 +323,27 @@
   时发现，2026-05-10 校到 90% off 把 margin 拉回 ~10%。`tokenLedger.meta` 多写一个
   `cachedTokens` 字段（JSON，无 schema 迁移），admin 详情页 cached>0 时展示。
 
-## OpenAI Chat Completions stream 注入 + 计费（packages/api）
+## OpenAI LLM 代理：stream 注入 / usage 抽取 / 计费（packages/api）
 
-- **默认 stream 不返 usage**，必须在请求 body 里 `stream_options: { include_usage: true }`。
-  我们的代理在平台路径（无 BYOK）**强制注入**这个字段。
-- 转发响应时如果 client 自己没声明 include_usage，把"choices=[] + usage 非空"的
-  最后那个 SSE block 吞掉（`stripUsageChunkFromSse`），保持 OpenAI SDK 流契约。
+> 平台路径同时反代 `/llm/v1/chat/completions` 和 `/llm/v1/responses`。`isLlmGeneration =
+> isChatCompletions || isResponses` 是判断"是否要做 model 白名单校验 + 扣账"的总闸门。
+
+- **chat_completions**：
+  - 默认 stream 不返 usage，必须 `stream_options: { include_usage: true }`。
+    平台路径（无 BYOK）**强制注入**这个字段。
+  - 转发响应时如果 client 自己没声明 include_usage，把 "choices=[] + usage 非空"
+    的最后那个 SSE block 吞掉（`stripUsageChunkFromSse`），保持 OpenAI SDK 流契约。
+  - usage 抽取：`extractUsageFromSseStream`（流式扫尾）/ 顶层 JSON `usage.prompt_tokens`。
+- **responses**（2026-05-15 加，see commit `5a15528`）：
+  - mimo 上游不实现该端点，`pickPlatformProvider().name === 'xiaomi' && isResponses`
+    直接 400 `unsupported_endpoint`，避免 404 + 计费混乱。
+  - usage 抽在 SSE `event: response.completed` 事件内（不是最后一条 chunk）；
+    字段名也不同：`input_tokens` / `output_tokens` / `input_tokens_details.cached_tokens`
+    → 在 `extractUsageFromResponsesSseStream` 里映射回 LlmUsage 形态复用既有
+    `computeLlmCharge`。
+  - **不**做 stripUsageChunkFromSse —— `response.completed` 事件本来就是契约的一部分，
+    客户端 SDK 依赖它结束 stream。
+  - 不注入 `include_usage`（responses 默认就返）。
 - **tee 上游 stream**：一份给 client，一份在 `waitUntil` 里聚合 usage 后扣账，
   不阻塞响应。tee 是 Web 标准，Workers 原生支持。
 - **错误响应不扣账**：`upstream.status >= 400` 时 skip charge（可能 usage 字段都没有）。

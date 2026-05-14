@@ -10,6 +10,7 @@ import {
 } from '@muicv/shared';
 import type { Context } from 'hono';
 
+import { toErrorMessage } from '../lib/error-message.ts';
 import { renderPdf } from '../lib/render-pdf.ts';
 import {
   createPreview,
@@ -85,7 +86,7 @@ export async function handlePreviewCreate(c: Context<AppEnv>): Promise<Response>
     return c.json(
       {
         error: 'resumeJson 不符合 TemplateResumeData schema',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: toErrorMessage(error),
       },
       400,
     );
@@ -198,7 +199,7 @@ export async function handlePreviewPdf(c: Context<AppEnv>): Promise<Response> {
     return c.json(
       {
         error: 'PDF 渲染失败',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: toErrorMessage(error),
       },
       502,
     );

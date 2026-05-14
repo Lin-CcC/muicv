@@ -261,12 +261,15 @@ test('POST /preview/:token/pdf 不存在 → 404', async () => {
   assert.equal(res.status, 404);
 });
 
-test('POST /preview/:token/pdf 公开访客 + 还没渲染过 → 402 pdf-not-paid', async () => {
+test('POST /preview/:token/pdf owner 余额不足 → 402 insufficient_balance', async () => {
+  // 0ca57da 起改了设计：任何拿到 token 的人都能点下载，统一按 owner 余额 gate。
+  // pdfCredit 字段保留只是为了在公开 GET 端点暴露 canDownloadPdf 信号 + 渲染后累加，
+  // 不再做 PDF POST 的拦截判定。这条用例验证 owner 钱包为 0 时返 insufficient_balance。
   const row = makePreviewRow({ pdfCredit: 0 });
   const res = await app.request(`/preview/${row.token}/pdf`, { method: 'POST' }, mockEnv({ previewRow: row }), ctx);
   assert.equal(res.status, 402);
-  const body = (await res.json()) as { error: string };
-  assert.equal(body.error, 'pdf-not-paid');
+  const body = (await res.json()) as { error: { code: string } };
+  assert.equal(body.error.code, 'insufficient_balance');
 });
 
 test('POST /preview/:token/revoke 缺 Authorization → 401', async () => {

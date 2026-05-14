@@ -1,6 +1,7 @@
 import { RESUME_SYNC_BLOB_MAX_SIZE_BYTES, RESUME_SYNC_HISTORY_KEEP, validateBlobSummary } from '@muicv/shared';
 import type { Context } from 'hono';
 
+import { toErrorMessage } from '../lib/error-message.ts';
 import type { AppEnv } from '../middleware/api-key.ts';
 
 type ActiveBlobRow = {
@@ -95,7 +96,7 @@ export async function handleResumeSyncBlob(c: Context<AppEnv>): Promise<Response
     return c.json(
       {
         error: 'blob storage failed',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: toErrorMessage(error),
       },
       502,
     );
@@ -139,7 +140,7 @@ export async function handleResumeSyncBlob(c: Context<AppEnv>): Promise<Response
     return c.json(
       {
         error: 'metadata write failed',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: toErrorMessage(error),
       },
       502,
     );

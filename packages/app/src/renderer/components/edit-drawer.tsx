@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useAppStore } from '../lib/store';
+import { useEnterAnimation } from '../lib/use-enter-animation';
 import { ConfirmDialog } from './confirm-dialog';
 import { CodeMirrorEditor } from './editor/codemirror-editor';
 
@@ -32,33 +33,21 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
   const editorError = useAppStore((s) => s.editorError);
   const setEditorBuffer = useAppStore((s) => s.setEditorBuffer);
 
-  const [mountedPath, setMountedPath] = useState<string | null>(null);
-  const [visible, setVisible] = useState(false);
+  const { mounted: mountedPath, visible } = useEnterAnimation(path, TRANSITION_MS);
   const [savedJustNow, setSavedJustNow] = useState(false);
   const [pendingClose, setPendingClose] = useState(false);
 
   const dirty = editorBuffer !== editorOriginal;
   const fileName = mountedPath?.split(/[/\\]/).pop() ?? '';
 
-  // path 变化 → 进/出场动画 + 装载 / 卸载文件。deps 只放 path，杜绝引用稳定性问题。
+  // path 变化 → 装载 / 卸载文件。动画归 useEnterAnimation 管，本 effect 只跑副作用。
+  // deps 只放 path，杜绝 zustand action 引用不稳定导致的多次 cleanup。
   useEffect(() => {
     if (path) {
-      setMountedPath(path);
       void useAppStore.getState().openEditorFile(path);
-      let raf2 = 0;
-      const raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => setVisible(true));
-      });
-      return () => {
-        cancelAnimationFrame(raf1);
-        cancelAnimationFrame(raf2);
-      };
+      return;
     }
-    setVisible(false);
-    const t = setTimeout(() => {
-      setMountedPath(null);
-      useAppStore.getState().closeEditorFile();
-    }, TRANSITION_MS);
+    const t = setTimeout(() => useAppStore.getState().closeEditorFile(), TRANSITION_MS);
     return () => clearTimeout(t);
   }, [path]);
 

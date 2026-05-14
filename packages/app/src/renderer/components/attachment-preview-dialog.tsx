@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import type { AttachmentRef } from '../../shared/types.ts';
 import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
+import { useEnterAnimation } from '../lib/use-enter-animation';
 import { resolveWorkspacePath } from './chat-utils';
 import { MarkdownView } from './markdown-view';
 
@@ -24,23 +25,7 @@ type Props = {
 export function AttachmentPreviewDialog({ attachment, onClose }: Props) {
   const activeProfile = useAppStore((s) => s.activeProfile);
 
-  // 双 state：mounted 控制组件挂载，visible 控制动画类。出场动画完成才 unmount。
-  const [mounted, setMounted] = useState<AttachmentRef | null>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (attachment) {
-      setMounted(attachment);
-      const raf1 = requestAnimationFrame(() => {
-        const raf2 = requestAnimationFrame(() => setVisible(true));
-        return () => cancelAnimationFrame(raf2);
-      });
-      return () => cancelAnimationFrame(raf1);
-    }
-    setVisible(false);
-    const t = setTimeout(() => setMounted(null), 180);
-    return () => clearTimeout(t);
-  }, [attachment]);
+  const { mounted, visible } = useEnterAnimation(attachment, 180);
 
   useEffect(() => {
     if (!mounted) return;

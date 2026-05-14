@@ -1,78 +1,22 @@
-import { FolderOpenIcon, GlobeIcon, ImageSquareIcon, PencilSimpleIcon, XIcon } from '@phosphor-icons/react';
+import { FolderOpenIcon, ImageSquareIcon, PencilSimpleIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { assertTemplateResumeData, isJsonTemplateId, JSON_TEMPLATE_IDS, type TemplateResumeData } from '@muicv/shared';
-
 import { pathToMuicvPdfUrl } from '../lib/muicv-pdf-url';
 import { useAppStore } from '../lib/store';
+import { useEnterAnimation } from '../lib/use-enter-animation';
 import { EditDrawer } from './edit-drawer';
 import { MarkdownView } from './markdown-view';
-
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
-const ALLOWED_PHOTO_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
-
-type JsonTemplateId = (typeof JSON_TEMPLATE_IDS)[number];
-
-/**
- * 6 套模板的展示名 —— 与 packages/website /r/render/[token]/templates/registry.ts
- * 注册的 jsonTemplates 一一对应。把名字暴露在预览 drawer，让用户能看到"v0.3.0
- * 6 套新模板"在哪儿（TODO #10：用户反馈"没看到新模版"）。
- */
-const TEMPLATE_LABELS: Record<JsonTemplateId, string> = {
-  't1-classic': 't1 · 经典衬线',
-  't2-minimal': 't2 · 极简瑞士',
-  't3-sidebar': 't3 · 左暗色栏',
-  't4-tech': 't4 · 技术向',
-  't5-timeline': 't5 · 时间线',
-  't6-academic': 't6 · 学术风',
-};
-
-function readTemplateFromJson(content: string | null): JsonTemplateId | null {
-  if (!content) return null;
-  try {
-    const parsed = JSON.parse(content) as { _template?: unknown; template?: unknown };
-    const raw = typeof parsed._template === 'string' ? parsed._template : parsed.template;
-    return typeof raw === 'string' && isJsonTemplateId(raw) ? raw : null;
-  } catch {
-    return null;
-  }
-}
-
-function readPhotoUrlFromJson(content: string | null): string | null {
-  if (!content) return null;
-  try {
-    const parsed = JSON.parse(content) as { photoUrl?: unknown };
-    return typeof parsed.photoUrl === 'string' && parsed.photoUrl.length > 0 ? parsed.photoUrl : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * patch `.resume.json` 的 photoUrl 字段。JSON parse + re-stringify with 2-space indent，
- * 写完返回新文件内容（调用方 setContent 直接 refresh，不必再 fs.read）。
- * 失败返回 null + reason，UI 显示给用户。
- */
-async function patchPhotoUrlInResumeJson(
-  path: string,
-  oldContent: string,
-  photoUrl: string,
-): Promise<{ ok: true; newContent: string } | { ok: false; reason: string }> {
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(oldContent) as Record<string, unknown>;
-  } catch (err) {
-    return { ok: false, reason: `简历 JSON 解析失败：${err instanceof Error ? err.message : String(err)}` };
-  }
-  parsed.photoUrl = photoUrl;
-  const newContent = `${JSON.stringify(parsed, null, 2)}\n`;
-  const res = await window.muicv.fs.write(path, newContent);
-  if (!res.ok) {
-    return { ok: false, reason: `写回失败：${res.error}` };
-  }
-  return { ok: true, newContent };
-}
+import {
+  ALLOWED_PHOTO_MIME,
+  type JsonTemplateId,
+  MAX_PHOTO_BYTES,
+  patchPhotoUrlInResumeJson,
+  readPhotoUrlFromJson,
+  readTemplateFromJson,
+} from './preview-drawer/tools';
+import { ResumeJsonPreviewButton } from './preview-drawer/resume-preview-button';
+import { TemplateSelect } from './preview-drawer/template-select';
 
 const TRANSITION_MS = 220;
 
@@ -82,39 +26,13 @@ const TRANSITION_MS = 220;
  * 跟文件树 (SidebarRight) 解耦：触发条件 = rightPanelPreviewPath 不空，
  * 关闭只清 previewPath。需要看文件树的话用左上角 toggle 按钮。
  *
- * 进 / 出场动画：
- *   - 进：mount 时立刻渲染 closed 状态（panel translate-x-full / backdrop
- *     opacity-0），下一帧切到 open 触发 CSS transition。
- *   - 出：先 set visible=false 走出场，TRANSITION_MS 后再 unmount，避免
- *     直接卸载看不到动画。
+ * 进 / 出场动画走 useEnterAnimation hook（双 RAF + setTimeout TRANSITION_MS）。
  */
 export function PreviewDrawer() {
   const previewPath = useAppStore((s) => s.rightPanelPreviewPath);
   const closePreview = useAppStore((s) => s.closePreview);
 
-  const [mountedPath, setMountedPath] = useState<string | null>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (previewPath) {
-      setMountedPath(previewPath);
-      // 双 rAF：第一帧 React 把 closed 状态 commit 并交给浏览器 paint，
-      // 第二帧再 set visible=true 切 open，CSS transition 才有"前一帧"
-      // 的样式快照可以跟当前帧 diff —— 单 rAF 时 React 18+ 偶尔会把两次
-      // setState 合并到一次 commit，结果浏览器只看到 open 状态，没动画。
-      let raf2 = 0;
-      const raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => setVisible(true));
-      });
-      return () => {
-        cancelAnimationFrame(raf1);
-        cancelAnimationFrame(raf2);
-      };
-    }
-    setVisible(false);
-    const t = setTimeout(() => setMountedPath(null), TRANSITION_MS);
-    return () => clearTimeout(t);
-  }, [previewPath]);
+  const { mounted: mountedPath, visible } = useEnterAnimation(previewPath, TRANSITION_MS);
 
   useEffect(() => {
     if (!mountedPath) return;
@@ -396,110 +314,6 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
       </footer>
 
       <EditDrawer path={editingPath} onClose={() => setEditingPath(null)} />
-    </>
-  );
-}
-
-function TemplateSelect({ value, onChange }: { value: JsonTemplateId; onChange: (id: JsonTemplateId) => void }) {
-  return (
-    <label className="ml-auto inline-flex items-center gap-1.5 text-[11px]">
-      <span className="text-mute">模板</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as JsonTemplateId)}
-        className="rounded border border-rule bg-paper px-1.5 py-0.5 font-mono text-[11px] text-ink hover:bg-fluff focus:outline-none focus:ring-1 focus:ring-yellow-deep"
-        title="切换在线预览使用的模板"
-      >
-        {JSON_TEMPLATE_IDS.map((id) => (
-          <option key={id} value={id}>
-            {TEMPLATE_LABELS[id]}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-/**
- * 把当前 `*.resume.json` 文件 POST 到 muicv 后端 /preview，
- * 拿到 https://muicv.com/preview/<token> URL 后用 shell.openExternal 打开默认浏览器。
- *
- * 模板由父组件决定（footer 的 TemplateSelect 控制）；语言从 JSON 顶层 `_lang` / `lang` 读，
- * 否则 fallback zh。
- *
- * UX 哲学：失败 toast 限本组件内显示 6 秒，不影响用户继续读 JSON；成功直接打开浏览器并 toast 链接。
- */
-function ResumeJsonPreviewButton({ content, template }: { content: string; template: JsonTemplateId }) {
-  const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-
-  useEffect(() => {
-    if (!message) return;
-    const t = setTimeout(() => setMessage(null), 6_000);
-    return () => clearTimeout(t);
-  }, [message]);
-
-  async function onClick() {
-    if (pending) return;
-    setPending(true);
-    setMessage(null);
-    try {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(content);
-      } catch (err) {
-        setMessage({ kind: 'err', text: `JSON 解析失败：${err instanceof Error ? err.message : String(err)}` });
-        return;
-      }
-      let resume: TemplateResumeData;
-      try {
-        assertTemplateResumeData(parsed);
-        resume = parsed;
-      } catch (err) {
-        setMessage({
-          kind: 'err',
-          text: `不符合 TemplateResumeData schema：${err instanceof Error ? err.message : String(err)}`,
-        });
-        return;
-      }
-
-      // 模板由父组件传入；lang 仍按 JSON 顶层 `_lang` / `lang` 字段读，缺省 zh。
-      const ext = parsed as { _lang?: unknown; lang?: unknown };
-      const rawLang = typeof ext._lang === 'string' ? ext._lang : ext.lang;
-      const lang: 'zh' | 'en' = rawLang === 'en' ? 'en' : 'zh';
-
-      const res = await window.muicv.preview.create({ resumeJson: resume, template, lang });
-      if (!res.ok) {
-        setMessage({ kind: 'err', text: res.message });
-        return;
-      }
-      await window.muicv.shell.openExternal(res.url);
-      setMessage({ kind: 'ok', text: `已打开浏览器：${res.url}` });
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => void onClick()}
-        disabled={pending}
-        className="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 font-bold text-ink hover:bg-fluff disabled:opacity-60"
-        title="POST /preview 拿可分享 URL，并打开默认浏览器"
-      >
-        <GlobeIcon size={12} />
-        <span>{pending ? '生成中…' : '在线预览'}</span>
-      </button>
-      {message && (
-        <span
-          className={`max-w-[40%] truncate text-[10.5px] ${message.kind === 'ok' ? 'text-yellow-deep' : 'text-tongue'}`}
-          title={message.text}
-        >
-          {message.text}
-        </span>
-      )}
     </>
   );
 }

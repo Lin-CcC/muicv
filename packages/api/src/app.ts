@@ -12,6 +12,7 @@ import {
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
+import { toErrorMessage } from './lib/error-message.ts';
 import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
 import { renderPdf, type RenderPdfInput } from './lib/render-pdf.ts';
 import { charge, ensureBalance } from './lib/wallet.ts';
@@ -196,7 +197,7 @@ app.post('/render', requireApiKey, async (c) => {
       return c.json(
         {
           error: 'resumeJson 不符合 TemplateResumeData schema',
-          detail: error instanceof Error ? error.message : String(error),
+          detail: toErrorMessage(error),
         },
         400,
       );
@@ -233,7 +234,7 @@ app.post('/render', requireApiKey, async (c) => {
     return c.json(
       {
         error: 'PDF 渲染失败',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: toErrorMessage(error),
       },
       502,
     );
@@ -337,7 +338,7 @@ app.post('/jobs/fetch', requireApiKey, async (c) => {
     return c.json(
       {
         error: 'fetch 失败',
-        detail: error instanceof Error ? error.message : String(error),
+        detail: toErrorMessage(error),
         url,
       },
       502,

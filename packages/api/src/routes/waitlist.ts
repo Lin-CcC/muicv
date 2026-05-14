@@ -1,5 +1,7 @@
 import type { Context } from 'hono';
 
+import { toErrorMessage } from '../lib/error-message.ts';
+
 type AppEnv = { Bindings: CloudflareBindings };
 
 /**
@@ -66,7 +68,7 @@ export async function handleWaitlist(c: Context<AppEnv>): Promise<Response> {
       .bind(email, source, referrer, userAgent, ipHash)
       .run();
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
+    const msg = toErrorMessage(error);
     if (/UNIQUE/i.test(msg) || /constraint/i.test(msg)) {
       return c.json({ error: 'already-registered' }, 409);
     }
