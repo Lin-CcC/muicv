@@ -68,24 +68,40 @@ function ensureConfigured(config: AppConfig): boolean {
 }
 
 /**
- * mimo / DeepSeek 系 thinking-mode 模型在多轮 tool calling 时要求把上一轮
- * assistant 响应的 reasoning_content 字段回传，OpenAI Agents SDK 走 chat_completions
- * 路径时不知道这个非标准字段会直接丢掉 → mimo 400。上游修复只在 agents-extensions
- * 的 aisdk() 路径，且 gate 写死 isDeepSeekModel；我们在 fetch 层自己拦截：
+ * mimo / DeepSeek 系 thinking-mode 模型在多轮 tool calling 时要求**每一条带
+ * tool_calls 的 assistant message** 都要伴随 reasoning_content；OpenAI Agents
+ * SDK 走 chat_completions 时不识别这个非标准字段会直接丢掉 → mimo 400。
  *
- *   Response 侧：检测 mimo streaming 响应，tee 出一份 SSE 流，后台累计
- *               delta.reasoning_content 存到 pendingReasoning 单 slot 缓存。
- *   Request 侧：下次 mimo 请求出去前，把缓存的 reasoning_content 注入到
- *               body.messages 最后一条 assistant 上，然后清空缓存。
+ *   Response 侧：mimo streaming response → body.tee() 后台读 SSE，
+ *                每轮累计 delta.reasoning_content 推入 reasoningQueue 末尾
+ *   Request 侧：mimo 下次请求出去前，遍历 body.messages 里所有 assistant
+ *                按顺序对应 reasoningQueue[i] 注入（FIFO）
  *
- * 并发假设：@openai/agents 在一次 run() 内严格串行调用 fetch（每轮等 stream
- * 流完 + tool 跑完才发下一轮），单 slot 不会被并发覆盖。跨 run 残留也无害——
- * 下次 request 注入后立即清空，且新 run 第一轮 messages 里没有 in-flight
- * assistant，注入循环找不到目标自然跳过。
+ * 并发假设：SDK 在一次 run() 内严格串行调用 fetch（等 stream 流完 + tool 跑完
+ * 才发下一轮），队列推入和读取不会并发。每次新的 runAgent 调用前
+ * `resetMimoReasoning()` 清队列，避免跨 run 残留——上一轮 run 的 reasoning
+ * 不属于这一轮 body 里的 assistant，序号会错位。
  *
- * 上游参考：https://github.com/openai/openai-agents-js/pull/792（DeepSeek 同款问题）。
+ * 上游参考：https://github.com/openai/openai-agents-js/pull/792（DeepSeek 同款问题，aisdk 路径专修）。
  */
-let pendingReasoning: { model: string; content: string } | null = null;
+type MimoReasoning = { model: string; content: string };
+let reasoningQueue: MimoReasoning[] = [];
+
+/**
+ * 实时 reasoning_content delta 监听器。runAgent 启动时设置（转发到 send），
+ * 结束时清空。模块级单 slot：依赖单 mimo run 串行（多 channel 并发场景里
+ * 可能串台，但当前架构没用户会同时跑两个 agent，暂可接受）。
+ */
+let reasoningDeltaListener: ((delta: string) => void) | null = null;
+
+/** runAgent 调用前清队列，避免上一轮 run 的 reasoning 错位注入本轮 assistant。 */
+function resetMimoReasoning(): void {
+  reasoningQueue = [];
+}
+
+function setReasoningDeltaListener(fn: ((delta: string) => void) | null): void {
+  reasoningDeltaListener = fn;
+}
 
 function isMimoModel(modelId: unknown): modelId is string {
   return typeof modelId === 'string' && modelId.startsWith('mimo-');
@@ -100,21 +116,37 @@ function isMimoModel(modelId: unknown): modelId is string {
  * 注意：req body 可能含敏感内容（用户对话原文），日志只截 1.5KB 摘要。
  */
 async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> {
-  // Request 侧：mimo 请求 + 上一轮缓存命中 → 注入 reasoning_content 到 last assistant
+  // Request 侧：mimo 请求 + 队列非空 → 从队尾对齐注入到 body.messages 末尾 N 条 assistant
+  // body.messages 里 assistant 分两类：
+  //   - 历史完成态：从持久化 ChatMessage[] 经 history.toItem 重建，无 tool_calls，mimo 不要求 reasoning
+  //   - 本轮新生成：SDK 在 run() 内部按 turn 累计，有 tool_calls，mimo 强制要求 reasoning
+  // 队列长度 = 本轮已完成的 turn 数 = 末尾 N 条新 assistant。从队尾对齐：
+  //   reasoningQueue[0] → 倒数第 queue.length 条 assistant
+  //   reasoningQueue[i] → 倒数第 (queue.length - i) 条 assistant
   let mutatedInit = init;
-  if (init?.body && typeof init.body === 'string' && pendingReasoning) {
+  if (init?.body && typeof init.body === 'string' && reasoningQueue.length > 0) {
     try {
       const body = JSON.parse(init.body);
-      if (isMimoModel(body.model) && body.model === pendingReasoning.model && Array.isArray(body.messages)) {
-        const cached = pendingReasoning;
-        pendingReasoning = null;
-        for (let i = body.messages.length - 1; i >= 0; i--) {
+      if (isMimoModel(body.model) && Array.isArray(body.messages)) {
+        const assistantIndices: number[] = [];
+        for (let i = 0; i < body.messages.length; i++) {
           const msg = body.messages[i];
-          if (msg && typeof msg === 'object' && msg.role === 'assistant') {
-            msg.reasoning_content = cached.content;
-            mutatedInit = { ...init, body: JSON.stringify(body) };
-            break;
+          if (msg && typeof msg === 'object' && msg.role === 'assistant') assistantIndices.push(i);
+        }
+        const offset = assistantIndices.length - reasoningQueue.length;
+        let injected = 0;
+        if (offset >= 0) {
+          for (let i = 0; i < reasoningQueue.length; i++) {
+            const slot = reasoningQueue[i];
+            if (!slot || slot.model !== body.model) continue;
+            const target = assistantIndices[offset + i];
+            if (target == null) continue;
+            (body.messages[target] as Record<string, unknown>).reasoning_content = slot.content;
+            injected++;
           }
+        }
+        if (injected > 0) {
+          mutatedInit = { ...init, body: JSON.stringify(body) };
         }
       }
     } catch {
@@ -188,16 +220,19 @@ async function tapMimoReasoning(stream: ReadableStream<Uint8Array>, model: strin
           const payload = line.slice(5).trim();
           if (!payload || payload === '[DONE]') continue;
           try {
-            const json = JSON.parse(payload) as { choices?: Array<{ delta?: { reasoning_content?: unknown } }> };
-            const delta = json.choices?.[0]?.delta?.reasoning_content;
-            if (typeof delta === 'string') acc += delta;
+            const json = JSON.parse(payload) as { choices?: Array<{ delta?: Record<string, unknown> }> };
+            const rc = json.choices?.[0]?.delta?.reasoning_content;
+            if (typeof rc === 'string' && rc.length > 0) {
+              acc += rc;
+              reasoningDeltaListener?.(rc);
+            }
           } catch {
             /* 半包 / 非 JSON 行忽略 */
           }
         }
       }
     }
-    if (acc) pendingReasoning = { model, content: acc };
+    if (acc) reasoningQueue.push({ model, content: acc });
   } finally {
     reader.releaseLock();
   }
@@ -237,6 +272,10 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     send({ type: 'finish', reason: 'error' });
     return;
   }
+  // 清掉上一轮 run 残留的 reasoning 队列，避免序号错位注入本轮 assistant
+  resetMimoReasoning();
+  // 把 mimo 推理过程实时转发给 renderer，让 UI 展示真正的"思考中"内容而不是静态提示
+  setReasoningDeltaListener((delta) => send({ type: 'reasoning-delta', delta }));
 
   // artifact 收集：tool 调用过程中累计 artifact，完成后塞进 assistant message
   const collectedArtifacts: Array<import('../../shared/types.ts').ArtifactRef> = [];
@@ -297,10 +336,14 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   let assistantText = '';
   const assistantToolCalls: ToolCallRecord[] = [];
 
-  // 空转看门狗：如果 stream open 后 30s 内没收到任何 event（mimo / 第三方代理偶发
+  // 空转看门狗：如果 stream open 后 N 秒内没收到任何 event（mimo / 第三方代理偶发
   // silent hang），主动 abort 并报错，避免 UI 永远卡在"思考中"。任何 event 到达
-  // 就 reset 计时。30s 经验值——mimo 经 muirouter 冷启动通常 8-15s，留 2 倍 headroom。
-  const STREAM_IDLE_TIMEOUT_MS = 30_000;
+  // 就 reset 计时。
+  //   - 普通模型 30s（GPT 经 muirouter 冷启动通常 8-15s，留 2 倍 headroom）
+  //   - mimo / DeepSeek 系 thinking-mode 模型给 120s——multi-turn 深度推理时
+  //     mimo 可能 30+s 才出第一个 chunk；SDK 在 reasoning 阶段不一定 yield event，
+  //     所以哪怕底层 SSE 在流也可能看起来"空转"。
+  const STREAM_IDLE_TIMEOUT_MS = isMimoModel(config.defaultModel) ? 120_000 : 30_000;
   let lastEventAt = Date.now();
   let timedOut = false;
   const watchdog = setInterval(() => {
@@ -412,6 +455,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   } finally {
     clearInterval(watchdog);
     activeRuns.delete(channelId);
+    setReasoningDeltaListener(null);
   }
 
   /** 把本轮 user msg + 累积的 assistant msg 追加到 conversation 文件。 */

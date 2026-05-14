@@ -165,17 +165,31 @@
   「本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。」
   原始 OpenAI 错码不再透出给用户。
 - **mimo thinking-mode reasoning_content 透传**（2026-05，issue #8）：mimo / DeepSeek
-  系 thinking-mode 模型在多轮 tool calling 时，要求上一轮 assistant 响应里的
-  `reasoning_content` 字段在下次请求里**回传到对应 assistant message 上**，否则 400
-  `Param Incorrect`。`@openai/agents` SDK 0.9+ 走 chat_completions 路径时**不知道**
-  这个非标准字段会直接丢掉。上游修复（[PR #792](https://github.com/openai/openai-agents-js/pull/792)
-  / [#814](https://github.com/openai/openai-agents-js/pull/814)）只在
-  `agents-extensions` 的 `aisdk()` 路径，gate 写死 `isDeepSeekModel`——伪装方案得
-  改 provider 名 + 加 2 个 deps，不可控。我们在 [runtime.ts](packages/app/src/main/agent/runtime.ts)
-  的 `loggingFetch` 层自己拦截：response 侧 `body.tee()` 一份 SSE stream 后台累计
-  `delta.reasoning_content`，request 侧把缓存注入 `body.messages` 最后一条 assistant，
-  单 slot 模块级缓存——依赖 SDK 在单 run 内严格串行调用 fetch 的事实。后续上游若
-  在 chat_completions 路径修了，删 mimo 分支 revert 即可。
+  系 thinking-mode 模型在多轮 tool calling 时，要求**每一条带 tool_calls 的 assistant
+  message** 都伴随 `reasoning_content`，否则 400 `Param Incorrect`。`@openai/agents`
+  SDK 0.9+ 走 chat_completions 路径时不识别这个非标准字段会直接丢掉。上游修复
+  （[PR #792](https://github.com/openai/openai-agents-js/pull/792) /
+  [#814](https://github.com/openai/openai-agents-js/pull/814)）只在 `agents-extensions`
+  的 `aisdk()` 路径，gate 写死 `isDeepSeekModel`——伪装方案得改 provider 名 + 加 2
+  个 deps，不可控。我们在 [runtime.ts](packages/app/src/main/agent/runtime.ts) 的
+  `loggingFetch` 层自己拦截：
+  - **Response 侧**：mimo streaming response → `body.tee()` 一份 SSE 流，后台累计
+    `delta.reasoning_content` 推入 `reasoningQueue` 末尾；同时通过模块级
+    `reasoningDeltaListener` 把每个 delta 转发给 renderer，UI 实时展示思考过程
+    替代原静态"思考中…"。
+  - **Request 侧**：mimo 下次请求出去前，从队尾对齐——`body.messages` 里最后 N 条
+    assistant 对应 `reasoningQueue[0..N-1]`。FIFO 顺序：`queue[0]` 对应本轮第一个
+    新生成的 assistant，依此类推。历史完成态 assistant（持久化重建无 tool_calls）
+    不需要 reasoning_content。
+  - **resetMimoReasoning()** 在每次 `runAgent` 起点清队列，避免跨 run 错位。
+
+  并发假设：SDK 在单次 `run()` 内严格串行调用 fetch（等本轮 stream 完 + tool 跑完
+  才发下一轮），队列推入/读取无并发。
+
+  watchdog 对 mimo 系列从 30s 提到 120s：thinking mode 多轮深度推理时模型可能 30+s
+  才吐第一个 chunk，30s 误伤。
+
+  上游若在 chat_completions 路径修了，删 mimo 分支 revert 即可。
 
 ## API Key / 鉴权（packages/api）
 

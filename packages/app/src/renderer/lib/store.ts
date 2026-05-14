@@ -70,6 +70,7 @@ type AppStore = {
   // 对话流操作（作用于 activeConversation.messages）
   pushMessage: (m: ChatMessage) => void;
   appendAssistantText: (id: string, delta: string) => void;
+  appendReasoningText: (id: string, delta: string) => void;
   attachToolCall: (id: string, call: ToolCallRecord) => void;
   updateToolOutput: (id: string, toolCallId: string, output: string) => void;
   attachArtifact: (id: string, artifact: ArtifactRef) => void;
@@ -81,7 +82,7 @@ type AppStore = {
    */
   patchMessageFeedback: (messageId: string, patch: Partial<ChatMessageFeedback>) => void;
   /**
-   * 直接覆盖 session.balance（显示 token）。点完赞 / 踩 / 聊聊后用 server 返回的最新余额刷一下，
+   * 直接覆盖 session.balance（显示 token）。点完赞 / 踩 / 意见建议后用 server 返回的最新余额刷一下，
    * Settings 的 PlanCard 自动反映。
    */
   applyBalance: (balance: number) => void;
@@ -368,6 +369,18 @@ export const useAppStore = create<AppStore>((set, get) => ({
         activeConversation: {
           ...s.activeConversation,
           messages: s.activeConversation.messages.map((m) => (m.id === id ? { ...m, content: m.content + delta } : m)),
+        },
+      };
+    }),
+  appendReasoningText: (id, delta) =>
+    set((s) => {
+      if (!s.activeConversation) return {};
+      return {
+        activeConversation: {
+          ...s.activeConversation,
+          messages: s.activeConversation.messages.map((m) =>
+            m.id === id ? { ...m, reasoning: (m.reasoning ?? '') + delta } : m,
+          ),
         },
       };
     }),

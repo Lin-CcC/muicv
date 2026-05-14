@@ -1,5 +1,5 @@
-import { CheckIcon, FileTextIcon, GearIcon, HourglassIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
+import { BrainIcon, CheckIcon, FileTextIcon, GearIcon, HourglassIcon } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { ArtifactRef, AttachmentRef, ChatMessageFeedback, ToolCallRecord } from '../../shared/types.ts';
 import { ArtifactCard } from './artifact-card';
@@ -26,6 +26,7 @@ export function MessageBubble({
   conversationId,
   role,
   content,
+  reasoning,
   attachments,
   toolCalls,
   artifacts,
@@ -38,6 +39,7 @@ export function MessageBubble({
   conversationId: string;
   role: string;
   content: string;
+  reasoning?: string | undefined;
   attachments?: AttachmentRef[] | undefined;
   toolCalls?: ToolCallRecord[] | undefined;
   artifacts?: ArtifactRef[] | undefined;
@@ -53,7 +55,8 @@ export function MessageBubble({
   const writeRefs = artifacts?.filter((a) => a.source === 'write') ?? [];
   const hasOps = (toolCalls?.length ?? 0) > 0 || readRefs.length > 0;
   const hasAttachments = (attachments?.length ?? 0) > 0;
-  const empty = !displayContent && !hasOps && !hasAttachments && writeRefs.length === 0;
+  const hasReasoning = !!reasoning && reasoning.length > 0;
+  const empty = !displayContent && !hasOps && !hasAttachments && writeRefs.length === 0 && !hasReasoning;
   // 流式中（content 还在累加 / inflight tool）不显示反馈条；
   // 等流式完成、有实际文本后再让用户评价。
   const showFeedback = !isUser && !empty && content.length > 0;
@@ -67,6 +70,10 @@ export function MessageBubble({
           }`}
         >
           {!isUser && hasOps && <OpsGroup toolCalls={toolCalls ?? []} reads={readRefs} />}
+
+          {!isUser && reasoning && reasoning.length > 0 && (
+            <ReasoningBlock text={reasoning} streaming={!displayContent} />
+          )}
 
           {displayContent &&
             (isUser ? (
@@ -110,6 +117,54 @@ export function MessageBubble({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * thinking-mode 模型（mimo / DeepSeek 系）的推理过程展示。
+ *
+ *   - streaming=true（最终回复未开始）：默认展开 + 跟随滚动，让用户看到模型当下在想什么，
+ *     替代之前固定的"思考中…"——多轮深思考时能确认 agent 仍在工作而非卡死
+ *   - streaming=false（已开始/完成最终回复）：默认收起，避免抢戏
+ */
+function ReasoningBlock({ text, streaming }: { text: string; streaming: boolean }) {
+  const [open, setOpen] = useState(streaming);
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  // streaming 期间 text 增长时滚到底部，保持最新思考可见
+  useEffect(() => {
+    if (streaming && open && bodyRef.current) {
+      bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+    }
+  }, [text, streaming, open]);
+
+  // 从 streaming → 完成时自动收起，让位给最终内容
+  useEffect(() => {
+    if (!streaming) setOpen(false);
+  }, [streaming]);
+
+  return (
+    <details
+      open={open}
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+      className="rounded-md border border-rule bg-fluff/50"
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-2.5 py-1.5 text-[12px] text-mute">
+        <BrainIcon
+          size={12}
+          weight="fill"
+          className={streaming ? 'shrink-0 animate-pulse text-yellow-deep' : 'shrink-0 text-yellow-deep'}
+        />
+        <span className="flex-1 truncate">{streaming ? '思考中…' : `思考过程 · ${text.length} 字`}</span>
+        <span className="text-[10px]">{open ? '收起' : '展开'}</span>
+      </summary>
+      <div
+        ref={bodyRef}
+        className="max-h-48 overflow-auto border-t border-rule px-2.5 py-2 text-[12px] leading-relaxed text-mute"
+      >
+        <div className="whitespace-pre-wrap font-mono text-[11.5px]">{text}</div>
+      </div>
+    </details>
   );
 }
 

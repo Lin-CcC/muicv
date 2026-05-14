@@ -119,6 +119,13 @@ export type ChatMessage = {
   role: ChatRole;
   /** 文本内容（assistant 回复 / 用户输入 / tool result 摘要）。 */
   content: string;
+  /**
+   * thinking-mode 模型（mimo / DeepSeek 系）的推理过程文本，
+   * 仅 role === 'assistant' 时有意义；运行中流式拼接，UI 用来显示"思考中"区块。
+   * **不**持久化到 conversation 文件（runtime flushConversation 不写入）——
+   * 只活在 in-memory store，切对话或重启后消失。
+   */
+  reasoning?: string;
   /** 如果是 assistant 调了 tool，记录工具名和输入。 */
   toolCalls?: ToolCallRecord[];
   /** assistant 完成时附带的 artifact 卡片（用户写的文件 / 读的关键资料）。 */
@@ -334,6 +341,12 @@ export type ConversationSummary = Omit<Conversation, 'messages'> & {
 export type AgentChunk =
   /** assistant 文字流增量（model 边输出边给）。 */
   | { type: 'text-delta'; delta: string }
+  /**
+   * thinking-mode 模型 (mimo / DeepSeek 系) 的推理过程增量。
+   * 不进 ChatMessage 持久化——只用于"思考中"区块的实时展示，
+   * 在 message-completed / finish 时被丢弃。
+   */
+  | { type: 'reasoning-delta'; delta: string }
   /** 一段完整 message_output_item 已确认（用于纠错 / 完整文本）。 */
   | { type: 'message-completed'; text: string }
   /** 工具调用开始：name + 输入参数（JSON 字符串） */

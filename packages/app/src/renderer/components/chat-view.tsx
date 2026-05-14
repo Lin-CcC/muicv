@@ -129,6 +129,7 @@ export function ChatView() {
                 conversationId={activeConversation.id}
                 role={m.role}
                 content={m.content}
+                reasoning={m.reasoning}
                 attachments={m.attachments}
                 toolCalls={m.toolCalls}
                 artifacts={m.artifacts}

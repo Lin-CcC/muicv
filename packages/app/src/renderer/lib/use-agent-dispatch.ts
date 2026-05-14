@@ -32,6 +32,7 @@ export function useAgentDispatch(callbacks: DispatchCallbacks): AgentDispatchApi
   const defaultModel = useAppStore((s) => s.config.defaultModel);
   const pushMessage = useAppStore((s) => s.pushMessage);
   const appendAssistantText = useAppStore((s) => s.appendAssistantText);
+  const appendReasoningText = useAppStore((s) => s.appendReasoningText);
   const attachToolCall = useAppStore((s) => s.attachToolCall);
   const updateToolOutput = useAppStore((s) => s.updateToolOutput);
   const attachArtifact = useAppStore((s) => s.attachArtifact);
@@ -102,6 +103,9 @@ export function useAgentDispatch(callbacks: DispatchCallbacks): AgentDispatchApi
           switch (chunk.type) {
             case 'text-delta':
               appendAssistantText(assistantId, chunk.delta);
+              break;
+            case 'reasoning-delta':
+              appendReasoningText(assistantId, chunk.delta);
               break;
             case 'message-completed':
               break;
