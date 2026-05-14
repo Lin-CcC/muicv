@@ -11,9 +11,11 @@ import { type ClipboardEvent, useEffect, useLayoutEffect, useRef, useState } fro
 import type { AttachmentRef, AudioFailedRecording, AudioRecordOutcome } from '../../shared/types.ts';
 import type { ChatAttachmentsApi } from '../lib/use-chat-attachments';
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS_PER_SEND } from '../lib/use-chat-attachments';
+import { useRecorder } from '../lib/use-recorder';
 import { useSlashCommand } from '../lib/use-slash-command.ts';
 import { AttachmentPreviewDialog } from './attachment-preview-dialog';
 import { AttachmentChip } from './chat-attachment-chip';
+import { RecordingBar } from './recording-bar';
 import { SlashCommandMenu } from './slash-command-menu.tsx';
 
 type Props = {
@@ -66,6 +68,30 @@ export function ChatInputBar({
   // setInput 提交后再 focus + setSelectionRange 落光标（复用 use-slash-command 的模式）。
   const pendingCursorRef = useRef<number | null>(null);
   const slash = useSlashCommand({ value: input, onChange: setInput, textareaRef });
+
+  // 录音状态机：mic 按钮和 agent tool 都通过 main → audio:recording-request 走到这里，
+  // 统一渲染内嵌 RecordingBar，不再用全屏 dialog。完成 / 取消 / 错误回 IPC 给 main。
+  const recorder = useRecorder({
+    onComplete: (req, payload) => {
+      void window.muicv.audio.complete(req.requestId, payload);
+    },
+    onCancel: (req, reason) => {
+      void window.muicv.audio.cancel(req.requestId, reason);
+    },
+    onError: (req, reason) => {
+      void window.muicv.audio.cancel(req.requestId, reason);
+    },
+  });
+  const recorderApiRef = useRef(recorder);
+  recorderApiRef.current = recorder;
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在挂载时订阅；recorder 走 ref 引用
+  useEffect(() => {
+    const unsub = window.muicv.audio.onRecordingRequest((req) => {
+      void recorderApiRef.current.start(req);
+    });
+    return () => unsub();
+  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: 仅 contextKey 触发清空
   useEffect(() => {
@@ -371,74 +397,86 @@ export function ChatInputBar({
           className="hidden"
           onChange={attachments.onFileInputChange}
         />
-        <div
-          ref={inputContainerRef}
-          className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink"
-        >
-          <button
-            type="button"
-            onClick={() => void handleMicClick()}
-            disabled={busy || recording}
-            title={recording ? '录音 / 转写中…' : '语音输入（最长 3 分钟）'}
-            className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="语音输入"
+        {recorder.phase === 'idle' ? (
+          <div
+            ref={inputContainerRef}
+            className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink"
           >
-            {recording ? (
-              <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+            <button
+              type="button"
+              onClick={() => void handleMicClick()}
+              disabled={busy || recording}
+              title={recording ? '录音 / 转写中…' : '语音输入（最长 3 分钟）'}
+              className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="语音输入"
+            >
+              {recording ? (
+                <SpinnerGapIcon size={18} weight="bold" className="animate-spin" />
+              ) : (
+                <MicrophoneIcon size={18} weight="regular" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={attachments.onPickFiles}
+              disabled={busy || attachments.pendingAttachments.length >= MAX_ATTACHMENTS_PER_SEND}
+              title={`上传附件（PDF / DOCX / Markdown / 文本 / 图像；也可以直接拖入或粘贴。单文件 ≤ 20MB，单次最多 ${MAX_ATTACHMENTS_PER_SEND} 个）`}
+              className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
+              aria-label="上传附件"
+            >
+              <PaperclipIcon size={18} weight="regular" />
+            </button>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (slash.handleKeyDown(e)) return;
+                if (e.nativeEvent.isComposing) return;
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSendClick();
+              }}
+              onPaste={handlePaste}
+              onContextMenu={(e) => {
+                // 拦下 Chromium 默认空菜单，让主进程弹 native 编辑菜单
+                e.preventDefault();
+                window.muicv.chatInput.showContextMenu({ editable: true });
+              }}
+              placeholder={placeholder}
+              disabled={busy}
+              rows={2}
+              className="flex-1 resize-none rounded-lg bg-transparent px-3 py-2 text-[14px] leading-[1.5] text-ink placeholder:text-mute focus:outline-none disabled:opacity-60"
+            />
+            {busy ? (
+              <button
+                type="button"
+                onClick={onAbort}
+                className="press-ink inline-flex shrink-0 items-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3.5 py-2 text-[13px] font-bold text-ink"
+              >
+                <span>停</span>
+                <StopIcon size={12} weight="fill" />
+              </button>
             ) : (
-              <MicrophoneIcon size={18} weight="regular" />
+              <button
+                type="button"
+                onClick={handleSendClick}
+                disabled={!canSend}
+                className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                发送 ⌘↵
+              </button>
             )}
-          </button>
-          <button
-            type="button"
-            onClick={attachments.onPickFiles}
-            disabled={busy || attachments.pendingAttachments.length >= MAX_ATTACHMENTS_PER_SEND}
-            title={`上传附件（PDF / DOCX / Markdown / 文本 / 图像；也可以直接拖入或粘贴。单文件 ≤ 20MB，单次最多 ${MAX_ATTACHMENTS_PER_SEND} 个）`}
-            className="press-ink inline-flex shrink-0 items-center justify-center rounded-lg border-2 border-rule-strong bg-cream p-2 text-ink transition hover:border-ink disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label="上传附件"
-          >
-            <PaperclipIcon size={18} weight="regular" />
-          </button>
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (slash.handleKeyDown(e)) return;
-              if (e.nativeEvent.isComposing) return;
-              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') handleSendClick();
-            }}
-            onPaste={handlePaste}
-            onContextMenu={(e) => {
-              // 拦下 Chromium 默认空菜单，让主进程弹 native 编辑菜单
-              e.preventDefault();
-              window.muicv.chatInput.showContextMenu({ editable: true });
-            }}
-            placeholder={placeholder}
-            disabled={busy}
-            rows={2}
-            className="flex-1 resize-none rounded-lg bg-transparent px-3 py-2 text-[14px] leading-[1.5] text-ink placeholder:text-mute focus:outline-none disabled:opacity-60"
+          </div>
+        ) : (
+          <RecordingBar
+            phase={recorder.phase}
+            elapsedMs={recorder.elapsedMs}
+            limitSec={recorder.active?.durationLimitSec ?? 180}
+            rms={recorder.rms}
+            errorMsg={recorder.errorMsg}
+            onCancel={() => recorder.cancel('user-cancel')}
+            onFinish={() => recorder.finish()}
           />
-          {busy ? (
-            <button
-              type="button"
-              onClick={onAbort}
-              className="press-ink inline-flex shrink-0 items-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3.5 py-2 text-[13px] font-bold text-ink"
-            >
-              <span>停</span>
-              <StopIcon size={12} weight="fill" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSendClick}
-              disabled={!canSend}
-              className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              发送 ⌘↵
-            </button>
-          )}
-        </div>
+        )}
         <SlashCommandMenu
           open={slash.menuOpen}
           anchor={inputContainerRef.current}

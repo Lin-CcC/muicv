@@ -1,20 +1,19 @@
-import { type ReactElement, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { AudioRecordingPayload, AudioRecordingRequest } from '../../shared/types.ts';
-import { encodeWav16kMono } from '../lib/wav-encoder.ts';
+import { encodeWav16kMono } from './wav-encoder.ts';
 
 /**
- * 模拟面试 / 录音复盘的录音面板。issue #1 M2。
+ * 通用录音 hook：负责 getUserMedia / MediaRecorder / 静音检测 / 限时停 / WAV 转码。
  *
- * 流程：
- *   1. 监听 muicv.audio.onRecordingRequest（main 端 agent tool 触发）
- *   2. 弹全屏遮罩，getUserMedia → MediaRecorder 录 webm/opus
- *   3. 同步用 AudioContext + AnalyserNode 算 RMS：
- *      - 静音 ≥ 1.5s 记一段 pause
- *      - 静音 ≥ 3s 自动停止
- *   4. 录完 blob → base64 → muicv.audio.complete(requestId, payload)
+ * 不耦合任何 UI，也不直接调 IPC——通过 onComplete/onCancel/onError 把结果交给调用方，
+ * 让"内嵌 chat-input-bar"和"未来其他场景"都能复用。
  *
- * 用户中途按"完成" / "取消"也走 complete / cancel。
+ * 流程对应 issue #1 M2 的录音 dialog 原版：
+ *   1. start(req) → getUserMedia → MediaRecorder(webm/opus) + AnalyserNode RMS
+ *   2. 每 100ms 采 RMS；静音 ≥ 1.5s 记一段 pause；静音 ≥ 3s 自动 stopRecording
+ *   3. recorder.onstop → blob → 16k mono WAV → base64 → onComplete(req, payload)
+ *   4. 用户点取消 / 准备阶段错误 → onCancel / onError
  */
 
 const SILENCE_RMS_THRESHOLD = 0.02;
@@ -22,19 +21,39 @@ const PAUSE_MIN_MS = 1500;
 const AUTO_STOP_SILENCE_MS = 3000;
 const RMS_SAMPLE_INTERVAL_MS = 100;
 
-type Phase = 'idle' | 'preparing' | 'recording' | 'finishing' | 'error';
+export const RECORDER_AUTO_STOP_SILENCE_MS = AUTO_STOP_SILENCE_MS;
 
-type RecordingState = {
-  request: AudioRecordingRequest;
-  startedAt: number;
+export type RecorderPhase = 'idle' | 'preparing' | 'recording' | 'finishing' | 'error';
+
+export type UseRecorderOptions = {
+  onComplete: (req: AudioRecordingRequest, payload: AudioRecordingPayload) => void;
+  onCancel: (req: AudioRecordingRequest, reason: string) => void;
+  onError: (req: AudioRecordingRequest, reason: string) => void;
 };
 
-export function RecordPanel(): ReactElement | null {
-  const [active, setActive] = useState<RecordingState | null>(null);
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [errorMsg, setErrorMsg] = useState<string>('');
-  const [elapsedMs, setElapsedMs] = useState<number>(0);
-  const [rms, setRms] = useState<number>(0);
+export type RecorderApi = {
+  active: AudioRecordingRequest | null;
+  phase: RecorderPhase;
+  elapsedMs: number;
+  rms: number;
+  errorMsg: string;
+  start: (req: AudioRecordingRequest) => Promise<void>;
+  finish: () => void;
+  cancel: (reason: string) => void;
+};
+
+export function useRecorder(opts: UseRecorderOptions): RecorderApi {
+  const [active, setActive] = useState<AudioRecordingRequest | null>(null);
+  const [phase, setPhase] = useState<RecorderPhase>('idle');
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [rms, setRms] = useState(0);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // 定时器闭包要读最新 phase / active，不能走 React state 闭包（会停在 start() 时刻的旧值）
+  const phaseRef = useRef<RecorderPhase>('idle');
+  const activeRef = useRef<AudioRecordingRequest | null>(null);
+  const optsRef = useRef(opts);
+  optsRef.current = opts;
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -43,24 +62,59 @@ export function RecordPanel(): ReactElement | null {
   const chunksRef = useRef<Blob[]>([]);
   const pausesRef = useRef<Array<[number, number]>>([]);
   const silenceStartRef = useRef<number | null>(null);
+  const startedAtRef = useRef<number>(0);
+
   const rmsTimerRef = useRef<number | null>(null);
   const tickTimerRef = useRef<number | null>(null);
   const limitTimerRef = useRef<number | null>(null);
 
+  function setPhaseBoth(next: RecorderPhase): void {
+    phaseRef.current = next;
+    setPhase(next);
+  }
+
+  function setActiveBoth(next: AudioRecordingRequest | null): void {
+    activeRef.current = next;
+    setActive(next);
+  }
+
+  function clearTimers(): void {
+    if (tickTimerRef.current) {
+      clearInterval(tickTimerRef.current);
+      tickTimerRef.current = null;
+    }
+    if (rmsTimerRef.current) {
+      clearInterval(rmsTimerRef.current);
+      rmsTimerRef.current = null;
+    }
+    if (limitTimerRef.current) {
+      clearTimeout(limitTimerRef.current);
+      limitTimerRef.current = null;
+    }
+  }
+
+  function cleanup(): void {
+    clearTimers();
+    const tracks = streamRef.current?.getTracks() ?? [];
+    for (const t of tracks) t.stop();
+    streamRef.current = null;
+    void audioCtxRef.current?.close().catch(() => {});
+    audioCtxRef.current = null;
+    analyserRef.current = null;
+    recorderRef.current = null;
+  }
+
+  // 组件卸载兜底清理
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只在卸载时跑；cleanup 内部全部走 ref，无需入 deps
   useEffect(() => {
-    const unsub = window.muicv.audio.onRecordingRequest((req) => {
-      void start(req);
-    });
     return () => {
-      unsub();
       cleanup();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function start(request: AudioRecordingRequest): Promise<void> {
-    setActive({ request, startedAt: Date.now() });
-    setPhase('preparing');
+    setActiveBoth(request);
+    setPhaseBoth('preparing');
     setErrorMsg('');
     setElapsedMs(0);
     setRms(0);
@@ -74,8 +128,8 @@ export function RecordPanel(): ReactElement | null {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMsg(`获取麦克风失败：${msg}`);
-      setPhase('error');
-      void window.muicv.audio.cancel(request.requestId, `mic-permission-denied: ${msg}`);
+      setPhaseBoth('error');
+      optsRef.current.onError(request, `mic-permission-denied: ${msg}`);
       return;
     }
     streamRef.current = stream;
@@ -98,19 +152,20 @@ export function RecordPanel(): ReactElement | null {
     source.connect(analyser);
     analyserRef.current = analyser;
 
-    const startedAt = Date.now();
-    setActive({ request, startedAt });
-    setPhase('recording');
+    startedAtRef.current = Date.now();
+    setPhaseBoth('recording');
     recorder.start();
 
     tickTimerRef.current = window.setInterval(() => {
-      setElapsedMs(Date.now() - startedAt);
+      setElapsedMs(Date.now() - startedAtRef.current);
     }, 200);
 
     rmsTimerRef.current = window.setInterval(() => {
-      const value = sampleRms(analyser);
+      const a = analyserRef.current;
+      if (!a) return;
+      const value = sampleRms(a);
       setRms(value);
-      const now = Date.now() - startedAt;
+      const now = Date.now() - startedAtRef.current;
       if (value < SILENCE_RMS_THRESHOLD) {
         if (silenceStartRef.current == null) silenceStartRef.current = now;
         const silenceDur = now - silenceStartRef.current;
@@ -132,8 +187,8 @@ export function RecordPanel(): ReactElement | null {
   }
 
   function stopRecording(): void {
-    if (phase !== 'recording') return;
-    setPhase('finishing');
+    if (phaseRef.current !== 'recording') return;
+    setPhaseBoth('finishing');
     clearTimers();
     const recorder = recorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
@@ -142,8 +197,7 @@ export function RecordPanel(): ReactElement | null {
   }
 
   async function finalizeRecording(request: AudioRecordingRequest): Promise<void> {
-    const startedAt = active?.startedAt ?? Date.now();
-    const durationMs = Date.now() - startedAt;
+    const durationMs = Date.now() - startedAtRef.current;
 
     // 收尾：如果停时还在静音段中，把它也算一段 pause
     if (silenceStartRef.current != null) {
@@ -162,8 +216,8 @@ export function RecordPanel(): ReactElement | null {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMsg(`音频转码失败：${msg}`);
-      setPhase('error');
-      void window.muicv.audio.cancel(request.requestId, `encode-failed: ${msg}`);
+      setPhaseBoth('error');
+      optsRef.current.onError(request, `encode-failed: ${msg}`);
       cleanup();
       return;
     }
@@ -174,8 +228,8 @@ export function RecordPanel(): ReactElement | null {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMsg(`录音编码失败：${msg}`);
-      setPhase('error');
-      void window.muicv.audio.cancel(request.requestId, `encode-failed: ${msg}`);
+      setPhaseBoth('error');
+      optsRef.current.onError(request, `encode-failed: ${msg}`);
       cleanup();
       return;
     }
@@ -186,102 +240,37 @@ export function RecordPanel(): ReactElement | null {
       durationMs,
       pauses: pausesRef.current.slice(),
     };
-    void window.muicv.audio.complete(request.requestId, payload);
+    optsRef.current.onComplete(request, payload);
     cleanup();
-    setActive(null);
-    setPhase('idle');
+    setActiveBoth(null);
+    setPhaseBoth('idle');
   }
 
-  function userCancel(): void {
-    const requestId = active?.request.requestId;
+  function cancel(reason: string): void {
+    const request = activeRef.current;
     clearTimers();
     const recorder = recorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
-      // 注意不让 onstop 调 finalize：先解绑
+      // 别让 onstop 再走 finalize；这是用户的"放弃"路径
       recorder.onstop = null;
       recorder.stop();
     }
     cleanup();
-    if (requestId) void window.muicv.audio.cancel(requestId, 'user-cancel');
-    setActive(null);
-    setPhase('idle');
+    if (request) optsRef.current.onCancel(request, reason);
+    setActiveBoth(null);
+    setPhaseBoth('idle');
   }
 
-  function clearTimers(): void {
-    if (tickTimerRef.current) {
-      clearInterval(tickTimerRef.current);
-      tickTimerRef.current = null;
-    }
-    if (rmsTimerRef.current) {
-      clearInterval(rmsTimerRef.current);
-      rmsTimerRef.current = null;
-    }
-    if (limitTimerRef.current) {
-      clearTimeout(limitTimerRef.current);
-      limitTimerRef.current = null;
-    }
-  }
-
-  function cleanup(): void {
-    clearTimers();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    void audioCtxRef.current?.close().catch(() => {});
-    audioCtxRef.current = null;
-    analyserRef.current = null;
-    recorderRef.current = null;
-  }
-
-  if (!active && phase === 'idle') return null;
-
-  const limitSec = active?.request.durationLimitSec ?? 180;
-  const elapsedSec = Math.floor(elapsedMs / 1000);
-  const remainSec = Math.max(0, limitSec - elapsedSec);
-
-  return (
-    <div className="titlebar-no-drag fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm">
-      <div className="w-[420px] rounded-2xl border-2 border-rule-strong bg-cream p-6 shadow-xl">
-        <h2 className="mb-2 text-lg font-bold text-ink">模拟面试录音</h2>
-        <p className="mb-4 text-sm text-mute">
-          {phase === 'preparing' && '准备录音…'}
-          {phase === 'recording' && `已录 ${formatTime(elapsedMs)} / 最长 ${formatTime(limitSec * 1000)}`}
-          {phase === 'finishing' && '正在保存…'}
-          {phase === 'error' && (errorMsg || '录音失败')}
-        </p>
-
-        <div className="mb-4 h-16 w-full overflow-hidden rounded-md border border-rule bg-paper">
-          <div
-            className="h-full bg-yellow transition-all duration-100"
-            style={{ width: `${Math.min(100, rms * 500)}%` }}
-          />
-        </div>
-
-        <div className="mb-4 flex justify-between text-xs text-mute">
-          <span>静音自动停 {AUTO_STOP_SILENCE_MS / 1000}s</span>
-          <span>剩余 {remainSec}s</span>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={userCancel}
-            className="press-ink rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2 text-[13px] font-bold text-ink hover:border-ink"
-          >
-            取消
-          </button>
-          {phase === 'recording' && (
-            <button
-              type="button"
-              onClick={stopRecording}
-              className="press rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink"
-            >
-              完成
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return {
+    active,
+    phase,
+    elapsedMs,
+    rms,
+    errorMsg,
+    start,
+    finish: stopRecording,
+    cancel,
+  };
 }
 
 function pickMimeType(): string | null {
@@ -301,13 +290,6 @@ function sampleRms(analyser: AnalyserNode): number {
     sumSquares += v * v;
   }
   return Math.sqrt(sumSquares / buf.length);
-}
-
-function formatTime(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const mm = String(Math.floor(s / 60)).padStart(2, '0');
-  const ss = String(s % 60).padStart(2, '0');
-  return `${mm}:${ss}`;
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
