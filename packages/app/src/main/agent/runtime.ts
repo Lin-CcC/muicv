@@ -68,34 +68,41 @@ function ensureConfigured(config: AppConfig): boolean {
 }
 
 /**
- * mimo / DeepSeek 系 thinking-mode 模型在多轮 tool calling 时要求**每一条带
- * tool_calls 的 assistant message** 都要伴随 reasoning_content；OpenAI Agents
- * SDK 走 chat_completions 时不识别这个非标准字段会直接丢掉 → mimo 400。
+ * thinking-mode 推理模型（mimo / DeepSeek 系，及后续遵循同协议的）在多轮 tool
+ * calling 时要求**每一条带 tool_calls 的 assistant message** 都要伴随
+ * reasoning_content；OpenAI Agents SDK 走 chat_completions 时不识别这个非标准
+ * 字段会直接丢掉 → mimo / DeepSeek 400 `Param Incorrect`。
  *
- *   Response 侧：mimo streaming response → body.tee() 后台读 SSE，
- *                每轮累计 delta.reasoning_content 推入 reasoningQueue 末尾
- *   Request 侧：mimo 下次请求出去前，遍历 body.messages 里所有 assistant
- *                按顺序对应 reasoningQueue[i] 注入（FIFO）
+ *   Response 侧：streaming response → body.tee() 后台读 SSE，每轮累计
+ *                delta.reasoning_content 推入 reasoningQueue 末尾
+ *   Request 侧：下次请求出去前，遍历 body.messages 里所有 assistant 从队尾
+ *                对齐注入（FIFO：reasoningQueue[0] → 倒数第 queue.length 条）
+ *
+ * 设计上**与模型无关**：所有 streaming response 都跑 tap；不返回 reasoning_content
+ * 的模型（GPT / Claude 等）chunk 里没这个字段，queue 自然空，inject 是 no-op。
+ * 这样对接新的 thinking-mode 模型不用改这层代码，只要模型遵循 OpenAI 兼容的
+ * `delta.reasoning_content` SSE 约定就直接生效。
  *
  * 并发假设：SDK 在一次 run() 内严格串行调用 fetch（等 stream 流完 + tool 跑完
- * 才发下一轮），队列推入和读取不会并发。每次新的 runAgent 调用前
- * `resetMimoReasoning()` 清队列，避免跨 run 残留——上一轮 run 的 reasoning
- * 不属于这一轮 body 里的 assistant，序号会错位。
+ * 才发下一轮），队列推入和读取不会并发。每次 runAgent 起点调
+ * `resetReasoningState()` 清队列，避免跨 run 残留。
  *
- * 上游参考：https://github.com/openai/openai-agents-js/pull/792（DeepSeek 同款问题，aisdk 路径专修）。
+ * 上游参考：https://github.com/openai/openai-agents-js/pull/792（DeepSeek 同款问题，
+ * 但仅在 agents-extensions 的 aisdk 路径修，chat_completions 路径未修——若哪天
+ * 上游覆盖了，可以删掉这层）。
  */
-type MimoReasoning = { model: string; content: string };
-let reasoningQueue: MimoReasoning[] = [];
+type ReasoningCapture = { model: string; content: string };
+let reasoningQueue: ReasoningCapture[] = [];
 
 /**
  * 实时 reasoning_content delta 监听器。runAgent 启动时设置（转发到 send），
- * 结束时清空。模块级单 slot：依赖单 mimo run 串行（多 channel 并发场景里
- * 可能串台，但当前架构没用户会同时跑两个 agent，暂可接受）。
+ * 结束时清空。模块级单 slot：依赖 SDK 单 run 内串行——多 channel 并发场景里
+ * 可能串台，但当前架构用户不会同时跑两个 agent。
  */
 let reasoningDeltaListener: ((delta: string) => void) | null = null;
 
 /** runAgent 调用前清队列，避免上一轮 run 的 reasoning 错位注入本轮 assistant。 */
-function resetMimoReasoning(): void {
+function resetReasoningState(): void {
   reasoningQueue = [];
 }
 
@@ -103,23 +110,29 @@ function setReasoningDeltaListener(fn: ((delta: string) => void) | null): void {
   reasoningDeltaListener = fn;
 }
 
-function isMimoModel(modelId: unknown): modelId is string {
-  return typeof modelId === 'string' && modelId.startsWith('mimo-');
+/**
+ * 是否是带 thinking mode 的推理模型——仅用于决定 watchdog timeout 长度。
+ * thinking-mode 模型在深度推理时可能 30+s 才出第一个 chunk，30s 误伤。
+ * reasoning_content 透传逻辑本身不依赖这个判定，对所有模型都安全。
+ */
+function isThinkingModeModel(modelId: unknown): boolean {
+  if (typeof modelId !== 'string') return false;
+  return modelId.startsWith('mimo-') || modelId.startsWith('deepseek-');
 }
 
 /**
  * OpenAI SDK 自定义 fetch wrapper，承担两件事：
  *   1. non-ok 响应时打印完整 body + 请求摘要（mimo / muirouter 经常返回 400
  *      "Param Incorrect" 之类语义稀薄的错误，没这层日志根本看不出哪个 param 不对）
- *   2. mimo thinking-mode reasoning_content 双向透传（见 pendingReasoning 注释）
+ *   2. thinking-mode reasoning_content 双向透传（见 reasoningQueue 注释）
  *
  * 注意：req body 可能含敏感内容（用户对话原文），日志只截 1.5KB 摘要。
  */
 async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]): Promise<Response> {
-  // Request 侧：mimo 请求 + 队列非空 → 从队尾对齐注入到 body.messages 末尾 N 条 assistant
+  // Request 侧：队列非空 → 从队尾对齐注入到 body.messages 末尾 N 条 assistant
   // body.messages 里 assistant 分两类：
-  //   - 历史完成态：从持久化 ChatMessage[] 经 history.toItem 重建，无 tool_calls，mimo 不要求 reasoning
-  //   - 本轮新生成：SDK 在 run() 内部按 turn 累计，有 tool_calls，mimo 强制要求 reasoning
+  //   - 历史完成态：从持久化 ChatMessage[] 经 history.toItem 重建，无 tool_calls，不要求 reasoning
+  //   - 本轮新生成：SDK 在 run() 内部按 turn 累计，有 tool_calls，强制要求 reasoning
   // 队列长度 = 本轮已完成的 turn 数 = 末尾 N 条新 assistant。从队尾对齐：
   //   reasoningQueue[0] → 倒数第 queue.length 条 assistant
   //   reasoningQueue[i] → 倒数第 (queue.length - i) 条 assistant
@@ -127,7 +140,7 @@ async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameter
   if (init?.body && typeof init.body === 'string' && reasoningQueue.length > 0) {
     try {
       const body = JSON.parse(init.body);
-      if (isMimoModel(body.model) && Array.isArray(body.messages)) {
+      if (typeof body.model === 'string' && Array.isArray(body.messages)) {
         const assistantIndices: number[] = [];
         for (let i = 0; i < body.messages.length; i++) {
           const msg = body.messages[i];
@@ -166,13 +179,15 @@ async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameter
     );
   }
 
-  // Response 侧：mimo streaming 响应 → tee 一份流到后台 tap，抓 delta.reasoning_content
+  // Response 侧：所有 streaming 响应都 tee 一份到后台 tap 抓 delta.reasoning_content。
+  // 模型不支持 reasoning_content 时 chunk 里没这个字段，tap 拉到空，queue 不增长，
+  // 下次 inject no-op，零副作用。
   const reqModel = extractModelFromRequestBody(mutatedInit?.body);
   const isStream = res.ok && !!res.body && (res.headers.get('content-type') ?? '').includes('text/event-stream');
-  if (isStream && isMimoModel(reqModel)) {
+  if (isStream && reqModel) {
     const [streamForSDK, streamForUs] = res.body!.tee();
-    tapMimoReasoning(streamForUs, reqModel).catch((err) => {
-      console.warn('[mimo reasoning tap] failed:', err);
+    tapReasoningStream(streamForUs, reqModel).catch((err) => {
+      console.warn('[reasoning tap] failed:', err);
     });
     return new Response(streamForSDK, {
       status: res.status,
@@ -201,7 +216,7 @@ function extractModelFromRequestBody(body: unknown): string | null {
  * SDK 在同一 run 内严格串行（等本轮 stream 完 + tool 跑完才发下一轮），
  * 所以 tap 一定在下一轮 request 前完成，缓存写入有 happens-before 保证。
  */
-async function tapMimoReasoning(stream: ReadableStream<Uint8Array>, model: string): Promise<void> {
+async function tapReasoningStream(stream: ReadableStream<Uint8Array>, model: string): Promise<void> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
   let buf = '';
@@ -273,8 +288,9 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     return;
   }
   // 清掉上一轮 run 残留的 reasoning 队列，避免序号错位注入本轮 assistant
-  resetMimoReasoning();
-  // 把 mimo 推理过程实时转发给 renderer，让 UI 展示真正的"思考中"内容而不是静态提示
+  resetReasoningState();
+  // 把推理过程实时转发给 renderer，让 UI 展示真正的"思考中"内容而不是静态提示
+  // 仅 thinking-mode 模型实际会触发，普通模型 stream 里没 reasoning_content 字段
   setReasoningDeltaListener((delta) => send({ type: 'reasoning-delta', delta }));
 
   // artifact 收集：tool 调用过程中累计 artifact，完成后塞进 assistant message
@@ -340,10 +356,10 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   // silent hang），主动 abort 并报错，避免 UI 永远卡在"思考中"。任何 event 到达
   // 就 reset 计时。
   //   - 普通模型 30s（GPT 经 muirouter 冷启动通常 8-15s，留 2 倍 headroom）
-  //   - mimo / DeepSeek 系 thinking-mode 模型给 120s——multi-turn 深度推理时
-  //     mimo 可能 30+s 才出第一个 chunk；SDK 在 reasoning 阶段不一定 yield event，
+  //   - thinking-mode 模型（mimo / DeepSeek 系）给 120s——multi-turn 深度推理时
+  //     模型可能 30+s 才出第一个 chunk；SDK 在 reasoning 阶段不一定 yield event，
   //     所以哪怕底层 SSE 在流也可能看起来"空转"。
-  const STREAM_IDLE_TIMEOUT_MS = isMimoModel(config.defaultModel) ? 120_000 : 30_000;
+  const STREAM_IDLE_TIMEOUT_MS = isThinkingModeModel(config.defaultModel) ? 120_000 : 30_000;
   let lastEventAt = Date.now();
   let timedOut = false;
   const watchdog = setInterval(() => {
