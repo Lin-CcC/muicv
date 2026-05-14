@@ -47,6 +47,12 @@
     {
       "binding": "MUICV_RESUME_BLOB",
       "bucket_name": "muicv"
+    },
+    // 证件照桶：跟 packages/api 共享同一 bucket（"muicv"，已绑 i.muicv.com）。
+    // 让网页端预览页能就地上传 / 选历史照片。
+    {
+      "binding": "MUICV_PHOTOS",
+      "bucket_name": "muicv"
     }
   ],
   "services": [

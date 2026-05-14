@@ -7,13 +7,17 @@ import {
   assertTemplateResumeData,
   isJsonTemplateId,
   isTemplateLang,
+  JSON_TEMPLATE_IDS,
   pickLang,
   type TemplateLang,
   type TemplateResumeData,
 } from '@muicv/shared';
 
+import { getCurrentSession } from '@/lib/session';
+
 import { jsonTemplates } from '../../r/render/[token]/templates/registry';
 
+import { PhotoSlotButton } from './photo-slot';
 import PreviewToolbar from './preview-toolbar';
 import styles from './preview.module.css';
 
@@ -162,6 +166,9 @@ export default async function PreviewPage({ params }: { params: Promise<{ token:
   const lang: TemplateLang = isTemplateLang(record.lang) ? record.lang : 'zh';
   const shareUrl = `https://muicv.com/preview/${record.token}`;
 
+  const session = await getCurrentSession();
+  const isOwner = session?.user?.id === record.userId;
+
   return (
     <>
       <PreviewToolbar
@@ -169,11 +176,20 @@ export default async function PreviewPage({ params }: { params: Promise<{ token:
         shareUrl={shareUrl}
         shareMode={record.shareMode === 'public' ? 'public' : 'link'}
         expiresAt={record.expiresAt}
-        canDownloadPdf={record.pdfCredit > 0}
+        isOwner={isOwner}
+        currentTemplate={record.template}
+        templateOptions={[...JSON_TEMPLATE_IDS]}
       />
       <div className={styles.stage}>
         <div className={styles.stageInner}>
-          <Template resume={resume} lang={lang} {...(record.accent ? { accent: record.accent } : {})} />
+          <Template
+            resume={resume}
+            lang={lang}
+            {...(record.accent ? { accent: record.accent } : {})}
+            {...(isOwner
+              ? { slots: { photo: <PhotoSlotButton token={record.token} hasPhoto={!!resume.photoUrl} /> } }
+              : {})}
+          />
         </div>
       </div>
     </>

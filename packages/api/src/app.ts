@@ -27,6 +27,7 @@ import {
   handlePreviewPdf,
   handlePreviewRevoke,
   handlePreviewShareMode,
+  handlePreviewTemplate,
 } from './routes/preview.ts';
 import { handlePhotoHistory, handleUploadPhoto } from './routes/upload-photo.ts';
 import {
@@ -92,6 +93,7 @@ app.get('/', (c) =>
       'POST /preview/:token/revoke',
       'POST /preview/:token/extend',
       'POST /preview/:token/share-mode',
+      'POST /preview/:token/template',
       'POST /upload/photo（multipart/form-data，字段 file）',
       'GET /upload/photo/history?limit=20（列当前用户最近上传）',
       'POST /jobs/fetch',
@@ -100,7 +102,7 @@ app.get('/', (c) =>
       'GET /me（拿当前登录用户信息）',
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
       'POST /feedback/rate（赞/踩 AI 消息，奖励 1000 token）',
-      'POST /feedback/comment（聊聊 AI 消息，≥50 字奖励 50000 token）',
+      'POST /feedback/comment（意见建议 AI 消息，≥50 字奖励 50000 token）',
       'POST /resume/sync（push 整个素材库快照，明文 JSON）',
       'GET /resume/snapshot（pull 活动版）',
       'GET /resume/snapshot/history（列历史快照 metadata）',
@@ -269,6 +271,7 @@ app.post('/preview/:token/pdf', optionalApiKey, handlePreviewPdf);
 app.post('/preview/:token/revoke', requireApiKey, handlePreviewRevoke);
 app.post('/preview/:token/extend', requireApiKey, handlePreviewExtend);
 app.post('/preview/:token/share-mode', requireApiKey, handlePreviewShareMode);
+app.post('/preview/:token/template', requireApiKey, handlePreviewTemplate);
 
 /**
  * /upload/photo

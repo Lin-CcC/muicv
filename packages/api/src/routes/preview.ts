@@ -24,6 +24,7 @@ import {
   PREVIEW_TTL_DAYS_OPTIONS,
   revokePreview,
   setPreviewShareMode,
+  setPreviewTemplate,
   type PreviewRecord,
   type PreviewShareMode,
   type PreviewTtlDays,
@@ -159,10 +160,12 @@ export async function handlePreviewGet(c: Context<AppEnv>): Promise<Response> {
 /**
  * POST /preview/:token/pdf —— 下载预览页对应的 PDF。
  *
+ * 任何拿到 token 的人都能点击下载；每次渲染都向 owner 余额扣 PDF_RENDER_COST。
+ * 设计意图：token 本身就是 owner 颁发的访问凭证，他承担费用；防滥用靠 revoke
+ * / extend 控制 token 生命周期，而不是在 UI 上劝退访客。
+ *
  * - 已 revoke 或过期 → 410
- * - owner（带 Bearer key 且 userId 匹配）：必扣 PDF_RENDER_COST（首次或重复都扣），
- *   渲染成功后 pdfCredit++ 让公开访客后续可以免费下载
- * - 公开访客（无 Bearer / 不匹配 owner）：仅当 pdfCredit > 0 才允许；否则提示 owner 先点一次
+ * - owner 余额不足 → 402（错误展示给点击的人，提示由 owner 联系）
  */
 export async function handlePreviewPdf(c: Context<AppEnv>): Promise<Response> {
   const token = c.req.param('token');
@@ -173,25 +176,10 @@ export async function handlePreviewPdf(c: Context<AppEnv>): Promise<Response> {
   if (!record) return c.json({ error: 'not-found' }, 404);
   if (!isPreviewActive(record)) return c.json({ error: record.revokedAt ? 'revoked' : 'expired' }, 410);
 
-  const callerUserId = c.get('userId');
-  const isOwner = !!callerUserId && callerUserId === record.userId;
-
-  if (!isOwner && record.pdfCredit <= 0) {
-    return c.json(
-      {
-        error: 'pdf-not-paid',
-        message: '这份预览的拥有者还没有渲染过 PDF。owner 在自己浏览器登录后点一次「下载 PDF」即可解锁公开下载。',
-      },
-      402,
-    );
-  }
-
   const pdfCostMicro = displayToMicro(PDF_RENDER_COST);
-  if (isOwner) {
-    const wallet = await ensureBalance(c.env, record.userId);
-    if (wallet.balance < pdfCostMicro) {
-      return c.json(insufficientBalanceError(wallet.balance), 402);
-    }
+  const wallet = await ensureBalance(c.env, record.userId);
+  if (wallet.balance < pdfCostMicro) {
+    return c.json(insufficientBalanceError(wallet.balance), 402);
   }
 
   let pdf: Uint8Array;
@@ -216,14 +204,12 @@ export async function handlePreviewPdf(c: Context<AppEnv>): Promise<Response> {
     );
   }
 
-  if (isOwner) {
-    c.executionCtx.waitUntil(
-      Promise.all([
-        charge(c.env, record.userId, pdfCostMicro, 'pdf_render', { template: record.template, via: 'preview' }),
-        incrementPdfCredit(c.env, record.token),
-      ]).catch(() => {}),
-    );
-  }
+  c.executionCtx.waitUntil(
+    Promise.all([
+      charge(c.env, record.userId, pdfCostMicro, 'pdf_render', { template: record.template, via: 'preview' }),
+      incrementPdfCredit(c.env, record.token),
+    ]).catch(() => {}),
+  );
 
   return new Response(pdf, {
     status: 200,
@@ -278,6 +264,54 @@ export async function handlePreviewList(c: Context<AppEnv>): Promise<Response> {
       status: it.revokedAt != null ? 'revoked' : it.expiresAt <= Date.now() ? 'expired' : 'active',
     })),
   });
+}
+
+/**
+ * POST /preview/:token/template —— 仅 owner，切模板（可选同时改 lang / accent）。
+ *
+ * body: { template: 't1-classic'..'t6-academic', lang?: 'zh'|'en', accent?: string | null }
+ * 不扣费——只是改 D1 字段，PDF 渲染才扣费。
+ */
+export async function handlePreviewTemplate(c: Context<AppEnv>): Promise<Response> {
+  const token = c.req.param('token');
+  if (!token || !TOKEN_RE.test(token)) return c.json({ error: 'token 不合法' }, 400);
+  const contentType = c.req.header('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
+  }
+  let payload: { template?: unknown; lang?: unknown; accent?: unknown };
+  try {
+    payload = (await c.req.json()) as { template?: unknown; lang?: unknown; accent?: unknown };
+  } catch {
+    return c.json({ error: '请求体不是合法 JSON' }, 400);
+  }
+  if (typeof payload.template !== 'string' || !isJsonTemplateId(payload.template)) {
+    return c.json(
+      {
+        error: '`template` 必须是 t1-classic / t2-minimal / t3-sidebar / t4-tech / t5-timeline / t6-academic 之一',
+      },
+      400,
+    );
+  }
+  const input: { template: string; lang?: TemplateLang; accent?: string | null } = {
+    template: payload.template,
+  };
+  if (payload.lang !== undefined) {
+    if (!isTemplateLang(payload.lang)) {
+      return c.json({ error: '`lang` 必须是 "zh" 或 "en"' }, 400);
+    }
+    input.lang = payload.lang;
+  }
+  if (payload.accent !== undefined) {
+    if (payload.accent !== null && typeof payload.accent !== 'string') {
+      return c.json({ error: '`accent` 必须是 string 或 null' }, 400);
+    }
+    input.accent = payload.accent;
+  }
+  const userId = c.get('userId') as string;
+  const ok = await setPreviewTemplate(c.env, token, userId, input);
+  if (!ok) return c.json({ error: 'not-found-or-not-owner' }, 404);
+  return c.json({ ok: true, template: input.template });
 }
 
 /** POST /preview/:token/share-mode —— 仅 owner，切换 link / public。 */

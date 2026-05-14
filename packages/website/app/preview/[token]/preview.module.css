@@ -1,8 +1,8 @@
 /* 预览页外壳：暖灰背景烘托白色 A4 artboard。 */
 .shell {
   min-height: 100vh;
-  background: #f0eee9;
-  color: #1a1a1a;
+  background: var(--color-paper, #f0eee9);
+  color: var(--color-ink, #1a1a1a);
 }
 
 .toolbar {
@@ -13,31 +13,32 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in oklab, var(--color-cream, #fdf9ec) 92%, transparent);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid var(--color-rule, rgba(0, 0, 0, 0.1));
   font:
-    13px / 1.4 "Inter",
-    "Noto Sans SC",
+    13px / 1.4 var(--font-sans, "Nunito"),
     system-ui,
     sans-serif;
+  color: var(--color-ink, #1a1a1a);
 }
 
 .toolbarLeft {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #4a4a4a;
+  color: var(--color-ink-soft, #4a4a4a);
 }
 .toolbarBadge {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  color: #7a7a7a;
+  color: var(--color-mute, #7a7a7a);
 }
 .toolbarMeta {
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 12.5px;
+  color: var(--color-ink-soft, #4a4a4a);
 }
 
 .toolbarRight {
@@ -46,55 +47,486 @@
   gap: 8px;
 }
 
+/* 圆润 + 1.5px 描边的"卡通"按钮，跟整站 Mui 风格保持一致。 */
 .button {
   appearance: none;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  background: #ffffff;
-  color: #1a1a1a;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1.5px solid var(--color-rule-strong, #d4cfb8);
+  background: var(--color-cream, #fdf9ec);
+  color: var(--color-ink, #1a1a1a);
+  padding: 7px 14px;
+  border-radius: 10px;
+  font:
+    600 13px / 1.3 var(--font-sans, "Nunito"),
+    system-ui,
+    sans-serif;
   cursor: pointer;
   transition:
     background 0.15s,
     border-color 0.15s,
-    transform 0.05s;
+    color 0.15s,
+    transform 0.05s,
+    box-shadow 0.15s;
 }
 .button:hover:not(:disabled) {
-  background: #fafafa;
-  border-color: rgba(0, 0, 0, 0.2);
+  background: var(--color-fluff, #fcefc8);
+  border-color: var(--color-ink, #1a1a1a);
 }
 .button:active:not(:disabled) {
   transform: translateY(1px);
 }
 .button:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 .buttonPrimary {
-  background: #1a1a1a;
-  color: #ffffff;
-  border-color: #1a1a1a;
+  background: var(--color-yellow, #f6c84a);
+  color: var(--color-ink, #1a1a1a);
+  border-color: var(--color-ink, #1a1a1a);
+  box-shadow: 0 3px 0 0 var(--color-yellow-deep, #b78c10);
 }
 .buttonPrimary:hover:not(:disabled) {
-  background: #2a2a2a;
+  background: var(--color-yellow, #f6c84a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 0 var(--color-yellow-deep, #b78c10);
 }
 
 .shareWrapper {
   position: relative;
 }
+
+.dropdownWrapper {
+  position: relative;
+  display: inline-block;
+}
+.dropdownTrigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.caret {
+  font-size: 10px;
+  color: #7a7a7a;
+}
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 240px;
+  padding: 4px;
+  background: var(--color-cream, #fdf9ec);
+  border: 1.5px solid var(--color-ink, #1a1a1a);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+}
+
+/* segmented control —— 当前值高亮，未选中态可点 hover */
+.segmented {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.segmentedLabel {
+  font-size: 12px;
+  color: var(--color-mute, #7a7a7a);
+  margin-right: 2px;
+}
+.segmentedButton {
+  appearance: none;
+  border: 1.5px solid var(--color-rule-strong, #d4cfb8);
+  background: var(--color-cream, #fdf9ec);
+  color: var(--color-ink-soft, #4a4a4a);
+  padding: 5px 12px;
+  border-radius: 8px;
+  font:
+    600 12px / 1.3 var(--font-sans, "Nunito"),
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.segmentedButton:hover:not(:disabled):not(.segmentedActive) {
+  background: var(--color-fluff, #fcefc8);
+  border-color: var(--color-ink, #1a1a1a);
+  color: var(--color-ink, #1a1a1a);
+}
+.segmentedButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.segmentedActive {
+  background: var(--color-yellow, #f6c84a);
+  color: var(--color-ink, #1a1a1a);
+  border-color: var(--color-ink, #1a1a1a);
+  cursor: default;
+}
+.segmentedActive:hover {
+  background: var(--color-yellow, #f6c84a);
+}
+.dropdownItem {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.dropdownItem:hover {
+  background: #f4f3f0;
+}
+.dropdownItemActive {
+  background: #f0eee9;
+}
+.dropdownItemTitle {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 13px;
+}
+.dropdownItemTagline {
+  font-size: 11.5px;
+  color: #7a7a7a;
+}
+
+/* 模板里 photo 槽位的可点击占位按钮：撑满父容器，hover 时显示阴影。 */
+.photoSlotButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1.5px dashed rgba(0, 0, 0, 0.18);
+  border-radius: inherit;
+  color: #4a4a4a;
+  font:
+    13px / 1.4 "Inter",
+    "Noto Sans SC",
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.photoSlotButton:hover {
+  background: rgba(0, 0, 0, 0.08);
+  border-color: rgba(0, 0, 0, 0.32);
+  color: #1a1a1a;
+}
+.photoSlotButton > span:first-child {
+  font-size: 24px;
+  line-height: 1;
+}
+.photoSlotLabel {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+/*
+ * photoUrl 已填时由 PhotoSlotButton 渲染的 hover overlay：
+ * 默认 opacity 0，photo container hover 时浮现一个深色蒙层 + "换照片" 文案。
+ * 模板 photo container 需要保持 position: relative（在 page.tsx 注入）。
+ */
+.photoSlotChange {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  font:
+    600 12px / 1.2 var(--font-sans, "Nunito"),
+    system-ui,
+    sans-serif;
+  letter-spacing: 0.5px;
+  border: 0;
+  border-radius: inherit;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.photoSlotChange:hover,
+.photoSlotChange:focus-visible {
+  opacity: 1;
+}
+.photoSlotChange:focus-visible {
+  outline: 2px solid var(--color-yellow, #f6c84a);
+  outline-offset: -2px;
+}
+
+/* photo picker modal */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal {
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  background: var(--color-cream, #fdf9ec);
+  border-radius: 16px;
+  border: 1.5px solid var(--color-ink, #1a1a1a);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font:
+    13px / 1.55 var(--font-sans, "Nunito"),
+    system-ui,
+    sans-serif;
+  color: var(--color-ink, #1a1a1a);
+}
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.modalClose {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: #4a4a4a;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.modalClose:hover {
+  color: #1a1a1a;
+}
+.modalBody {
+  padding: 18px 20px 22px;
+  overflow-y: auto;
+}
+.modalHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-mute, #7a7a7a);
+  line-height: 1.6;
+}
+
+/*
+ * UploadZone：明显的虚线 dropzone，点击 / 拖入 / 粘贴都走它。
+ * active：拖拽进入时高亮；busy：上传中禁用 hover/click。
+ */
+.uploadZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 22px 16px;
+  margin-bottom: 8px;
+  background: var(--color-paper, #f4f3f0);
+  border: 2px dashed var(--color-rule-strong, #d4cfb8);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.uploadZone:hover,
+.uploadZone:focus-visible {
+  background: var(--color-fluff, #fcefc8);
+  border-color: var(--color-ink, #1a1a1a);
+  outline: none;
+}
+.uploadZoneActive {
+  background: color-mix(in oklab, var(--color-yellow, #f6c84a) 28%, transparent);
+  border-color: var(--color-yellow-deep, #b78c10);
+  border-style: solid;
+}
+.uploadZoneBusy {
+  cursor: progress;
+  opacity: 0.7;
+}
+.uploadZoneIcon {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--color-yellow-deep, #b78c10);
+}
+.uploadZoneTitle {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-ink, #1a1a1a);
+}
+.uploadZoneHint {
+  font-size: 12px;
+  color: var(--color-mute, #7a7a7a);
+  line-height: 1.6;
+}
+
+/* danger 按钮（删除）：tongue 红色基底 + 深 ink 描边 */
+.buttonDanger {
+  background: var(--color-tongue, #d35858);
+  color: #ffffff;
+  border-color: var(--color-ink, #1a1a1a);
+  box-shadow: 0 3px 0 0 color-mix(in oklab, var(--color-tongue, #d35858) 60%, var(--color-ink, #1a1a1a));
+}
+.buttonDanger:hover:not(:disabled) {
+  background: var(--color-tongue, #d35858);
+  transform: translateY(-1px);
+}
+
+/* ConfirmDialog —— 比 photo modal 窄，强调 title/actions */
+.confirmDialog {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  background: var(--color-cream, #fdf9ec);
+  border: 1.5px solid var(--color-ink, #1a1a1a);
+  border-radius: 14px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.28);
+  padding: 20px 22px 16px;
+  font:
+    13px / 1.55 var(--font-sans, "Nunito"),
+    system-ui,
+    sans-serif;
+  color: var(--color-ink, #1a1a1a);
+}
+.confirmTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.confirmBody {
+  font-size: 13px;
+  color: var(--color-ink-soft, #4a4a4a);
+  margin-bottom: 18px;
+}
+.confirmActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.modalError {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #b91c1c;
+  font-size: 12px;
+}
+.modalSubHead {
+  margin: 16px 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #7a7a7a;
+}
+.photoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+/* thumb + delete 按钮叠放，wrap 提供 hover 上下文，让删除按钮按 thumb hover 出现 */
+.photoThumbWrap {
+  position: relative;
+}
+.photoThumb {
+  appearance: none;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  background: var(--color-paper, #f4f3f0);
+  border: 1.5px solid var(--color-rule-strong, #d4cfb8);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.05s;
+}
+.photoThumb:hover:not(:disabled) {
+  border-color: var(--color-ink, #1a1a1a);
+}
+.photoThumb:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.photoThumb:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.photoThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.photoThumbDelete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
+}
+.photoThumbWrap:hover .photoThumbDelete,
+.photoThumbDelete:focus-visible {
+  opacity: 1;
+}
+.photoThumbDelete:hover {
+  background: var(--color-tongue, #d35858);
+}
+.photoThumbDelete:disabled {
+  cursor: not-allowed;
+}
 .shareMenu {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 320px;
+  width: 340px;
   padding: 14px 16px 12px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-  font-size: 12px;
-  color: #2a2a2a;
+  background: var(--color-cream, #fdf9ec);
+  border: 1.5px solid var(--color-ink, #1a1a1a);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  font-size: 12.5px;
+  color: var(--color-ink, #1a1a1a);
 }
 .shareMenuRow {
   display: flex;

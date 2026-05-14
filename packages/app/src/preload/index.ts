@@ -17,6 +17,7 @@ import type {
   ConversationType,
   CreatePreviewInput,
   CreatePreviewResult,
+  DefaultTemplateChangedPayload,
   FeedbackCommentOutcome,
   FeedbackRateOutcome,
   MuirouterLinkResult,
@@ -54,6 +55,13 @@ const api: RendererApi = {
     remove: (id) => ipcRenderer.invoke('profile:remove', id) as Promise<AppConfig>,
     openInFinder: (id) => ipcRenderer.invoke('profile:openInFinder', id) as Promise<void>,
     ensureDefault: () => ipcRenderer.invoke('profile:ensureDefault') as Promise<AppConfig>,
+    setDefaultTemplate: (profileId, template) =>
+      ipcRenderer.invoke('profile:setDefaultTemplate', profileId, template) as Promise<AppConfig>,
+    onDefaultTemplateChanged: (handler) => {
+      const listener = (_e: Electron.IpcRendererEvent, payload: DefaultTemplateChangedPayload) => handler(payload);
+      ipcRenderer.on('defaults:templateChanged', listener);
+      return () => ipcRenderer.removeListener('defaults:templateChanged', listener);
+    },
   },
   session: {
     check: () => ipcRenderer.invoke('session:check') as Promise<SessionCheckResult>,

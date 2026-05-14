@@ -179,6 +179,39 @@ export async function setPreviewShareMode(
   return (result.meta?.changes ?? 0) > 0;
 }
 
+export type SetPreviewTemplateInput = {
+  template: string;
+  lang?: TemplateLang;
+  accent?: string | null;
+};
+
+/**
+ * owner 在预览页切模板时调用——更新 preview.template，可选同时切 lang / accent。
+ * 不动 resumeJson / pdfCredit / expiresAt。只允许 owner 操作。
+ */
+export async function setPreviewTemplate(
+  env: PreviewStoreEnv,
+  token: string,
+  userId: string,
+  input: SetPreviewTemplateInput,
+): Promise<boolean> {
+  const sets: string[] = ['template = ?'];
+  const values: Array<string | null> = [input.template];
+  if (input.lang) {
+    sets.push('lang = ?');
+    values.push(input.lang);
+  }
+  if (input.accent !== undefined) {
+    sets.push('accent = ?');
+    values.push(input.accent);
+  }
+  values.push(token, userId);
+  const result = await env.MUICV_API_DB.prepare(`UPDATE preview SET ${sets.join(', ')} WHERE token = ? AND userId = ?`)
+    .bind(...values)
+    .run();
+  return (result.meta?.changes ?? 0) > 0;
+}
+
 export async function extendPreview(
   env: PreviewStoreEnv,
   token: string,

@@ -52,7 +52,7 @@
     },
     {
       "binding": "MUICV_PHOTOS",
-      "bucket_name": "muicv-photos"
+      "bucket_name": "muicv"
     }
   ],
   // Readability / turndown 在 puppeteer page 内 addScriptTag，作为文本资源 import。

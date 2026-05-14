@@ -134,7 +134,9 @@ export function ChatView() {
                 toolCalls={m.toolCalls}
                 artifacts={m.artifacts}
                 feedback={m.feedback}
-                onOpenArtifact={(a) => openRightPanel(a.path)}
+                onOpenArtifact={(a) =>
+                  a.kind === 'resume-preview' ? window.muicv.shell.openExternal(a.path) : openRightPanel(a.path)
+                }
                 onPreviewAttachment={setHistoryPreview}
                 onPathClick={(p) => openRightPanel(resolveWorkspacePath(activeProfile?.dir ?? null, p))}
               />

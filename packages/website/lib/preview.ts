@@ -106,6 +106,70 @@ export async function setUserPreviewShareMode(
   return result.length > 0;
 }
 
+export type SetUserPreviewTemplateInput = {
+  template: string;
+  lang?: 'zh' | 'en';
+  accent?: string | null;
+};
+
+/**
+ * owner 在预览页切模板时调用，仅当 token 属于 userId 才更新。
+ * 不动 resumeJson / expiresAt / pdfCredit，PDF 渲染才扣费。
+ */
+export async function setUserPreviewTemplate(
+  userId: string,
+  token: string,
+  input: SetUserPreviewTemplateInput,
+): Promise<boolean> {
+  const db = await getDb();
+  const patch: { template: string; lang?: 'zh' | 'en'; accent?: string | null } = { template: input.template };
+  if (input.lang) patch.lang = input.lang;
+  if (input.accent !== undefined) patch.accent = input.accent;
+  const result = await db
+    .update(schema.preview)
+    .set(patch)
+    .where(and(eq(schema.preview.token, token), eq(schema.preview.userId, userId)))
+    .returning({ token: schema.preview.token });
+  return result.length > 0;
+}
+
+/**
+ * owner 在预览页换头像后调用：把 resumeJson 里的 photoUrl 字段更新成新 URL，
+ * 其它字段不动。返回 true 表示更新了一行，false 表示 token 不属于这个 user。
+ *
+ * 设计：preview.resumeJson 是 TemplateResumeData 序列化，photoUrl 是顶层字段
+ * （详见 packages/shared/src/domain/template-resume.ts）。我们读出来 → patch
+ * → 写回，不用做 schema 校验（值已经在 R2，URL 由我们颁发）。
+ */
+export async function setUserPreviewPhotoUrl(userId: string, token: string, photoUrl: string | null): Promise<boolean> {
+  const db = await getDb();
+  const rows = await db
+    .select({ resumeJson: schema.preview.resumeJson })
+    .from(schema.preview)
+    .where(and(eq(schema.preview.token, token), eq(schema.preview.userId, userId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return false;
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(row.resumeJson) as Record<string, unknown>;
+  } catch {
+    return false;
+  }
+  if (photoUrl) {
+    parsed.photoUrl = photoUrl;
+  } else {
+    delete parsed.photoUrl;
+  }
+  const next = JSON.stringify(parsed);
+  const updated = await db
+    .update(schema.preview)
+    .set({ resumeJson: next })
+    .where(and(eq(schema.preview.token, token), eq(schema.preview.userId, userId)))
+    .returning({ token: schema.preview.token });
+  return updated.length > 0;
+}
+
 export type PhotoUploadItem = {
   id: number;
   r2Key: string;
@@ -115,6 +179,34 @@ export type PhotoUploadItem = {
   originalName: string | null;
   createdAt: number;
 };
+
+/**
+ * 删一行 photoUpload 审计（仅当属于此 userId）。返回被删的 r2Key 供调用方
+ * 一并清 R2 对象；找不到或不属于 user 返回 null。
+ */
+export async function deleteUserPhotoUpload(userId: string, id: number): Promise<string | null> {
+  const db = await getDb();
+  const result = await db
+    .delete(schema.photoUpload)
+    .where(and(eq(schema.photoUpload.id, id), eq(schema.photoUpload.userId, userId)))
+    .returning({ r2Key: schema.photoUpload.r2Key });
+  return result[0]?.r2Key ?? null;
+}
+
+export async function insertUserPhotoUpload(input: {
+  userId: string;
+  r2Key: string;
+  url: string;
+  contentType: string;
+  sizeBytes: number;
+  originalName: string | null;
+  createdAt: number;
+}): Promise<PhotoUploadItem> {
+  const db = await getDb();
+  const result = await db.insert(schema.photoUpload).values(input).returning({ id: schema.photoUpload.id });
+  const id = result[0]?.id ?? 0;
+  return { id, ...input };
+}
 
 export async function listUserPhotoUploads(userId: string, limit = 50): Promise<PhotoUploadItem[]> {
   const db = await getDb();

@@ -91,6 +91,7 @@ const store = new Store<LegacyShape>({
           name: '默认',
           dir: old,
           createdAt: Date.now(),
+          defaultTemplate: null,
         };
         s.set('profiles', [p]);
         s.set('activeProfileId', p.id);
@@ -127,8 +128,16 @@ function activeWorkspaceDir(profiles: Profile[], activeId: string | null): strin
   return profiles.find((p) => p.id === activeId)?.dir ?? null;
 }
 
+/**
+ * 兜底旧版 Profile JSON 缺 defaultTemplate 字段：读出来当 null。
+ * electron-store 不强校验，新字段会以 undefined 出现在内存对象里。
+ */
+function normalizeProfile(p: Profile): Profile {
+  return { ...p, defaultTemplate: p.defaultTemplate ?? null };
+}
+
 export function getConfig(): AppConfig {
-  const profiles = store.get('profiles');
+  const profiles = (store.get('profiles') as Profile[]).map(normalizeProfile);
   const activeProfileId = store.get('activeProfileId');
   return {
     profiles,
@@ -203,6 +212,7 @@ export function addProfile(name: string, dir: string, makeActive = true): Profil
     name: name.trim() || '未命名',
     dir,
     createdAt: Date.now(),
+    defaultTemplate: null,
   };
   store.set('profiles', [...list, profile]);
   if (makeActive || list.length === 0) {
@@ -249,6 +259,20 @@ export function renameProfile(id: string, name: string): AppConfig {
   store.set(
     'profiles',
     list.map((p) => (p.id === id ? { ...p, name: name.trim() || p.name } : p)),
+  );
+  return getConfig();
+}
+
+/**
+ * 设置 profile 的默认简历模板。template === null 时清除（AI 回到走预览流程）。
+ * 找不到对应 profile 时无操作。
+ */
+export function setProfileDefaultTemplate(id: string, template: string | null): AppConfig {
+  const list = store.get('profiles') as Profile[];
+  if (!list.some((p) => p.id === id)) return getConfig();
+  store.set(
+    'profiles',
+    list.map((p) => (p.id === id ? { ...p, defaultTemplate: template } : p)),
   );
   return getConfig();
 }

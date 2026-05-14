@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { BrowserWindow, Menu, app, dialog, ipcMain, protocol, shell } from 'electron';
 
+import { isTemplateId } from '@muicv/shared';
+
 import type {
   AppConfig,
   AttachmentSaveResult,
@@ -57,6 +59,7 @@ import {
   removeProfile,
   renameProfile,
   setActiveProfile,
+  setProfileDefaultTemplate,
 } from './store.ts';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -228,6 +231,18 @@ ipcMain.handle('profile:openInFinder', async (_e, id: string) => {
   if (p) await shell.openPath(p.dir);
 });
 
+/**
+ * 设置 profile 的默认简历模板。template === null 清除；否则必须是合法模板 id
+ * （'default' / 't1-classic' / ... / 't6-academic'）。renderer 端调用前后端都做一遍
+ * 校验，避免 IPC 注入。
+ */
+ipcMain.handle('profile:setDefaultTemplate', (_e, id: string, template: string | null) => {
+  if (template !== null && !isTemplateId(template)) {
+    return getConfig();
+  }
+  return setProfileDefaultTemplate(id, template);
+});
+
 // renderer 在 bootstrap + onAutoLogin 都会调 ensureDefault，二者可能并发；
 // 用 in-flight promise 序列化，避免并发竞争产生重复 profile。
 let ensureDefaultInFlight: Promise<AppConfig> | null = null;
@@ -327,7 +342,7 @@ ipcMain.handle(
     setMessageFeedback(profileId, convId, messageId, patch),
 );
 
-// -------------------- IPC: feedback（赞 / 踩 / 聊聊 → packages/api） --------------------
+// -------------------- IPC: feedback（赞 / 踩 / 意见建议 → packages/api） --------------------
 
 ipcMain.handle('feedback:rate', (_e, args: RateArgs) => rateFeedback(args));
 ipcMain.handle('feedback:comment', (_e, args: CommentArgs) => commentFeedback(args));

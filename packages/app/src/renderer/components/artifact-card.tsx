@@ -5,6 +5,7 @@ import {
   FileTextIcon,
   type Icon,
   IdentificationCardIcon,
+  LinkSimpleIcon,
   MagnifyingGlassIcon,
   PaperclipIcon,
   TargetIcon,
@@ -13,15 +14,16 @@ import {
 
 import type { ArtifactKind, ArtifactRef } from '../../shared/types.ts';
 
-const KIND_META: Record<ArtifactKind, { Icon: Icon; label: string }> = {
-  profile: { Icon: IdentificationCardIcon, label: '个人资料' },
-  experience: { Icon: BriefcaseIcon, label: '工作经历' },
-  project: { Icon: WrenchIcon, label: '项目' },
-  'jd-target': { Icon: TargetIcon, label: '岗位 JD' },
-  'resume-version': { Icon: FileTextIcon, label: '简历版本' },
-  'critique-report': { Icon: MagnifyingGlassIcon, label: '评审报告' },
-  'cover-letter': { Icon: EnvelopeIcon, label: 'Cover Letter' },
-  other: { Icon: PaperclipIcon, label: '文件' },
+const KIND_META: Record<ArtifactKind, { Icon: Icon; label: string; hint: string }> = {
+  profile: { Icon: IdentificationCardIcon, label: '个人资料', hint: '点击在右栏预览' },
+  experience: { Icon: BriefcaseIcon, label: '工作经历', hint: '点击在右栏预览' },
+  project: { Icon: WrenchIcon, label: '项目', hint: '点击在右栏预览' },
+  'jd-target': { Icon: TargetIcon, label: '岗位 JD', hint: '点击在右栏预览' },
+  'resume-version': { Icon: FileTextIcon, label: '简历版本', hint: '点击在右栏预览' },
+  'resume-preview': { Icon: LinkSimpleIcon, label: '在线预览', hint: '点击在浏览器打开 · 选模板 / 下载 PDF' },
+  'critique-report': { Icon: MagnifyingGlassIcon, label: '评审报告', hint: '点击在右栏预览' },
+  'cover-letter': { Icon: EnvelopeIcon, label: 'Cover Letter', hint: '点击在右栏预览' },
+  other: { Icon: PaperclipIcon, label: '文件', hint: '点击在右栏预览' },
 };
 
 /**
@@ -40,7 +42,9 @@ export function ArtifactCard({ artifact, onOpen }: { artifact: ArtifactRef; onOp
       <KindIcon size={20} className="shrink-0 text-yellow-deep" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[13px] font-bold text-ink">{artifact.title}</span>
-        <span className="block text-[11px] text-mute">{meta.label} · 点击在右栏预览</span>
+        <span className="block text-[11px] text-mute">
+          {meta.label} · {meta.hint}
+        </span>
       </span>
       <ArrowRightIcon size={12} className="shrink-0 text-mute group-hover:text-ink" />
     </button>

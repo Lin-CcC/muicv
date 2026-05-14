@@ -3,13 +3,16 @@ import { pickLang, type TemplateLang, type TemplateResumeData } from '@muicv/sha
 import { TemplatePage } from './template-helpers';
 import styles from './templates.module.css';
 
+import type { TemplateSlots } from './registry';
+
 export type T4Props = {
   resume: TemplateResumeData;
   lang: TemplateLang;
   accent?: string;
+  slots?: TemplateSlots;
 };
 
-export default function T4Tech({ resume, lang, accent }: T4Props) {
+export default function T4Tech({ resume, lang, accent, slots }: T4Props) {
   const d = resume;
   const text = (node: Parameters<typeof pickLang<string>>[0]) => pickLang(node, lang) as string;
   const arr = (node: Parameters<typeof pickLang<string[]>>[0]) => pickLang<string[]>(node, lang) as string[];
@@ -20,8 +23,13 @@ export default function T4Tech({ resume, lang, accent }: T4Props) {
     <TemplatePage className={styles.t4} accent={accent}>
       <header className={styles.t4__head}>
         {d.photoUrl ? (
-          <div className={styles.t4__photo}>
+          <div className={styles.t4__photo} data-photo-slot>
             <img src={d.photoUrl} alt="" />
+            {slots?.photo}
+          </div>
+        ) : slots?.photo ? (
+          <div className={styles.t4__photo} data-photo-slot>
+            {slots.photo}
           </div>
         ) : null}
         <div>

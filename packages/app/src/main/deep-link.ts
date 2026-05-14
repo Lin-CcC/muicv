@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto';
 
 import { type BrowserWindow, app, shell } from 'electron';
+import { isTemplateId } from '@muicv/shared';
 
 import type { MuirouterLinkResult, SessionCheckResult } from '../shared/types.ts';
 import { loginWithKey } from './session.ts';
-import { getConfig } from './store.ts';
+import { getActiveProfile, getConfig, setProfileDefaultTemplate } from './store.ts';
 
 /**
  * OAuth-style 自动登录的 main-side 实现。
@@ -157,6 +158,7 @@ export async function beginLinkMuirouter(): Promise<{ ok: boolean; message?: str
  *   - muicv://callback?state=xxx&key=mui_xxx —— 自动登录
  *   - muicv://muirouter-linked?app_state=xxx&ok=1 —— muirouter OAuth 关联完成
  *   - muicv://muirouter-linked?app_state=xxx&error=... —— muirouter OAuth 失败
+ *   - muicv://set-default-template?template=t4-tech —— 网页预览页点"设为默认"
  */
 export async function handleDeepLink(url: string): Promise<void> {
   let parsed: URL;
@@ -175,6 +177,8 @@ export async function handleDeepLink(url: string): Promise<void> {
     await handleAutoLoginCallback(parsed);
   } else if (action === 'muirouter-linked') {
     await handleMuirouterLinked(parsed);
+  } else if (action === 'set-default-template') {
+    handleSetDefaultTemplate(parsed);
   } else {
     console.warn('[deep-link] unknown action', url);
     return;
@@ -222,6 +226,37 @@ async function handleMuirouterLinked(parsed: URL): Promise<void> {
     pushMuirouterLinked({ status: 'ok' });
   } else {
     pushMuirouterLinked({ status: 'failed', reason: error ?? 'unknown' });
+  }
+}
+
+/**
+ * `muicv://set-default-template?template=t4-tech` —— 用户在网页预览页点"设为默认"。
+ * 攻击面有限（只改本地 active profile 配置），不防 CSRF，但严格校验 template 合法。
+ * 没激活 profile 时直接忽略并提示 renderer（让 UI 引导用户先选档案）。
+ */
+function handleSetDefaultTemplate(parsed: URL): void {
+  const template = parsed.searchParams.get('template');
+  if (!template || !isTemplateId(template)) {
+    pushDefaultTemplateChanged({ ok: false, reason: 'invalid-template' });
+    return;
+  }
+  const active = getActiveProfile();
+  if (!active) {
+    pushDefaultTemplateChanged({ ok: false, reason: 'no-active-profile' });
+    return;
+  }
+  setProfileDefaultTemplate(active.id, template);
+  pushDefaultTemplateChanged({ ok: true, profileId: active.id, profileName: active.name, template });
+}
+
+type DefaultTemplateChangedPayload =
+  | { ok: true; profileId: string; profileName: string; template: string }
+  | { ok: false; reason: 'invalid-template' | 'no-active-profile' };
+
+function pushDefaultTemplateChanged(payload: DefaultTemplateChangedPayload): void {
+  const win = mainWindowGetter();
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('defaults:templateChanged', payload);
   }
 }
 

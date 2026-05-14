@@ -17,6 +17,14 @@ export type Profile = {
   dir: string;
   /** 创建时间（unix ms）。 */
   createdAt: number;
+  /**
+   * 默认简历模板。null = 未设置，AI 导出/换模板时走网页预览让用户挑；
+   * 非 null（如 't4-tech'）= AI 跳过预览直接渲染 PDF。
+   *
+   * 用户在对话里说"以后都用 X 模板"或在网页预览页点"设为默认"时写入。
+   * 旧版 Profile JSON 没有该字段，读出来当 null。
+   */
+  defaultTemplate: string | null;
 };
 
 export type AppConfig = {
@@ -297,6 +305,7 @@ export type ArtifactKind =
   | 'project'
   | 'jd-target'
   | 'resume-version'
+  | 'resume-preview'
   | 'critique-report'
   | 'cover-letter'
   | 'other';
@@ -499,6 +508,14 @@ export type UpdaterStatus = {
   skipped?: boolean;
 };
 
+/**
+ * `muicv://set-default-template?template=X` 处理结果。
+ * 成功时带 profileId/Name + 写入的 template；失败时给原因，让 renderer 提示用户。
+ */
+export type DefaultTemplateChangedPayload =
+  | { ok: true; profileId: string; profileName: string; template: string }
+  | { ok: false; reason: 'invalid-template' | 'no-active-profile' };
+
 /** preload 注入到 window.muicv 的 API 形状。 */
 export type PhotoUploadInput = {
   name: string;
@@ -576,6 +593,16 @@ export type RendererApi = {
     openInFinder(id: string): Promise<void>;
     /** 登录后调一次：如果还没任何 profile，就在 ~/Documents/Mui简历/默认/ 自动建一份。 */
     ensureDefault(): Promise<AppConfig>;
+    /**
+     * 设置某个 profile 的默认简历模板。null = 清除，AI 重新走预览流程；
+     * 非 null = AI 渲染 PDF 时直接用该模板。模板 ID 由调用方校验。
+     */
+    setDefaultTemplate(profileId: string, template: string | null): Promise<AppConfig>;
+    /**
+     * 网页预览页通过 `muicv://set-default-template?template=X` 深链改了默认模板时，
+     * main 进程推这个事件。renderer 应该重拉 config.get() 同步状态 + 弹 toast 提示。
+     */
+    onDefaultTemplateChanged(handler: (payload: DefaultTemplateChangedPayload) => void): () => void;
   };
   session: {
     /** 用当前 muicvApiKey 调 GET /me 验证，结果区分网络错 vs key 无效 */

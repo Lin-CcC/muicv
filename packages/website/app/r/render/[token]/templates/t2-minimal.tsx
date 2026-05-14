@@ -3,10 +3,13 @@ import { pickLang, type TemplateLang, type TemplateResumeData } from '@muicv/sha
 import { TemplatePage } from './template-helpers';
 import styles from './templates.module.css';
 
+import type { TemplateSlots } from './registry';
+
 export type T2Props = {
   resume: TemplateResumeData;
   lang: TemplateLang;
   accent?: string;
+  slots?: TemplateSlots;
 };
 
 /**
@@ -26,7 +29,7 @@ function splitName(name: string, lang: TemplateLang): { lead: string; emphasized
   return { lead: `${trimmed[0] ?? ''} `, emphasized: trimmed.slice(1) };
 }
 
-export default function T2Minimal({ resume, lang, accent }: T2Props) {
+export default function T2Minimal({ resume, lang, accent, slots }: T2Props) {
   const d = resume;
   const text = (node: Parameters<typeof pickLang<string>>[0]) => pickLang(node, lang) as string;
   const arr = (node: Parameters<typeof pickLang<string[]>>[0]) => pickLang<string[]>(node, lang) as string[];
@@ -36,8 +39,13 @@ export default function T2Minimal({ resume, lang, accent }: T2Props) {
     <TemplatePage className={styles.t2} accent={accent}>
       <header className={styles.t2__top}>
         {d.photoUrl ? (
-          <div className={styles.t2__photo}>
+          <div className={styles.t2__photo} data-photo-slot>
             <img src={d.photoUrl} alt="" />
+            {slots?.photo}
+          </div>
+        ) : slots?.photo ? (
+          <div className={styles.t2__photo} data-photo-slot>
+            {slots.photo}
           </div>
         ) : null}
         <div>
