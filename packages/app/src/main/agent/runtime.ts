@@ -322,6 +322,21 @@ export async function runAgent(opts: RunOpts): Promise<void> {
     return;
   }
 
+  // 前置落盘 user msg：dev 重启 / 主进程崩 / 网络挂在 stream 中段时，
+  // 至少保住用户刚敲的这条；flushConversation 末尾按 id 幂等不会重复 push。
+  try {
+    const convNow = await getConversation(profileId, convId);
+    if (convNow) {
+      const tail = convNow.messages[convNow.messages.length - 1];
+      if (tail?.id !== lastUser.id) {
+        convNow.messages.push(lastUser);
+        await saveConversation(convNow);
+      }
+    }
+  } catch (err) {
+    console.error('[agent runtime] persist user msg failed', err);
+  }
+
   // Vision 能力分支：模型路由到的 endpoint 不收图（如 mimo 系走 muirouter →
   // OpenRouter 没勾 image capability，见 issue #7）时，**不再硬错**——v0.4.x 起
   // 图片有第二种用途（upload_photo agent tool 上传证件照到 R2），不需要 vision。
