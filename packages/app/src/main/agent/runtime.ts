@@ -68,20 +68,19 @@ function ensureConfigured(config: AppConfig): boolean {
 }
 
 /**
- * thinking-mode 推理模型（mimo / DeepSeek 系，及后续遵循同协议的）在多轮 tool
- * calling 时要求**每一条带 tool_calls 的 assistant message** 都要伴随
- * reasoning_content；OpenAI Agents SDK 走 chat_completions 时不识别这个非标准
- * 字段会直接丢掉 → mimo / DeepSeek 400 `Param Incorrect`。
+ * thinking-mode 推理模型（mimo / DeepSeek 系）在多轮 tool calling 时要求**每一条带
+ * tool_calls 的 assistant message** 都要伴随 reasoning_content；OpenAI Agents SDK
+ * 走 chat_completions 时不识别这个非标准字段会直接丢掉 → 400 `Param Incorrect`。
  *
- *   Response 侧：streaming response → body.tee() 后台读 SSE，每轮累计
- *                delta.reasoning_content 推入 reasoningQueue 末尾
- *   Request 侧：下次请求出去前，遍历 body.messages 里所有 assistant 从队尾
- *                对齐注入（FIFO：reasoningQueue[0] → 倒数第 queue.length 条）
+ *   Response 侧：thinking-mode streaming response → body.tee() 后台读 SSE，
+ *                每轮累计 delta.reasoning_content 推入 reasoningQueue 末尾
+ *   Request 侧：thinking-mode 下次请求出去前，遍历 body.messages 里所有 assistant
+ *                从队尾对齐注入（FIFO：reasoningQueue[0] → 倒数第 queue.length 条）
  *
- * 设计上**与模型无关**：所有 streaming response 都跑 tap；不返回 reasoning_content
- * 的模型（GPT / Claude 等）chunk 里没这个字段，queue 自然空，inject 是 no-op。
- * 这样对接新的 thinking-mode 模型不用改这层代码，只要模型遵循 OpenAI 兼容的
- * `delta.reasoning_content` SSE 约定就直接生效。
+ * 触发条件：`isThinkingModeModel(modelId)` 白名单（当前 mimo-* / deepseek-*）。
+ * 新增 thinking-mode 模型时把前缀加进去即可——本来就要在 pricing.ts 的
+ * LLM_DISPLAY_META 里登记新模型，顺手维护这一处零成本，避免对 GPT 请求做无用的
+ * tee + SSE 解析。
  *
  * 并发假设：SDK 在一次 run() 内严格串行调用 fetch（等 stream 流完 + tool 跑完
  * 才发下一轮），队列推入和读取不会并发。每次 runAgent 起点调
@@ -111,11 +110,14 @@ function setReasoningDeltaListener(fn: ((delta: string) => void) | null): void {
 }
 
 /**
- * 是否是带 thinking mode 的推理模型——仅用于决定 watchdog timeout 长度。
- * thinking-mode 模型在深度推理时可能 30+s 才出第一个 chunk，30s 误伤。
- * reasoning_content 透传逻辑本身不依赖这个判定，对所有模型都安全。
+ * 是否是带 thinking mode 的推理模型——同时控制两件事：
+ *   1. reasoning_content 透传层是否启用（tap streaming + inject 到 messages）
+ *   2. watchdog timeout 长度（thinking 模型 120s vs 普通 30s）
+ *
+ * 新增 thinking 模型时把前缀加这里——本来就要登记到 pricing.ts 的 LLM_DISPLAY_META，
+ * 顺手改一行零成本。
  */
-function isThinkingModeModel(modelId: unknown): boolean {
+function isThinkingModeModel(modelId: unknown): modelId is string {
   if (typeof modelId !== 'string') return false;
   return modelId.startsWith('mimo-') || modelId.startsWith('deepseek-');
 }
@@ -140,7 +142,7 @@ async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameter
   if (init?.body && typeof init.body === 'string' && reasoningQueue.length > 0) {
     try {
       const body = JSON.parse(init.body);
-      if (typeof body.model === 'string' && Array.isArray(body.messages)) {
+      if (isThinkingModeModel(body.model) && Array.isArray(body.messages)) {
         const assistantIndices: number[] = [];
         for (let i = 0; i < body.messages.length; i++) {
           const msg = body.messages[i];
@@ -179,12 +181,12 @@ async function loggingFetch(input: Parameters<typeof fetch>[0], init?: Parameter
     );
   }
 
-  // Response 侧：所有 streaming 响应都 tee 一份到后台 tap 抓 delta.reasoning_content。
-  // 模型不支持 reasoning_content 时 chunk 里没这个字段，tap 拉到空，queue 不增长，
-  // 下次 inject no-op，零副作用。
+  // Response 侧：thinking-mode streaming 响应 → tee 一份流到后台 tap 抓
+  // delta.reasoning_content。仅对 isThinkingModeModel 触发，避免给 GPT 这类
+  // 没 reasoning_content 字段的模型做无用的 tee + JSON.parse。
   const reqModel = extractModelFromRequestBody(mutatedInit?.body);
   const isStream = res.ok && !!res.body && (res.headers.get('content-type') ?? '').includes('text/event-stream');
-  if (isStream && reqModel) {
+  if (isStream && isThinkingModeModel(reqModel)) {
     const [streamForSDK, streamForUs] = res.body!.tee();
     tapReasoningStream(streamForUs, reqModel).catch((err) => {
       console.warn('[reasoning tap] failed:', err);

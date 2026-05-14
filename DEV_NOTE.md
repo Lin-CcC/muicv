@@ -172,22 +172,21 @@
   [#814](https://github.com/openai/openai-agents-js/pull/814)）只在 `agents-extensions`
   的 `aisdk()` 路径，gate 写死 `isDeepSeekModel`——伪装方案得改 provider 名 + 加 2
   个 deps，不可控。我们在 [runtime.ts](packages/app/src/main/agent/runtime.ts) 的
-  `loggingFetch` 层自己拦截，**与模型无关**：
-  - **Response 侧**：所有 streaming response → `body.tee()` 一份 SSE 流，后台累计
-    `delta.reasoning_content` 推入 `reasoningQueue` 末尾；同时通过模块级
+  `loggingFetch` 层自己拦截。**触发条件**：`isThinkingModeModel(modelId)` 白名单
+  （当前 `mimo-*` / `deepseek-*`），同时控制 reasoning 透传开关和 watchdog timeout 长度。
+  - **Response 侧**：thinking-mode streaming response → `body.tee()` 一份 SSE 流，
+    后台累计 `delta.reasoning_content` 推入 `reasoningQueue` 末尾；同时通过模块级
     `reasoningDeltaListener` 把每个 delta 转发给 renderer，UI 实时展示思考过程
-    替代原静态"思考中…"。不返回 reasoning_content 的模型（GPT / Claude 等）chunk
-    里没这个字段，tap 拉到空，零副作用。
-  - **Request 侧**：下次请求出去前，从队尾对齐——`body.messages` 里最后 N 条
-    assistant 对应 `reasoningQueue[0..N-1]`。FIFO 顺序：`queue[0]` 对应本轮第一个
+    替代原静态"思考中…"。
+  - **Request 侧**：thinking-mode 下次请求出去前，从队尾对齐——`body.messages` 里最后
+    N 条 assistant 对应 `reasoningQueue[0..N-1]`。FIFO 顺序：`queue[0]` 对应本轮第一个
     新生成的 assistant，依此类推。历史完成态 assistant（持久化重建无 tool_calls）
     不需要 reasoning_content。
   - **resetReasoningState()** 在每次 `runAgent` 起点清队列，避免跨 run 错位。
 
-  **对接新模型零改动**：任何遵循 OpenAI 兼容 + `delta.reasoning_content` SSE 约定的
-  thinking-mode 模型（DeepSeek、Qwen-thinking、未来其它）都自动生效，不用动这层代码。
-  只有 watchdog timeout 决策用 `isThinkingModeModel()` 白名单（默认 mimo / deepseek），
-  添加新 thinking 模型时把前缀加进去给它 120s 而不是 30s 即可。
+  **新增 thinking-mode 模型时**：把模型前缀加进 `isThinkingModeModel()`——本来就要在
+  pricing.ts 的 LLM_DISPLAY_META 登记新模型，顺手维护这一处零成本，且避免对 GPT 这类
+  没 `reasoning_content` 字段的模型做无用的 tee + JSON.parse。
 
   并发假设：SDK 在单次 `run()` 内严格串行调用 fetch（等本轮 stream 完 + tool 跑完
   才发下一轮），队列推入/读取无并发。
