@@ -28,3 +28,12 @@
 
 - **t2 模板"下方一大块色块"**：bullet 已修（disc + accent ::marker），色块来源不明，跑通完整渲染流程复测。
 - **证件照上传完整流程**：代码 review 无明显 bug，需 pick → upload → R2 → 复制 URL → 用到 .resume.json 一遍。
+
+## 上游跟踪
+
+- **`@openai/agents` chat_completions 路径的 reasoning_content 修复**：理想是每周扫一次
+  release notes，关键词 `reasoning_content` / `thinking` / `deepseek` / 关联 [issue #791](https://github.com/openai/openai-agents-js/issues/791)。
+  一旦上游覆盖 chat_completions 路径，可以拆掉
+  [runtime.ts loggingFetch](packages/app/src/main/agent/runtime.ts) 里的
+  reasoning 拦截层。本来 `/schedule` 配了，但远端账号问题先用 TODO 兜底，
+  方便时手动重跑 `/schedule` 起 cron。
