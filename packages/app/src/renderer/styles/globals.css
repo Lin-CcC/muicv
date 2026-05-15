@@ -50,6 +50,8 @@
   /* Always-readable foregrounds: yellow/corgi/tongue 是高饱和品牌色，
    * 它们之上的文字不应该跟随 --color-ink 翻面。固定值。 */
   --color-on-yellow: #1a1410;
+  --color-on-yellow-soft: #3a2e23;
+  --color-on-yellow-mute: #5a4938;
   --color-on-tongue: #fdfaf2;
 
   /* yellow-shadow 专门给 press 卡片画厚阴影，两套主题都要"比 bg 深"，
@@ -255,13 +257,35 @@ body {
 }
 
 /* Dark-mode contrast guards——见 packages/website/app/globals.css 的说明 */
-:root[data-theme="dark"] .bg-yellow.text-ink,
-:root[data-theme="dark"] .bg-corgi.text-ink,
-.dark .bg-yellow.text-ink,
-.dark .bg-corgi.text-ink {
+:root[data-theme="dark"] .bg-yellow,
+:root[data-theme="dark"] .bg-corgi,
+.dark .bg-yellow,
+.dark .bg-corgi {
   color: var(--color-on-yellow);
 }
-:root[data-theme="dark"] .bg-tongue.text-cream,
-.dark .bg-tongue.text-cream {
+:root[data-theme="dark"] .bg-yellow .text-ink,
+:root[data-theme="dark"] .bg-corgi .text-ink,
+.dark .bg-yellow .text-ink,
+.dark .bg-corgi .text-ink {
+  color: var(--color-on-yellow);
+}
+:root[data-theme="dark"] .bg-yellow .text-ink-soft,
+:root[data-theme="dark"] .bg-corgi .text-ink-soft,
+.dark .bg-yellow .text-ink-soft,
+.dark .bg-corgi .text-ink-soft {
+  color: var(--color-on-yellow-soft);
+}
+:root[data-theme="dark"] .bg-yellow .text-mute,
+:root[data-theme="dark"] .bg-corgi .text-mute,
+.dark .bg-yellow .text-mute,
+.dark .bg-corgi .text-mute {
+  color: var(--color-on-yellow-mute);
+}
+:root[data-theme="dark"] .bg-tongue,
+.dark .bg-tongue {
+  color: var(--color-on-tongue);
+}
+:root[data-theme="dark"] .bg-tongue .text-cream,
+.dark .bg-tongue .text-cream {
   color: var(--color-on-tongue);
 }

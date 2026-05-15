@@ -60,7 +60,9 @@
    * yellow / corgi / tongue 这些"高饱和度品牌色"在浅色和暗色模式下都是亮色，
    * 所以它们之上的文字应该是不翻面的固定色：黄底配深棕字，红底配奶油白字。
    */
-  --color-on-yellow: #1a1410; /* 黄底字色，固定暖深棕，不随主题翻 */
+  --color-on-yellow: #1a1410; /* 黄底主字色，固定暖深棕 */
+  --color-on-yellow-soft: #3a2e23; /* 黄底次字色（sub），固定中棕 */
+  --color-on-yellow-mute: #5a4938; /* 黄底元信息色（meta / 分隔点），固定弱棕 */
   --color-on-tongue: #fdfaf2; /* tongue 红底字色，固定暖米白 */
 
   /* yellow-shadow: 专门用来给 yellow 卡片画 "press" 厚阴影。
@@ -410,25 +412,67 @@ body {
  * yellow / corgi / tongue 是高饱和品牌色，浅色与暗色模式下都是亮色，
  * 因此放在它们之上的文字不能跟着 --color-ink 翻面。这里在暗色下强制
  * 用固定的 on-* token 覆盖，省得每个 CTA 都手动加 dark: 修饰。
+ *
+ * 用后代选择器 ` .text-X` 而不是单元素 `.bg-X.text-X`，因为
+ * 实际场景里 CTA 经常是 `<a class="bg-yellow"><span class="text-ink-soft">...`
+ * 这种结构，子元素的 text-* 类会盖掉父级的颜色。
  * ----------------------------------------------------------- */
 
-:root[data-theme="dark"] .bg-yellow.text-ink,
-:root[data-theme="dark"] .bg-corgi.text-ink,
-.dark .bg-yellow.text-ink,
-.dark .bg-corgi.text-ink {
+:root[data-theme="dark"] .bg-yellow,
+:root[data-theme="dark"] .bg-corgi,
+.dark .bg-yellow,
+.dark .bg-corgi {
   color: var(--color-on-yellow);
 }
-:root[data-theme="dark"] .bg-tongue.text-cream,
-.dark .bg-tongue.text-cream {
+:root[data-theme="dark"] .bg-yellow .text-ink,
+:root[data-theme="dark"] .bg-corgi .text-ink,
+.dark .bg-yellow .text-ink,
+.dark .bg-corgi .text-ink {
+  color: var(--color-on-yellow);
+}
+:root[data-theme="dark"] .bg-yellow .text-ink-soft,
+:root[data-theme="dark"] .bg-corgi .text-ink-soft,
+.dark .bg-yellow .text-ink-soft,
+.dark .bg-corgi .text-ink-soft {
+  color: var(--color-on-yellow-soft);
+}
+:root[data-theme="dark"] .bg-yellow .text-mute,
+:root[data-theme="dark"] .bg-corgi .text-mute,
+.dark .bg-yellow .text-mute,
+.dark .bg-corgi .text-mute {
+  color: var(--color-on-yellow-mute);
+}
+
+:root[data-theme="dark"] .bg-tongue,
+.dark .bg-tongue {
+  color: var(--color-on-tongue);
+}
+:root[data-theme="dark"] .bg-tongue .text-cream,
+.dark .bg-tongue .text-cream {
   color: var(--color-on-tongue);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root[data-theme="auto"] .bg-yellow.text-ink,
-  :root[data-theme="auto"] .bg-corgi.text-ink {
+  :root[data-theme="auto"] .bg-yellow,
+  :root[data-theme="auto"] .bg-corgi {
     color: var(--color-on-yellow);
   }
-  :root[data-theme="auto"] .bg-tongue.text-cream {
+  :root[data-theme="auto"] .bg-yellow .text-ink,
+  :root[data-theme="auto"] .bg-corgi .text-ink {
+    color: var(--color-on-yellow);
+  }
+  :root[data-theme="auto"] .bg-yellow .text-ink-soft,
+  :root[data-theme="auto"] .bg-corgi .text-ink-soft {
+    color: var(--color-on-yellow-soft);
+  }
+  :root[data-theme="auto"] .bg-yellow .text-mute,
+  :root[data-theme="auto"] .bg-corgi .text-mute {
+    color: var(--color-on-yellow-mute);
+  }
+  :root[data-theme="auto"] .bg-tongue {
+    color: var(--color-on-tongue);
+  }
+  :root[data-theme="auto"] .bg-tongue .text-cream {
     color: var(--color-on-tongue);
   }
 }
