@@ -115,7 +115,7 @@ export function AuthForm({
 
             <div className="relative my-1 flex items-center gap-3">
               <span className="h-0.5 flex-1 bg-rule" aria-hidden />
-              <span className="font-mono text-[10px] uppercase tracking-wider text-mute">或</span>
+              <span className="font-mono text-[12px] uppercase tracking-wider text-mute">或</span>
               <span className="h-0.5 flex-1 bg-rule" aria-hidden />
             </div>
           </>
@@ -160,7 +160,7 @@ export function AuthForm({
         {errorMsg && (
           <div
             role="alert"
-            className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue"
+            className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[14px] font-medium text-tongue"
           >
             {errorMsg}
           </div>
@@ -169,7 +169,7 @@ export function AuthForm({
         <button
           type="submit"
           disabled={busy}
-          className="press inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[15px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+          className="press inline-flex w-full items-center justify-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[16px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy ? (
             <>
@@ -221,7 +221,7 @@ function Field({
 }) {
   return (
     <label htmlFor={id} className="block">
-      <span className="block text-[13px] font-bold text-ink">{label}</span>
+      <span className="block text-[14px] font-bold text-ink">{label}</span>
       <input
         id={id}
         type={type}

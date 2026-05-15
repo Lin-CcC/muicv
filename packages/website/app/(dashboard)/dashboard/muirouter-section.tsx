@@ -161,11 +161,11 @@ export function MuirouterSection() {
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter</p>
           <h2 className="mt-2 text-[18px] font-extrabold text-ink">
             关联 muirouter，余额耗尽时自动切到自己的大语言模型余额
           </h2>
-          <p className="mt-1 text-[13px] text-ink-soft">
+          <p className="mt-1 text-[14px] text-ink-soft">
             muicv 平台余额优先扣费；耗尽后自动切到你绑定的{' '}
             <a
               href="https://muirouter.com"
@@ -183,7 +183,7 @@ export function MuirouterSection() {
       {info && (
         <div
           role="status"
-          className="mt-4 rounded-lg border-2 border-corgi/60 bg-fluff px-3 py-2 text-[13px] font-medium text-yellow-deep"
+          className="mt-4 rounded-lg border-2 border-corgi/60 bg-fluff px-3 py-2 text-[14px] font-medium text-yellow-deep"
         >
           {info}
         </div>
@@ -191,7 +191,7 @@ export function MuirouterSection() {
       {error && (
         <div
           role="alert"
-          className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue"
+          className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[14px] font-medium text-tongue"
         >
           {error}
         </div>
@@ -201,11 +201,11 @@ export function MuirouterSection() {
         <div className="mt-5 space-y-4">
           <div className="flex flex-col gap-4 rounded-xl border-2 border-corgi/60 bg-fluff p-5 sm:flex-row sm:items-center">
             <div className="flex-1">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-yellow-deep">muirouter 余额</div>
+              <div className="font-mono text-[12px] uppercase tracking-wider text-yellow-deep">muirouter 余额</div>
               <div className="mt-1 font-display text-3xl font-extrabold text-ink tabular-nums">
                 {formatCents(status.balanceCents, status.currency)}
               </div>
-              <div className="mt-1 font-mono text-[11px] text-mute">
+              <div className="mt-1 font-mono text-[12px] text-mute">
                 上次更新：{formatDate(status.balanceUpdatedAt)}
               </div>
             </div>
@@ -217,7 +217,7 @@ export function MuirouterSection() {
           </div>
 
           {status.lastError && (
-            <div className="rounded-lg border-2 border-amber/70 bg-amber-soft px-3 py-2 text-[12.5px] text-yellow-deep">
+            <div className="rounded-lg border-2 border-amber/70 bg-amber-soft px-3 py-2 text-[12px] text-yellow-deep">
               ⚠ 上次同步失败：{status.lastError}
             </div>
           )}
@@ -229,7 +229,7 @@ export function MuirouterSection() {
                 value={status.defaultModel ?? 'mimo'}
                 onChange={(e) => onChangeModel(e.target.value)}
                 disabled={busy}
-                className="mt-1 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 text-[13px] text-ink focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
+                className="mt-1 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 text-[14px] text-ink focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
               >
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -239,10 +239,10 @@ export function MuirouterSection() {
                 ))}
               </select>
             </label>
-            <div className="flex flex-col justify-end gap-1 text-[12.5px]">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-mute">关联账号</span>
+            <div className="flex flex-col justify-end gap-1 text-[12px]">
+              <span className="font-mono text-[12px] uppercase tracking-wider text-mute">关联账号</span>
               <span className="text-ink">{status.email ?? '—'}</span>
-              <span className="font-mono text-[11px] text-mute">绑定于 {formatDate(status.linkedAt)}</span>
+              <span className="font-mono text-[12px] text-mute">绑定于 {formatDate(status.linkedAt)}</span>
             </div>
           </div>
 
@@ -251,7 +251,7 @@ export function MuirouterSection() {
               type="button"
               onClick={onRefresh}
               disabled={busy}
-              className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[12.5px] font-bold text-ink disabled:opacity-60"
+              className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[12px] font-bold text-ink disabled:opacity-60"
             >
               {busy ? '同步中…' : '刷新余额'}
             </button>
@@ -259,7 +259,7 @@ export function MuirouterSection() {
               type="button"
               onClick={() => void onUnlink()}
               disabled={busy}
-              className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12.5px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:opacity-60"
+              className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:opacity-60"
             >
               解除关联
             </button>
@@ -267,7 +267,7 @@ export function MuirouterSection() {
         </div>
       ) : (
         <div className="mt-5 flex flex-col items-start gap-3 rounded-xl border-2 border-dashed border-rule-strong bg-paper p-5">
-          <p className="text-[13px] text-ink-soft">
+          <p className="text-[14px] text-ink-soft">
             还没有关联 muirouter。点下面按钮跳到 muirouter，登录或注册后授权 muicv 即可——全程不需要复制密钥。
           </p>
           <a
@@ -287,12 +287,12 @@ export function MuirouterSection() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="font-mono text-[10px] uppercase tracking-wider text-mute">{label}</div>
-      <div className="mt-0.5 font-mono text-[13px] font-bold text-ink tabular-nums">{value}</div>
+      <div className="font-mono text-[12px] uppercase tracking-wider text-mute">{label}</div>
+      <div className="mt-0.5 font-mono text-[14px] font-bold text-ink tabular-nums">{value}</div>
     </div>
   );
 }
 
 function PlaceholderCard({ children }: { children: React.ReactNode }) {
-  return <section className="rounded-xl border-2 border-rule bg-paper p-6 text-[13px] text-mute">{children}</section>;
+  return <section className="rounded-xl border-2 border-rule bg-paper p-6 text-[14px] text-mute">{children}</section>;
 }

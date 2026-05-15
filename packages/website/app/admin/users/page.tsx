@@ -72,8 +72,8 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
       <AdminNav active="/admin/users" />
 
       <div>
-        <h1 className="text-[22px] font-extrabold text-ink">用户管理</h1>
-        <p className="mt-1 text-[13px] text-ink-soft">
+        <h1 className="text-[24px] font-extrabold text-ink">用户管理</h1>
+        <p className="mt-1 text-[14px] text-ink-soft">
           每页 {PAGE_SIZE} 条；按 email 模糊搜索；点行进入详情、赠送 token。
         </p>
       </div>
@@ -84,18 +84,18 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
           name="q"
           defaultValue={q}
           placeholder="按 email 搜索（模糊匹配）"
-          className="flex-1 rounded-lg border-2 border-rule bg-cream px-3 py-2 text-[13px] text-ink placeholder:text-mute focus:border-ink focus:outline-none"
+          className="flex-1 rounded-lg border-2 border-rule bg-cream px-3 py-2 text-[14px] text-ink placeholder:text-mute focus:border-ink focus:outline-none"
         />
         <button
           type="submit"
-          className="press-ink rounded-lg border-2 border-ink bg-yellow px-4 py-2 text-[13px] font-bold text-ink"
+          className="press-ink rounded-lg border-2 border-ink bg-yellow px-4 py-2 text-[14px] font-bold text-ink"
         >
           搜索
         </button>
         {q && (
           <Link
             href="/admin/users"
-            className="press-ink inline-flex items-center rounded-lg border-2 border-rule bg-cream px-4 py-2 text-[13px] font-bold text-ink-soft"
+            className="press-ink inline-flex items-center rounded-lg border-2 border-rule bg-cream px-4 py-2 text-[14px] font-bold text-ink-soft"
           >
             重置
           </Link>
@@ -103,13 +103,13 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
       </form>
 
       {rows.length === 0 ? (
-        <p className="rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[13px] text-mute">
+        <p className="rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[14px] text-mute">
           {q ? `没有匹配「${q}」的用户。` : '还没有任何用户。'}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border-2 border-rule bg-cream">
-          <table className="min-w-full text-[13px]">
-            <thead className="border-b border-rule bg-fluff text-left font-mono text-[11px] uppercase tracking-wider text-mute">
+          <table className="min-w-full text-[14px]">
+            <thead className="border-b border-rule bg-fluff text-left font-mono text-[12px] uppercase tracking-wider text-mute">
               <tr>
                 <th className="px-4 py-2">Email</th>
                 <th className="px-4 py-2">名字</th>
@@ -146,7 +146,7 @@ export default async function AdminUsersPage(props: { searchParams: Promise<{ q?
         </div>
       )}
 
-      <div className="flex items-center justify-between text-[13px] text-ink-soft">
+      <div className="flex items-center justify-between text-[14px] text-ink-soft">
         <span>
           第 {page} 页 · {rows.length} 条
         </span>

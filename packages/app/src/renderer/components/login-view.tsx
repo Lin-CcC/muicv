@@ -83,7 +83,7 @@ export function LoginView() {
                   type="button"
                   onClick={() => void onBeginConnect()}
                   disabled={busy}
-                  className="press mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                  className="press mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[16px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {busy ? '准备中…' : '登录'}
                   <ArrowUpRightIcon size={16} weight="bold" />
@@ -96,8 +96,8 @@ export function LoginView() {
                   <span className="inline-block h-3 w-3 animate-pulse rounded-full bg-yellow-deep" />
                   在浏览器里完成登录…
                 </div>
-                <p className="text-[12.5px] leading-[1.6] text-ink-soft">登录完成后浏览器会自动回到这个 app。</p>
-                <p className="rounded-md border border-rule/60 bg-cream/60 px-2.5 py-1.5 text-[11.5px] leading-[1.55] text-ink-soft">
+                <p className="text-[12px] leading-[1.6] text-ink-soft">登录完成后浏览器会自动回到这个 app。</p>
+                <p className="rounded-md border border-rule/60 bg-cream/60 px-2.5 py-1.5 text-[12px] leading-[1.55] text-ink-soft">
                   完成登录时，macOS 可能会弹出钥匙串密码框——是为了把你的登录凭证加密保存在系统钥匙串里。 请点{' '}
                   <strong className="font-bold">"始终允许"</strong>，之后不会再弹。
                 </p>
@@ -124,7 +124,7 @@ export function LoginView() {
             {error && (
               <div
                 role="alert"
-                className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] font-medium text-tongue"
+                className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12px] font-medium text-tongue"
               >
                 {error}
               </div>
@@ -182,8 +182,8 @@ function PasteFallback({
       <div className="flex items-start gap-3">
         <CorgiMascot className="h-12 w-12 shrink-0" />
         <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">手动粘贴 API key</h1>
-          <p className="mt-1.5 text-[13px] leading-[1.65] text-ink-soft">
+          <h1 className="text-[24px] font-extrabold tracking-tight text-ink">手动粘贴 API key</h1>
+          <p className="mt-1.5 text-[14px] leading-[1.65] text-ink-soft">
             在 dashboard → "API Keys" 生成一个，复制 <code className="font-mono text-[12px]">mui_...</code>{' '}
             粘到下面。一般情况推荐用上一步的浏览器授权。
           </p>
@@ -202,13 +202,13 @@ function PasteFallback({
           placeholder="mui_…"
           spellCheck={false}
           autoComplete="off"
-          className="block w-full rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2.5 font-mono text-[13px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
+          className="block w-full rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2.5 font-mono text-[14px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 disabled:opacity-60"
         />
 
         {error && (
           <div
             role="alert"
-            className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] font-medium text-tongue"
+            className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12px] font-medium text-tongue"
           >
             {error}
           </div>
@@ -232,7 +232,7 @@ function PasteFallback({
         </button>
       </div>
 
-      <p className="mt-5 text-center text-[11px] text-mute">
+      <p className="mt-5 text-center text-[12px] text-mute">
         连接的 API: <code className="font-mono">{apiBase}</code>
       </p>
     </div>

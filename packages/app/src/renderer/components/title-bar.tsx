@@ -38,7 +38,7 @@ export function TitleBar() {
         <span className="text-[14px] font-bold tracking-tight text-ink">Mui简历</span>
 
         {busy && (
-          <span className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-fluff px-2 py-0.5 font-mono text-[10px] font-semibold text-yellow-deep">
+          <span className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-fluff px-2 py-0.5 font-mono text-[12px] font-semibold text-yellow-deep">
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-yellow" />
             思考中
           </span>

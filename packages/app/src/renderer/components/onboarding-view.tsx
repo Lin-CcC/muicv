@@ -72,7 +72,7 @@ export function OnboardingView() {
             <CorgiMascot className="h-5 w-5" />
             第一次打开，先完成一份职业素材
           </div>
-          <h1 className="mt-5 text-[34px] font-extrabold leading-tight tracking-tight text-ink">
+          <h1 className="mt-5 text-[36px] font-extrabold leading-tight tracking-tight text-ink">
             从你已经有的材料开始，不用先学功能。
           </h1>
           <p className="mt-3 max-w-xl text-[14px] leading-[1.7] text-ink-soft">
@@ -94,8 +94,8 @@ export function OnboardingView() {
                 <Icon size={20} weight="bold" />
               </span>
               <span className="mt-4 text-[16px] font-extrabold text-ink">{title}</span>
-              <span className="mt-2 flex-1 text-[13px] leading-[1.65] text-ink-soft">{desc}</span>
-              <span className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-bold text-yellow-deep">
+              <span className="mt-2 flex-1 text-[14px] leading-[1.65] text-ink-soft">{desc}</span>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-yellow-deep">
                 {busy === id ? '准备中…' : action}
                 <ArrowRightIcon size={14} weight="bold" />
               </span>
@@ -104,15 +104,15 @@ export function OnboardingView() {
         </section>
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-rule pt-5">
-          <p className="max-w-lg text-[12.5px] leading-[1.6] text-mute">
+          <p className="max-w-lg text-[12px] leading-[1.6] text-mute">
             当前职业档案：<span className="font-bold text-ink">{activeProfile?.name ?? '默认'}</span>
-            {activeProfile?.dir ? <span className="ml-1 font-mono text-[11px]">{activeProfile.dir}</span> : null}
+            {activeProfile?.dir ? <span className="ml-1 font-mono text-[12px]">{activeProfile.dir}</span> : null}
           </p>
           <button
             type="button"
             onClick={() => void skip()}
             disabled={busy !== null}
-            className="rounded-lg px-3 py-2 text-[12.5px] font-medium text-mute hover:bg-fluff hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg px-3 py-2 text-[12px] font-medium text-mute hover:bg-fluff hover:text-ink disabled:cursor-not-allowed disabled:opacity-60"
           >
             {busy === 'skip' ? '跳过中…' : '先跳过，自己探索'}
           </button>
@@ -121,7 +121,7 @@ export function OnboardingView() {
         {error && (
           <p
             role="alert"
-            className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] text-tongue"
+            className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[14px] text-tongue"
           >
             {error}
           </p>

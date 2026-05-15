@@ -60,7 +60,7 @@ export function RecordingBar({ phase, elapsedMs, limitSec, rms, errorMsg, onCanc
       <button
         type="button"
         onClick={onCancel}
-        className="press-ink shrink-0 rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 text-[13px] font-bold text-ink transition hover:border-ink"
+        className="press-ink shrink-0 rounded-lg border-2 border-rule-strong bg-cream px-3 py-2 text-[14px] font-bold text-ink transition hover:border-ink"
       >
         取消
       </button>
@@ -68,7 +68,7 @@ export function RecordingBar({ phase, elapsedMs, limitSec, rms, errorMsg, onCanc
         type="button"
         onClick={onFinish}
         disabled={!canFinish}
-        className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+        className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[14px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
         完成
       </button>

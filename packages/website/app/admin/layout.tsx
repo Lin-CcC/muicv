@@ -20,19 +20,19 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 md:px-8">
           <Link href="/" className="flex items-center gap-2.5 text-ink no-underline">
             <CorgiMascot className="h-8 w-8" />
-            <span className="text-[17px] font-bold tracking-tight">Mui简历</span>
-            <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-wider text-yellow-deep sm:inline">
+            <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
+            <span className="hidden font-mono text-[12px] font-semibold uppercase tracking-wider text-yellow-deep sm:inline">
               admin
             </span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="hidden rounded px-2.5 py-1.5 text-[13px] text-ink-soft transition hover:bg-cream hover:text-ink sm:inline-block"
+              className="hidden rounded px-2.5 py-1.5 text-[14px] text-ink-soft transition hover:bg-cream hover:text-ink sm:inline-block"
             >
               ← 我的 Dashboard
             </Link>
-            <span className="hidden text-[13px] text-ink-soft sm:inline">
+            <span className="hidden text-[14px] text-ink-soft sm:inline">
               🛡️ <span className="font-mono font-semibold text-ink">{session.user.email}</span>
             </span>
             <SignOutButton />

@@ -43,18 +43,18 @@ export function PlanCard({
     <section className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">会员档位</p>
-          <div className="mt-2 text-[15px] font-bold text-ink">
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">会员档位</p>
+          <div className="mt-2 text-[16px] font-bold text-ink">
             当前：<span className="rounded-md bg-fluff px-2 py-0.5">{planLabel}</span>
           </div>
         </div>
         <div className="shrink-0 rounded-xl border-2 border-rule-strong bg-paper px-3 py-2 text-right">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-mute">余额</p>
-          <p className="mt-0.5 font-mono text-[15px] font-extrabold tabular-nums text-ink">{formatTokens(balance)}</p>
-          <p className="text-[10px] text-mute">tokens</p>
+          <p className="font-mono text-[12px] uppercase tracking-wider text-mute">余额</p>
+          <p className="mt-0.5 font-mono text-[16px] font-extrabold tabular-nums text-ink">{formatTokens(balance)}</p>
+          <p className="text-[12px] text-mute">tokens</p>
         </div>
       </div>
-      <p className="mt-2 text-[12.5px] leading-[1.6] text-mute">{hint}</p>
+      <p className="mt-2 text-[12px] leading-[1.6] text-mute">{hint}</p>
       <div className="mt-3.5 flex flex-wrap items-center gap-2">
         <ExternalButton href={`${DASHBOARD_URL}#plans`} label="去看会员权益 →" primary={safePlan === 'free'} />
         <ExternalButton href={`${DASHBOARD_URL}#wallet`} label="充值 →" />
@@ -63,7 +63,7 @@ export function PlanCard({
           onClick={() => void handleRefresh()}
           disabled={refreshing}
           title="在网页升级 / 充值后回来点这个，立刻同步"
-          className="inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink-soft hover:bg-fluff hover:text-ink disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12px] font-bold text-ink-soft hover:bg-fluff hover:text-ink disabled:opacity-60"
         >
           {refreshing ? (
             <span>同步中…</span>

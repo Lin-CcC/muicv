@@ -29,7 +29,7 @@ export default async function PrivacyPage() {
         <div className="absolute inset-0 bg-sun" aria-hidden />
         <div className="absolute inset-0 bg-grid opacity-50" aria-hidden />
         <div className="relative mx-auto max-w-3xl px-5 py-16 md:px-8 md:py-20">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 法律</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 法律</p>
           <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.5rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
             隐私政策
           </h1>

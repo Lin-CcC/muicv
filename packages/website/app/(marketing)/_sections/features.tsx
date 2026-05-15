@@ -14,13 +14,13 @@ export function KeyFeatures() {
       <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 能做什么</p>
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 能做什么</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
               先把素材理顺，
               <br />
               <Highlight>再处理投递</Highlight>。
             </h2>
-            <p className="mt-5 max-w-sm text-[15px] leading-[1.7] text-ink-soft">
+            <p className="mt-5 max-w-sm text-[16px] leading-[1.7] text-ink-soft">
               Mui 的核心不是替你编故事，而是把真实经历整理成可复用素材，再根据不同岗位调整表达。
             </p>
           </div>
@@ -50,8 +50,8 @@ function FeatureCard({ feature }: { feature: KeyFeature }) {
         <span
           className={
             isLive
-              ? 'inline-flex items-center gap-1.5 rounded-full bg-fluff px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-yellow-deep'
-              : 'inline-flex items-center gap-1.5 rounded-full border border-rule-strong bg-paper px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-mute'
+              ? 'inline-flex items-center gap-1.5 rounded-full bg-fluff px-2.5 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-yellow-deep'
+              : 'inline-flex items-center gap-1.5 rounded-full border border-rule-strong bg-paper px-2.5 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-mute'
           }
         >
           <span
@@ -70,7 +70,7 @@ function FeatureCard({ feature }: { feature: KeyFeature }) {
         {feature.highlights.map((tag) => (
           <li
             key={tag}
-            className="rounded-full border border-rule bg-paper/60 px-2.5 py-0.5 text-[11.5px] font-medium text-ink-soft"
+            className="rounded-full border border-rule bg-paper/60 px-2.5 py-0.5 text-[12px] font-medium text-ink-soft"
           >
             {tag}
           </li>

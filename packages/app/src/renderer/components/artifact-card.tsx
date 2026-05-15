@@ -41,8 +41,8 @@ export function ArtifactCard({ artifact, onOpen }: { artifact: ArtifactRef; onOp
     >
       <KindIcon size={20} className="shrink-0 text-yellow-deep" />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-bold text-ink">{artifact.title}</span>
-        <span className="block text-[11px] text-mute">
+        <span className="block truncate text-[14px] font-bold text-ink">{artifact.title}</span>
+        <span className="block text-[12px] text-mute">
           {meta.label} · {meta.hint}
         </span>
       </span>

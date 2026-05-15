@@ -19,8 +19,8 @@ export function SidebarRight() {
     <aside className="relative flex h-full w-full flex-col border-l-2 border-ink bg-paper">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-rule bg-cream px-4 py-2">
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-mute">文件浏览</p>
-          <p className="truncate text-[13px] font-bold text-ink" title={treeRoot}>
+          <p className="font-mono text-[12px] uppercase tracking-wider text-mute">文件浏览</p>
+          <p className="truncate text-[14px] font-bold text-ink" title={treeRoot}>
             {activeProfile?.name ?? '工作目录'}
           </p>
         </div>

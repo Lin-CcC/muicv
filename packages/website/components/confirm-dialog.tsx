@@ -57,8 +57,8 @@ export const ConfirmDialog = forwardRef<ConfirmDialogHandle>(function ConfirmDia
   const confirmLabel = opts?.confirmLabel ?? '确认';
   const cancelLabel = opts?.cancelLabel ?? '取消';
   const confirmClass = opts?.danger
-    ? 'rounded-lg border-2 border-tongue bg-tongue px-4 py-1.5 text-[13px] font-bold text-cream hover:bg-tongue/90'
-    : 'press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-1.5 text-[13px] font-bold text-ink';
+    ? 'rounded-lg border-2 border-tongue bg-tongue px-4 py-1.5 text-[14px] font-bold text-cream hover:bg-tongue/90'
+    : 'press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-1.5 text-[14px] font-bold text-ink';
 
   return (
     <dialog
@@ -72,12 +72,12 @@ export const ConfirmDialog = forwardRef<ConfirmDialogHandle>(function ConfirmDia
       {opts && (
         <div className="flex flex-col gap-4 p-6">
           <h3 className="text-[16px] font-extrabold">{opts.title}</h3>
-          <p className="whitespace-pre-line text-[13px] text-ink-soft">{opts.message}</p>
+          <p className="whitespace-pre-line text-[14px] text-ink-soft">{opts.message}</p>
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={() => settle(false)}
-              className="rounded-lg border-2 border-rule-strong bg-cream px-4 py-1.5 text-[13px] font-medium text-ink hover:bg-paper"
+              className="rounded-lg border-2 border-rule-strong bg-cream px-4 py-1.5 text-[14px] font-medium text-ink hover:bg-paper"
             >
               {cancelLabel}
             </button>

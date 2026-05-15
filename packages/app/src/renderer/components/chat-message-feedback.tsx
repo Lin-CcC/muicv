@@ -143,20 +143,20 @@ export function MessageFeedbackBar({
           </span>
         ))}
 
-        {noKey && <span className="ml-1 text-[10.5px] text-mute">登录后可反馈</span>}
+        {noKey && <span className="ml-1 text-[12px] text-mute">登录后可反馈</span>}
       </div>
 
       {showCommentBox && (
         <div className="rounded-md border border-rule bg-fluff/40 p-2">
           <textarea
-            className="block w-full resize-none rounded-sm border border-rule bg-paper px-2 py-1.5 text-[13px] leading-relaxed text-ink outline-none focus:border-yellow-deep"
+            className="block w-full resize-none rounded-sm border border-rule bg-paper px-2 py-1.5 text-[14px] leading-relaxed text-ink outline-none focus:border-yellow-deep"
             rows={3}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             placeholder={`聊聊这条回答哪里好 / 哪里坑？≥${FEEDBACK_COMMENT_MIN_CHARS} 字奖励 ${FEEDBACK_COMMENT_REWARD.toLocaleString('en-US')} token`}
             maxLength={FEEDBACK_COMMENT_MAX_CHARS + 50}
           />
-          <div className="mt-1.5 flex items-center justify-between text-[11px]">
+          <div className="mt-1.5 flex items-center justify-between text-[12px]">
             <span className={tooLong ? 'text-tongue' : remaining > 0 ? 'text-mute' : 'text-yellow-deep'}>
               {tooLong
                 ? `太长了，最多 ${FEEDBACK_COMMENT_MAX_CHARS} 字`
@@ -167,7 +167,7 @@ export function MessageFeedbackBar({
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-[11px] text-mute hover:text-ink"
+                className="inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-[12px] text-mute hover:text-ink"
                 onClick={() => {
                   setShowCommentBox(false);
                   setDraft('');
@@ -179,7 +179,7 @@ export function MessageFeedbackBar({
               </button>
               <button
                 type="button"
-                className="inline-flex h-6 items-center gap-1 rounded-sm bg-yellow px-2 text-[11px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-6 items-center gap-1 rounded-sm bg-yellow px-2 text-[12px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={busy !== null || tooLong || charCount === 0}
                 onClick={() => void handleSubmitComment()}
               >
@@ -191,7 +191,7 @@ export function MessageFeedbackBar({
         </div>
       )}
 
-      {error && <span className="text-[11px] text-tongue">反馈失败：{error}</span>}
+      {error && <span className="text-[12px] text-tongue">反馈失败：{error}</span>}
     </div>
   );
 }
@@ -218,7 +218,7 @@ function RatingButton({
       }
       disabled={disabled}
       onClick={onClick}
-      className={`relative inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-[11px] transition-colors ${
+      className={`relative inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-[12px] transition-colors ${
         active ? 'text-yellow-deep' : 'text-mute hover:text-ink'
       } disabled:cursor-not-allowed disabled:opacity-50`}
     >

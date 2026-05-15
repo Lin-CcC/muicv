@@ -143,11 +143,11 @@ export default async function DownloadPage() {
       <Header isLoggedIn={isLoggedIn} />
 
       <main className="mx-auto max-w-3xl px-5 py-14 md:px-8 md:py-20">
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 app</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 app</p>
         <h1 className="mt-3 text-[clamp(2.2rem,5vw,3.4rem)] font-extrabold leading-[1.05] tracking-tight">
           下载 Mui简历
         </h1>
-        <p className="mt-4 max-w-xl text-[15px] leading-[1.7] text-ink-soft">
+        <p className="mt-4 max-w-xl text-[16px] leading-[1.7] text-ink-soft">
           不用装 Claude Code，也不用先理解 skill。打开 app 后先导入简历或记录第一段经历，Mui
           会带你整理出一份可继续迭代的职业素材库。
         </p>
@@ -172,13 +172,13 @@ function FirstMinute() {
   ];
   return (
     <section className="mt-10 rounded-xl border-2 border-ink bg-corgi/20 p-5 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
-      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">下载后第一分钟</p>
+      <p className="font-mono text-[12px] font-bold uppercase tracking-[0.18em] text-yellow-deep">下载后第一分钟</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {steps.map((step, idx) => (
           <div key={step.title} className="rounded-xl border-2 border-rule bg-cream px-4 py-3">
-            <span className="font-mono text-[11px] font-bold text-yellow-deep">{String(idx + 1).padStart(2, '0')}</span>
+            <span className="font-mono text-[12px] font-bold text-yellow-deep">{String(idx + 1).padStart(2, '0')}</span>
             <h2 className="mt-2 text-[14px] font-extrabold text-ink">{step.title}</h2>
-            <p className="mt-1.5 text-[12.5px] leading-[1.6] text-ink-soft">{step.desc}</p>
+            <p className="mt-1.5 text-[12px] leading-[1.6] text-ink-soft">{step.desc}</p>
           </div>
         ))}
       </div>
@@ -213,7 +213,7 @@ function ReleasePanel({ release }: { release: GhRelease }) {
         <Platform title="Linux" subtitle="x86_64 · AppImage" assets={linux} />
       </div>
 
-      <div className="rounded-xl border border-rule bg-paper px-4 py-3 text-[12.5px] text-mute">
+      <div className="rounded-xl border border-rule bg-paper px-4 py-3 text-[12px] text-mute">
         全平台都未做代码签名，首次运行需要按下方说明手动放行；后续版本接入开发者证书后会去掉这一步。
       </div>
     </section>
@@ -224,7 +224,7 @@ function Platform({ title, subtitle, assets }: { title: string; subtitle: string
   return (
     <div className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div>
-        <h3 className="text-[15px] font-extrabold text-ink">{title}</h3>
+        <h3 className="text-[16px] font-extrabold text-ink">{title}</h3>
         <p className="mt-0.5 text-[12px] text-mute">{subtitle}</p>
       </div>
 
@@ -236,14 +236,14 @@ function Platform({ title, subtitle, assets }: { title: string; subtitle: string
             <a
               key={a.url}
               href={a.url}
-              className="press flex items-center justify-between rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink transition"
+              className="press flex items-center justify-between rounded-lg bg-yellow px-3.5 py-2 text-[14px] font-bold text-ink transition"
             >
               <span className="inline-flex items-center gap-2">
                 <span className="font-mono uppercase">{a.format}</span>
                 <span className="text-mute">·</span>
                 <span className="text-ink">下载</span>
               </span>
-              <span className="font-mono text-[11px] text-ink-soft">{formatBytes(a.size)}</span>
+              <span className="font-mono text-[12px] text-ink-soft">{formatBytes(a.size)}</span>
             </a>
           ))
         )}
@@ -256,7 +256,7 @@ function NoRelease() {
   return (
     <section className="mt-12 rounded-xl border-2 border-rule bg-paper p-6 text-[14px] text-ink-soft">
       <p>🐾 桌面 app 暂时拉不到发布版本。在那之前你可以：</p>
-      <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px]">
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-[14px]">
         <li>已经在用 Claude Code、Codex、Cursor 等 AI agent 的话，回首页看 skill 安装命令，5 秒就能接入</li>
         <li>
           有问题或想反馈，{' '}
@@ -277,14 +277,14 @@ function FirstRunHelp() {
     <section className="mt-12 space-y-6 rounded-xl border-2 border-ink bg-fluff p-6">
       <header>
         <h2 className="text-[16px] font-extrabold text-ink">⚠️ 首次打开需要解除限制</h2>
-        <p className="mt-2 text-[13.5px] leading-[1.7] text-ink-soft">
+        <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
           三平台都没做代码签名，操作系统会拦一下。按下面的步骤放行一次，之后双击 / 命令行直接用。
         </p>
       </header>
 
       <div className="space-y-1.5">
         <h3 className="text-[14px] font-bold text-ink">macOS</h3>
-        <ol className="list-decimal space-y-1 pl-5 text-[13.5px] text-ink-soft">
+        <ol className="list-decimal space-y-1 pl-5 text-[14px] text-ink-soft">
           <li>下载 .dmg 拖到 /Applications</li>
           <li>
             <strong>右键</strong>（或 control-click）该 app → <strong>打开</strong>
@@ -293,7 +293,7 @@ function FirstRunHelp() {
         </ol>
         <p className="text-[12px] text-mute">
           命令行版（无需 GUI 操作）：
-          <code className="ml-1 rounded bg-cream px-1.5 py-0.5 font-mono text-[11.5px] text-ink">
+          <code className="ml-1 rounded bg-cream px-1.5 py-0.5 font-mono text-[12px] text-ink">
             xattr -d com.apple.quarantine /Applications/Mui简历.app
           </code>
         </p>
@@ -301,7 +301,7 @@ function FirstRunHelp() {
 
       <div className="space-y-1.5">
         <h3 className="text-[14px] font-bold text-ink">Windows</h3>
-        <ol className="list-decimal space-y-1 pl-5 text-[13.5px] text-ink-soft">
+        <ol className="list-decimal space-y-1 pl-5 text-[14px] text-ink-soft">
           <li>双击下载的 .exe</li>
           <li>
             撞上 SmartScreen 蓝屏 → 点 <strong>更多信息</strong> → 点 <strong>仍要运行</strong>
@@ -312,8 +312,8 @@ function FirstRunHelp() {
 
       <div className="space-y-1.5">
         <h3 className="text-[14px] font-bold text-ink">Linux</h3>
-        <p className="text-[13.5px] text-ink-soft">下载 .AppImage 后给执行权限，直接跑：</p>
-        <pre className="overflow-x-auto rounded-lg bg-cream px-3 py-2 font-mono text-[11.5px] text-ink">
+        <p className="text-[14px] text-ink-soft">下载 .AppImage 后给执行权限，直接跑：</p>
+        <pre className="overflow-x-auto rounded-lg bg-cream px-3 py-2 font-mono text-[12px] text-ink">
           <code>{`chmod +x MuiCV-*.AppImage\n./MuiCV-*.AppImage`}</code>
         </pre>
       </div>

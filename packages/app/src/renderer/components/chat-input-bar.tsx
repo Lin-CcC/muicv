@@ -306,7 +306,7 @@ export function ChatInputBar({
               <button
                 type="button"
                 onClick={onAbort}
-                className="press-ink inline-flex shrink-0 items-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3.5 py-2 text-[13px] font-bold text-ink"
+                className="press-ink inline-flex shrink-0 items-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3.5 py-2 text-[14px] font-bold text-ink"
               >
                 <span>停</span>
                 <StopIcon size={12} weight="fill" />
@@ -316,7 +316,7 @@ export function ChatInputBar({
                 type="button"
                 onClick={handleSendClick}
                 disabled={!canSend}
-                className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[13px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
+                className="press shrink-0 rounded-lg bg-yellow px-3.5 py-2 text-[14px] font-bold text-ink disabled:cursor-not-allowed disabled:opacity-60"
               >
                 发送 ⌘↵
               </button>

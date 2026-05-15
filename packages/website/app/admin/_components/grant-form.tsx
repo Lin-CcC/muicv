@@ -73,7 +73,7 @@ export function GrantForm({ userId, userEmail }: { userId: string; userEmail: st
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
-        <label className="text-[13px] font-bold text-ink">
+        <label className="text-[14px] font-bold text-ink">
           赠予数量（显示 token）
           <input
             type="number"
@@ -84,10 +84,10 @@ export function GrantForm({ userId, userEmail }: { userId: string; userEmail: st
             onChange={(e) => setAmount(e.target.value)}
             placeholder="例如 1000"
             disabled={busy}
-            className="mt-1 w-full rounded-lg border-2 border-rule bg-cream px-3 py-2 font-mono text-[13px] tabular-nums text-ink focus:border-ink focus:outline-none disabled:opacity-60"
+            className="mt-1 w-full rounded-lg border-2 border-rule bg-cream px-3 py-2 font-mono text-[14px] tabular-nums text-ink focus:border-ink focus:outline-none disabled:opacity-60"
           />
         </label>
-        <label className="text-[13px] font-bold text-ink">
+        <label className="text-[14px] font-bold text-ink">
           原因（≥5 字，会写入流水审计）
           <textarea
             value={reason}
@@ -95,7 +95,7 @@ export function GrantForm({ userId, userEmail }: { userId: string; userEmail: st
             placeholder="例如：补偿 2026-05-01 PDF 渲染失败"
             rows={2}
             disabled={busy}
-            className="mt-1 w-full rounded-lg border-2 border-rule bg-cream px-3 py-2 text-[13px] text-ink focus:border-ink focus:outline-none disabled:opacity-60"
+            className="mt-1 w-full rounded-lg border-2 border-rule bg-cream px-3 py-2 text-[14px] text-ink focus:border-ink focus:outline-none disabled:opacity-60"
           />
         </label>
       </div>
@@ -103,12 +103,12 @@ export function GrantForm({ userId, userEmail }: { userId: string; userEmail: st
         <button
           type="submit"
           disabled={busy}
-          className="press-ink rounded-xl border-2 border-ink bg-yellow px-4 py-2 text-[13px] font-bold text-ink disabled:opacity-50"
+          className="press-ink rounded-xl border-2 border-ink bg-yellow px-4 py-2 text-[14px] font-bold text-ink disabled:opacity-50"
         >
           {busy ? '赠送中…' : '确认赠送'}
         </button>
-        {error && <span className="text-[12.5px] text-amber">{error}</span>}
-        {success && <span className="text-[12.5px] text-yellow-deep">{success}</span>}
+        {error && <span className="text-[12px] text-amber">{error}</span>}
+        {success && <span className="text-[12px] text-yellow-deep">{success}</span>}
       </div>
     </form>
   );

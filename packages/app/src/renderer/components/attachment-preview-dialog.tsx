@@ -83,8 +83,8 @@ function PreviewHeader({ name, kind, onClose }: { name: string; kind: Attachment
   return (
     <header className="flex shrink-0 items-center gap-2 border-b border-rule bg-cream px-4 py-2.5">
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-[10px] uppercase tracking-wider text-mute">{KIND_LABEL[kind]}</p>
-        <p className="truncate text-[13px] font-bold text-ink" title={name}>
+        <p className="font-mono text-[12px] uppercase tracking-wider text-mute">{KIND_LABEL[kind]}</p>
+        <p className="truncate text-[14px] font-bold text-ink" title={name}>
           {name}
         </p>
       </div>
@@ -103,7 +103,7 @@ function PreviewHeader({ name, kind, onClose }: { name: string; kind: Attachment
 
 function PreviewFooter({ absPath }: { absPath: string }) {
   return (
-    <footer className="flex shrink-0 items-center gap-2 border-t border-rule bg-cream px-4 py-2 text-[11.5px] text-mute">
+    <footer className="flex shrink-0 items-center gap-2 border-t border-rule bg-cream px-4 py-2 text-[12px] text-mute">
       <button
         type="button"
         onClick={() => void window.muicv.fs.showInFolder(absPath)}
@@ -218,7 +218,7 @@ function Loading() {
 
 function ErrorBlock({ message }: { message: string }) {
   return (
-    <div className="mx-4 my-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] text-tongue">
+    <div className="mx-4 my-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12px] text-tongue">
       {message}
     </div>
   );

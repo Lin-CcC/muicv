@@ -29,7 +29,7 @@ export function SlashCommandMenu({ open, anchor, items, activeIndex, onPick, onH
             className="w-[320px] overflow-hidden rounded-lg border-2 border-rule-strong bg-cream shadow-lg"
           >
             {items.length === 0 ? (
-              <div className="px-3 py-2 text-[13px] text-mute">没找到匹配的命令</div>
+              <div className="px-3 py-2 text-[14px] text-mute">没找到匹配的命令</div>
             ) : (
               <div className="max-h-[280px] overflow-y-auto py-1">
                 {items.map((item, i) => (
@@ -46,10 +46,10 @@ export function SlashCommandMenu({ open, anchor, items, activeIndex, onPick, onH
                     <span className="text-[16px] leading-tight">{item.emoji}</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="truncate text-[13px] font-bold text-ink">{item.label}</span>
-                        <span className="ml-auto shrink-0 font-mono text-[11px] text-mute">/{item.slash}</span>
+                        <span className="truncate text-[14px] font-bold text-ink">{item.label}</span>
+                        <span className="ml-auto shrink-0 font-mono text-[12px] text-mute">/{item.slash}</span>
                       </div>
-                      <div className="mt-0.5 truncate text-[11.5px] text-ink-soft">{item.tagline}</div>
+                      <div className="mt-0.5 truncate text-[12px] text-ink-soft">{item.tagline}</div>
                     </div>
                   </button>
                 ))}

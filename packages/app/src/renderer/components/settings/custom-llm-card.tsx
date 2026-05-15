@@ -44,8 +44,8 @@ export function CustomLlmCard() {
     <details className="rounded-xl border-2 border-rule bg-paper" open={customConfigured}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5">
         <div>
-          <p className="text-[13px] font-bold text-ink-soft">用我自己的模型和额度</p>
-          <p className="mt-0.5 inline-flex items-center gap-1 text-[11.5px] text-mute">
+          <p className="text-[14px] font-bold text-ink-soft">用我自己的模型和额度</p>
+          <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-mute">
             {customConfigured ? (
               <>
                 <CheckIcon size={11} weight="bold" className="shrink-0" />
@@ -56,7 +56,7 @@ export function CustomLlmCard() {
             )}
           </p>
         </div>
-        <span className="text-[10px] text-mute">展开 ↓</span>
+        <span className="text-[12px] text-mute">展开 ↓</span>
       </summary>
 
       <div className="space-y-4 border-t border-rule px-5 py-4">
@@ -92,9 +92,9 @@ export function CustomLlmCard() {
         />
 
         <details className="rounded-lg border border-rule bg-cream px-3 py-2">
-          <summary className="cursor-pointer text-[11.5px] font-medium text-mute">高级 · muicv API base URL</summary>
+          <summary className="cursor-pointer text-[12px] font-medium text-mute">高级 · muicv API base URL</summary>
           <div className="mt-2.5 space-y-2">
-            <p className="text-[11px] text-mute">
+            <p className="text-[12px] text-mute">
               改错了 app 跑不起来。本地 dev wrangler 时指向 http://localhost:8787。
             </p>
             <Field label="" value={muicvApiBase} onChange={setMuicvApiBase} placeholder="https://api.muicv.com" mono />
@@ -105,7 +105,7 @@ export function CustomLlmCard() {
           <button
             type="button"
             onClick={() => void onSave()}
-            className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2 text-[13px] font-bold text-ink"
+            className="press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-4 py-2 text-[14px] font-bold text-ink"
           >
             {saved ? (
               <>
@@ -120,7 +120,7 @@ export function CustomLlmCard() {
             <button
               type="button"
               onClick={() => void onClearCustom()}
-              className="rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2 text-[12.5px] font-medium text-mute hover:text-ink"
+              className="rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2 text-[12px] font-medium text-mute hover:text-ink"
             >
               清掉自带配置（恢复走 muicv 平台）
             </button>
@@ -150,8 +150,8 @@ function Field({
 }) {
   return (
     <label className="block">
-      {label && <span className="block text-[13px] font-bold text-ink">{label}</span>}
-      {hint && <span className="mt-0.5 block text-[11.5px] text-mute">{hint}</span>}
+      {label && <span className="block text-[14px] font-bold text-ink">{label}</span>}
+      {hint && <span className="mt-0.5 block text-[12px] text-mute">{hint}</span>}
       <input
         type={password ? 'password' : 'text'}
         value={value}
@@ -159,7 +159,7 @@ function Field({
         placeholder={placeholder}
         autoComplete="off"
         spellCheck={false}
-        className={`mt-1.5 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2.5 text-[14px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 ${mono ? 'font-mono text-[13px]' : ''}`}
+        className={`mt-1.5 block w-full rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-2.5 text-[14px] text-ink placeholder:text-mute focus:border-ink focus:bg-fluff focus:outline-none focus:ring-4 focus:ring-yellow/40 ${mono ? 'font-mono text-[14px]' : ''}`}
       />
     </label>
   );

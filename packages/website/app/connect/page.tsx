@@ -52,20 +52,20 @@ export default async function ConnectPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
       <div className="rounded-xl border-2 border-ink bg-cream p-7 shadow-[0_5px_0_0_var(--color-ink-line)]">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-yellow-deep">连接确认</p>
+        <p className="font-mono text-[12px] font-bold uppercase tracking-[0.16em] text-yellow-deep">连接确认</p>
         <h1 className="mt-2 text-[24px] font-extrabold leading-tight tracking-tight text-ink">登录到 Mui简历桌面端</h1>
         <p className="mt-3 text-[14px] leading-[1.65] text-ink-soft">
           确认后，浏览器会自动打开桌面 app。回到 app 继续整理简历就好。
         </p>
 
-        <div className="mt-5 space-y-2 rounded-xl border border-rule bg-paper px-4 py-3 text-[13px] leading-[1.6]">
+        <div className="mt-5 space-y-2 rounded-xl border border-rule bg-paper px-4 py-3 text-[14px] leading-[1.6]">
           <ConnectionLine label="当前账号" value={session.user.email ?? '已登录账号'} />
           <ConnectionLine label="连接到" value={appName} />
         </div>
 
         <ApproveForm state={state} redirect={redirect_uri} appName={appName} />
 
-        <p className="mt-5 text-center text-[11.5px] text-mute">看着不对？关闭这个窗口，就不会完成连接。</p>
+        <p className="mt-5 text-center text-[12px] text-mute">看着不对？关闭这个窗口，就不会完成连接。</p>
       </div>
     </main>
   );

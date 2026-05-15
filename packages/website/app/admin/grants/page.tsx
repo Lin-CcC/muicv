@@ -61,20 +61,20 @@ export default async function AdminGrantsPage(props: { searchParams: Promise<{ p
       <AdminNav active="/admin/grants" />
 
       <div>
-        <h1 className="text-[22px] font-extrabold text-ink">赠予记录</h1>
-        <p className="mt-1 text-[13px] text-ink-soft">
+        <h1 className="text-[24px] font-extrabold text-ink">赠予记录</h1>
+        <p className="mt-1 text-[14px] text-ink-soft">
           所有 admin_grant / admin_deduct 流水审计；按时间倒序，每页 {PAGE_SIZE} 条。
         </p>
       </div>
 
       {rows.length === 0 ? (
-        <p className="rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[13px] text-mute">
+        <p className="rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[14px] text-mute">
           还没有任何后台调账记录。
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border-2 border-rule bg-cream">
-          <table className="min-w-full text-[13px]">
-            <thead className="border-b border-rule bg-fluff text-left font-mono text-[11px] uppercase tracking-wider text-mute">
+          <table className="min-w-full text-[14px]">
+            <thead className="border-b border-rule bg-fluff text-left font-mono text-[12px] uppercase tracking-wider text-mute">
               <tr>
                 <th className="px-4 py-2">时间</th>
                 <th className="px-4 py-2">用户</th>
@@ -116,7 +116,7 @@ export default async function AdminGrantsPage(props: { searchParams: Promise<{ p
         </div>
       )}
 
-      <div className="flex items-center justify-between text-[13px] text-ink-soft">
+      <div className="flex items-center justify-between text-[14px] text-ink-soft">
         <span>
           第 {page} 页 · {rows.length} 条
         </span>

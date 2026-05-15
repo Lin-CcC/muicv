@@ -30,7 +30,7 @@ export function AttachmentChip({ attachment: a, onRemove, onPreview }: Props) {
         title={onPreview ? `预览 ${a.name}` : a.name}
         className="-mx-0.5 inline-flex items-center gap-1.5 rounded px-0.5 transition hover:text-ink-soft disabled:cursor-default"
       >
-        <span className="font-mono text-[10px] font-semibold text-ink-soft">{kindLabel}</span>
+        <span className="font-mono text-[12px] font-semibold text-ink-soft">{kindLabel}</span>
         <span className="max-w-[180px] truncate" title={a.path}>
           {a.name}
         </span>

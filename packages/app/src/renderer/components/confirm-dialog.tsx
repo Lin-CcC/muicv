@@ -71,12 +71,12 @@ export function ConfirmDialog({
         <h2 id="confirm-title" className="text-[16px] font-extrabold text-ink">
           {title}
         </h2>
-        {description && <div className="mt-2 text-[13px] leading-[1.65] text-ink-soft">{description}</div>}
+        {description && <div className="mt-2 text-[14px] leading-[1.65] text-ink-soft">{description}</div>}
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="press-ink rounded-lg border-2 border-ink bg-cream px-4 py-1.5 text-[13px] font-bold text-ink"
+            className="press-ink rounded-lg border-2 border-ink bg-cream px-4 py-1.5 text-[14px] font-bold text-ink"
           >
             {cancelLabel}
           </button>
@@ -86,8 +86,8 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={
               destructive
-                ? 'press inline-flex items-center justify-center rounded-lg bg-tongue px-4 py-1.5 text-[13px] font-bold text-cream'
-                : 'press inline-flex items-center justify-center rounded-lg bg-yellow px-4 py-1.5 text-[13px] font-bold text-ink'
+                ? 'press inline-flex items-center justify-center rounded-lg bg-tongue px-4 py-1.5 text-[14px] font-bold text-cream'
+                : 'press inline-flex items-center justify-center rounded-lg bg-yellow px-4 py-1.5 text-[14px] font-bold text-ink'
             }
           >
             {confirmLabel}

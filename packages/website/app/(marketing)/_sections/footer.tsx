@@ -12,16 +12,16 @@ export function Footer() {
             <CorgiMascot className="h-9 w-9" />
             <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
           </a>
-          <p className="mt-4 max-w-xs text-[13px] leading-[1.65] text-ink-soft">
+          <p className="mt-4 max-w-xs text-[14px] leading-[1.65] text-ink-soft">
             一站式 AI 求职平台。简历、找岗位、模拟面试、就业辅导——帮你拿到更好的 offer。
           </p>
-          <p className="mt-3 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-wider text-yellow-deep">
+          <p className="mt-3 inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-wider text-yellow-deep">
             <PawIcon className="h-3.5 w-3.5" />
             由柯基 Mui 监修
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 text-[13px] sm:grid-cols-3 lg:col-span-7">
+        <div className="grid grid-cols-2 gap-8 text-[14px] sm:grid-cols-3 lg:col-span-7">
           <FooterCol
             label="产品"
             links={[
@@ -50,7 +50,7 @@ export function Footer() {
       <div className="border-t border-rule">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-[12px] text-mute md:flex-row md:items-center md:justify-between md:px-8">
           <span>© 2026 Meathill LLC · Mui简历 · 保留所有权利</span>
-          <span className="font-mono text-[11px] uppercase tracking-wider">Made with 🐾 in 中国</span>
+          <span className="font-mono text-[12px] uppercase tracking-wider">Made with 🐾 in 中国</span>
         </div>
       </div>
     </footer>

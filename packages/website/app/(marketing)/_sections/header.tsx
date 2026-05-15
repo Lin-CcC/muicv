@@ -16,8 +16,8 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 md:px-8">
         <a href="/" className="flex items-center gap-2.5 text-ink no-underline">
           <CorgiMascot className="h-8 w-8" />
-          <span className="text-[17px] font-bold tracking-tight">Mui简历</span>
-          <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-wider text-mute sm:inline">
+          <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
+          <span className="hidden font-mono text-[12px] font-semibold uppercase tracking-wider text-mute sm:inline">
             by Mui 🐾
           </span>
         </a>

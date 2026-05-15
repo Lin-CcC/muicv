@@ -179,8 +179,8 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
     <>
       <header className="flex shrink-0 items-center gap-2 border-b border-rule bg-cream px-4 py-2">
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-mute">预览</p>
-          <p className="truncate text-[13px] font-bold text-ink" title={path}>
+          <p className="font-mono text-[12px] uppercase tracking-wider text-mute">预览</p>
+          <p className="truncate text-[14px] font-bold text-ink" title={path}>
             {fileName}
           </p>
         </div>
@@ -190,7 +190,7 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
             onClick={() => setEditingPath(path)}
             title="编辑（在叠加层打开 CodeMirror）"
             aria-label="编辑文件"
-            className="flex shrink-0 items-center gap-1 rounded-md border-2 border-rule-strong bg-paper px-2 py-1 text-[11.5px] font-bold text-ink hover:bg-fluff"
+            className="flex shrink-0 items-center gap-1 rounded-md border-2 border-rule-strong bg-paper px-2 py-1 text-[12px] font-bold text-ink hover:bg-fluff"
           >
             <PencilSimpleIcon size={12} weight="bold" />
             编辑
@@ -218,7 +218,7 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
       >
         {loading && !isBinaryAsset && <div className="text-[12px] text-mute">读取中…</div>}
         {error && !isBinaryAsset && (
-          <div className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12.5px] text-tongue">
+          <div className="rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[12px] text-tongue">
             {error}
           </div>
         )}
@@ -251,7 +251,7 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
         )}
       </div>
 
-      <footer className="flex shrink-0 items-center gap-2 border-t border-rule bg-cream px-4 py-2 text-[11.5px] text-mute">
+      <footer className="flex shrink-0 items-center gap-2 border-t border-rule bg-cream px-4 py-2 text-[12px] text-mute">
         <button
           type="button"
           onClick={() => void window.muicv.fs.showInFolder(path)}
@@ -303,7 +303,7 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
               <span>{photoUploading ? '上传中…' : currentPhotoUrl ? '更换头像' : '上传头像'}</span>
             </button>
             {photoError && (
-              <span className="max-w-[220px] truncate text-[10.5px] text-tongue" title={photoError}>
+              <span className="max-w-[220px] truncate text-[12px] text-tongue" title={photoError}>
                 {photoError}
               </span>
             )}

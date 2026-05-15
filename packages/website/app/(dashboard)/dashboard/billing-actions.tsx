@@ -50,7 +50,7 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
     <div className="space-y-6">
       <div>
         <div className="flex items-baseline justify-between gap-3">
-          <h3 className="text-[15px] font-extrabold text-ink">订阅（自动续 Token）</h3>
+          <h3 className="text-[16px] font-extrabold text-ink">订阅（自动续 Token）</h3>
           {!hasActiveSubscription && (
             <div className="inline-flex rounded-lg border-2 border-rule bg-paper p-0.5 text-[12px] font-bold">
               <button
@@ -73,12 +73,12 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
                     : 'text-ink-soft'
                 }`}
               >
-                年付 <span className="ml-0.5 text-[10px] text-yellow-deep">省 ≈20%</span>
+                年付 <span className="ml-0.5 text-[12px] text-yellow-deep">省 ≈20%</span>
               </button>
             </div>
           )}
         </div>
-        <p className="mt-1 text-[12.5px] text-ink-soft">
+        <p className="mt-1 text-[12px] text-ink-soft">
           {hasActiveSubscription
             ? '已订阅；切换档位 / 取消请走"管理订阅"。'
             : interval === 'yearly'
@@ -99,11 +99,11 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
               >
                 <span>
                   <span className="block text-[14px] font-extrabold text-ink">{plan.label}</span>
-                  <span className="block font-mono text-[11px] text-mute">
+                  <span className="block font-mono text-[12px] text-mute">
                     {cycle.tokens.toLocaleString()} tokens / {interval === 'yearly' ? '年' : '月'}
                   </span>
                 </span>
-                <span className="font-mono text-[13px] font-bold tabular-nums text-yellow-deep">
+                <span className="font-mono text-[14px] font-bold tabular-nums text-yellow-deep">
                   {cycle.priceCnyDisplay}
                 </span>
               </button>
@@ -113,8 +113,8 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
       </div>
 
       <div>
-        <h3 className="text-[15px] font-extrabold text-ink">补充包（一次性买）</h3>
-        <p className="mt-1 text-[12.5px] text-ink-soft">没订阅也能用。买完立刻到账，永不过期。</p>
+        <h3 className="text-[16px] font-extrabold text-ink">补充包（一次性买）</h3>
+        <p className="mt-1 text-[12px] text-ink-soft">没订阅也能用。买完立刻到账，永不过期。</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {(['small', 'medium', 'large'] as TopupPackKey[]).map((key) => {
             const pack = TOPUP_PACKS[key];
@@ -126,8 +126,8 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
                 onClick={() => jumpTo('/api/topup', { pack: key }, `topup-${key}`)}
                 className="press-ink flex flex-col items-start gap-1 rounded-xl border-2 border-rule bg-cream px-4 py-3 text-left hover:border-corgi disabled:opacity-50"
               >
-                <span className="font-mono text-[11px] uppercase tracking-wider text-mute">{key}</span>
-                <span className="text-[15px] font-extrabold text-ink">{pack.tokens.toLocaleString()} tokens</span>
+                <span className="font-mono text-[12px] uppercase tracking-wider text-mute">{key}</span>
+                <span className="text-[16px] font-extrabold text-ink">{pack.tokens.toLocaleString()} tokens</span>
                 <span className="font-mono text-[12px] tabular-nums text-yellow-deep">{pack.priceCnyDisplay}</span>
               </button>
             );
@@ -141,14 +141,14 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
             type="button"
             disabled={busy !== null}
             onClick={() => jumpTo('/api/billing/portal', {}, 'portal')}
-            className="press inline-flex items-center gap-1.5 rounded-xl bg-yellow px-4 py-2 text-[13px] font-bold text-ink disabled:opacity-50"
+            className="press inline-flex items-center gap-1.5 rounded-xl bg-yellow px-4 py-2 text-[14px] font-bold text-ink disabled:opacity-50"
           >
             {busy === 'portal' ? '跳转中…' : '管理订阅 / 看发票 / 切换档位'}
           </button>
         </div>
       )}
 
-      {error && <div className="rounded-lg border border-amber bg-fluff px-3 py-2 text-[12.5px] text-ink">{error}</div>}
+      {error && <div className="rounded-lg border border-amber bg-fluff px-3 py-2 text-[12px] text-ink">{error}</div>}
     </div>
   );
 }

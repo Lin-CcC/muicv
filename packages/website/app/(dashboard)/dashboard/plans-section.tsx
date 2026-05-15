@@ -79,7 +79,7 @@ export async function PlansSection() {
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 余额与计费</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 余额与计费</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">
           余额{' '}
           <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">
@@ -87,14 +87,14 @@ export async function PlansSection() {
           </span>{' '}
           tokens
         </h2>
-        <p className="mt-1 text-[13px] text-ink-soft">
+        <p className="mt-1 text-[14px] text-ink-soft">
           所有云端服务（大语言模型调用、PDF 渲染、岗位抓取）按 Token 扣费；自带 API 的用户，大语言模型调用走自己的
           muirouter 余额， PDF 渲染、岗位抓取仍按本余额扣。Token 永不过期。
         </p>
       </header>
 
       {hasActive && sub && (
-        <div className="mt-5 rounded-xl border-2 border-yellow-deep bg-fluff p-4 text-[13px] leading-[1.7]">
+        <div className="mt-5 rounded-xl border-2 border-yellow-deep bg-fluff p-4 text-[14px] leading-[1.7]">
           <p className="font-bold text-ink">
             订阅状态：{SUB_STATUS_LABEL[sub.status] ?? sub.status}
             {sub.cancelAtPeriodEnd ? '（周期末取消）' : ''}
@@ -117,19 +117,19 @@ export async function PlansSection() {
       </div>
 
       <div className="mt-8 border-t border-rule pt-6">
-        <h3 className="text-[15px] font-extrabold text-ink">最近交易</h3>
+        <h3 className="text-[16px] font-extrabold text-ink">最近交易</h3>
         {ledger.length === 0 ? (
-          <p className="mt-2 text-[12.5px] text-mute">还没有任何交易。</p>
+          <p className="mt-2 text-[12px] text-mute">还没有任何交易。</p>
         ) : (
           <ul className="mt-3 divide-y divide-rule">
             {ledger.map((row) => (
-              <li key={row.id} className="flex items-center justify-between gap-4 py-2 text-[13px]">
+              <li key={row.id} className="flex items-center justify-between gap-4 py-2 text-[14px]">
                 <div className="min-w-0">
                   <p className="font-medium text-ink">{LEDGER_TYPE_LABEL[row.type] ?? row.type}</p>
-                  <p className="font-mono text-[11px] text-mute">{formatTimestamp(row.createdAt)}</p>
+                  <p className="font-mono text-[12px] text-mute">{formatTimestamp(row.createdAt)}</p>
                 </div>
                 <span
-                  className={`font-mono text-[13px] font-bold tabular-nums ${
+                  className={`font-mono text-[14px] font-bold tabular-nums ${
                     row.delta > 0 ? 'text-yellow-deep' : 'text-ink-soft'
                   }`}
                 >

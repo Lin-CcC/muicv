@@ -49,7 +49,7 @@ export default async function ContactPage() {
         <div className="absolute inset-0 bg-grid opacity-50" aria-hidden />
         <div className="relative mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
           <div className="max-w-3xl">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 联系</p>
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 联系</p>
             <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
               想跟我们 <Highlight>说点什么</Highlight>？
             </h1>
@@ -68,7 +68,7 @@ export default async function ContactPage() {
                 key={c.email}
                 className="flex flex-col rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)] transition-transform hover:-translate-y-1"
               >
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">{c.tag}</p>
+                <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">{c.tag}</p>
                 <h2 className="mt-2 text-[18px] font-extrabold text-ink">{c.label}</h2>
                 <p className="mt-3 flex-1 text-[14px] leading-[1.7] text-ink-soft">{c.desc}</p>
                 <a

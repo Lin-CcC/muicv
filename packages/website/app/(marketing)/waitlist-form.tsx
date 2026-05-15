@@ -100,7 +100,7 @@ export function WaitlistForm({ source }: { source: string }) {
         </button>
       </div>
       {status === 'error' && (
-        <p role="alert" className="text-[13px] font-medium text-tongue">
+        <p role="alert" className="text-[14px] font-medium text-tongue">
           提交失败：{errorMsg ?? '请稍后重试'}
         </p>
       )}

@@ -32,13 +32,13 @@ export default async function AboutPage() {
         </div>
 
         <div className="relative mx-auto max-w-4xl px-5 py-20 md:px-8 md:py-24">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 关于</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 关于</p>
           <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
             一个真正帮你拿到 <Highlight>offer</Highlight> 的工具，
             <br />
             不是又一个模板生成器。
           </h1>
-          <p className="mt-6 max-w-2xl text-[17px] leading-[1.7] text-ink-soft">
+          <p className="mt-6 max-w-2xl text-[18px] leading-[1.7] text-ink-soft">
             Mui简历是一个一站式 AI 求职平台：从整理过往经历开始，到发现合适的岗位、定制简历、模拟面试、写求职信，
             全程围绕"拿到下一份工作"这件事——而不只是产出一个好看的 PDF。
           </p>
@@ -47,7 +47,7 @@ export default async function AboutPage() {
 
       <section className="border-b border-rule">
         <div className="mx-auto max-w-4xl px-5 py-16 md:px-8 md:py-20">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 我们做什么</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 我们做什么</p>
           <h2 className="mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.1] tracking-tight">
             从素材到 offer 的完整链路。
           </h2>
@@ -80,11 +80,11 @@ export default async function AboutPage() {
 
       <section className="border-b border-rule">
         <div className="mx-auto max-w-4xl px-5 py-16 md:px-8 md:py-20">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 为什么做</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 为什么做</p>
           <h2 className="mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.1] tracking-tight">
             找工作这件事，不该这么难。
           </h2>
-          <div className="mt-8 space-y-5 text-[15.5px] leading-[1.8] text-ink-soft">
+          <div className="mt-8 space-y-5 text-[16px] leading-[1.8] text-ink-soft">
             <p>
               我们见过太多优秀的候选人栽在简历上：内容很厉害但讲不清楚、模板套了一个又一个、对着 JD
               改了一晚上还是不知道该不该投。
@@ -101,7 +101,7 @@ export default async function AboutPage() {
 
       <section className="border-b border-rule">
         <div className="mx-auto max-w-4xl px-5 py-16 md:px-8 md:py-20">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 团队</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 团队</p>
           <h2 className="mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.1] tracking-tight">
             一只柯基带一个工程师。
           </h2>
@@ -112,7 +112,7 @@ export default async function AboutPage() {
                 <CorgiMascot className="h-20 w-20" />
               </div>
             </div>
-            <div className="text-[15px] leading-[1.8] text-ink-soft">
+            <div className="text-[16px] leading-[1.8] text-ink-soft">
               <p>
                 项目由 <strong className="text-ink">meathill</strong>（一名做了多年前端的开发者）发起， 由柯基{' '}
                 <strong className="text-ink">Mui</strong> 监修——她是 meathill
@@ -134,14 +134,14 @@ export default async function AboutPage() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
               href={isLoggedIn ? '/dashboard' : '/sign-up'}
-              className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
+              className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[16px] font-bold text-ink"
             >
               {isLoggedIn ? '进入控制台' : '免费开始'}
               <ArrowUpRight />
             </a>
             <a
               href="/contact"
-              className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
+              className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[16px] font-bold text-ink"
             >
               联系我们
               <ArrowUpRight />

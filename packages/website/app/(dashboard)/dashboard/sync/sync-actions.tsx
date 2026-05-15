@@ -40,7 +40,7 @@ export function WipeButton() {
         type="button"
         onClick={() => void onClick()}
         disabled={pending}
-        className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-paper px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)] disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-paper px-4 py-2 text-[14px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)] disabled:opacity-60"
       >
         {pending && <Spinner />}
         {pending ? '清空中…' : '清空云端'}
@@ -113,7 +113,7 @@ export function HistoryRowActions({ id }: { id: string }) {
           {busyAction === 'delete-history' ? <Spinner /> : '删除'}
         </button>
       </div>
-      {error && <p className="text-[11px] text-tongue">{error}</p>}
+      {error && <p className="text-[12px] text-tongue">{error}</p>}
       <ConfirmDialog ref={confirmRef} />
     </div>
   );
@@ -151,7 +151,7 @@ export function BlobWipeButton() {
         type="button"
         onClick={() => void onClick()}
         disabled={pending}
-        className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-paper px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)] disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-paper px-4 py-2 text-[14px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)] disabled:opacity-60"
       >
         {pending && <Spinner />}
         {pending ? '清空中…' : '清空加密版'}
@@ -209,7 +209,7 @@ export function BlobHistoryRowActions({ id, blobId }: { id: string; blobId: stri
           {busyAction === 'delete-history' ? <Spinner /> : '删除'}
         </button>
       </div>
-      {error && <p className="text-[11px] text-tongue">{error}</p>}
+      {error && <p className="text-[12px] text-tongue">{error}</p>}
       <ConfirmDialog ref={confirmRef} />
     </div>
   );

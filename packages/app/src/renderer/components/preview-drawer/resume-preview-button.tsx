@@ -79,7 +79,7 @@ export function ResumeJsonPreviewButton({ content, template }: { content: string
       </button>
       {message && (
         <span
-          className={`max-w-[40%] truncate text-[10.5px] ${message.kind === 'ok' ? 'text-yellow-deep' : 'text-tongue'}`}
+          className={`max-w-[40%] truncate text-[12px] ${message.kind === 'ok' ? 'text-yellow-deep' : 'text-tongue'}`}
           title={message.text}
         >
           {message.text}

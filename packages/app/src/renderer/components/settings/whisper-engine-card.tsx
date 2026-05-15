@@ -109,16 +109,16 @@ export function WhisperEngineCard() {
           <MicrophoneIcon size={18} weight="duotone" />
         </div>
         <div className="flex-1">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">语音转写</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">语音转写</p>
           <h3 className="mt-1 text-[14px] font-bold text-ink">本地引擎（whisper.cpp）</h3>
-          <p className="mt-1 text-[12.5px] leading-[1.6] text-mute">
+          <p className="mt-1 text-[12px] leading-[1.6] text-mute">
             按需下载 ~12 MB 引擎 + 一个模型，转写就走本地 — 离线 / 隐私 / 不扣 token。不下也行，默认走云端。
           </p>
         </div>
       </div>
 
       {error && (
-        <pre className="mt-3 max-h-48 select-text overflow-auto whitespace-pre-wrap rounded-md border border-tongue/40 bg-tongue/10 px-3 py-2 font-mono text-[11.5px] leading-relaxed text-tongue">
+        <pre className="mt-3 max-h-48 select-text overflow-auto whitespace-pre-wrap rounded-md border border-tongue/40 bg-tongue/10 px-3 py-2 font-mono text-[12px] leading-relaxed text-tongue">
           {error}
         </pre>
       )}
@@ -127,8 +127,8 @@ export function WhisperEngineCard() {
       <div className="mt-4 rounded-xl border-2 border-rule-strong bg-paper p-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[13px] font-bold text-ink">whisper.cpp 引擎</p>
-            <p className="mt-0.5 text-[11.5px] text-mute">
+            <p className="text-[14px] font-bold text-ink">whisper.cpp 引擎</p>
+            <p className="mt-0.5 text-[12px] text-mute">
               {engineInstalled ? `已安装 v${status.engine.version ?? '?'}` : '未安装（约 12 MB）'}
             </p>
           </div>
@@ -156,8 +156,8 @@ export function WhisperEngineCard() {
       {/* 模型 */}
       {engineInstalled && (
         <div className="mt-3 rounded-xl border-2 border-rule-strong bg-paper p-3">
-          <p className="text-[13px] font-bold text-ink">模型</p>
-          <p className="mt-0.5 text-[11.5px] text-mute">
+          <p className="text-[14px] font-bold text-ink">模型</p>
+          <p className="mt-0.5 text-[12px] text-mute">
             至少装一个模型才能跑本地。HuggingFace 直接下载，不扣 token。
             <br />
             <span className="text-mute/80">
@@ -174,13 +174,13 @@ export function WhisperEngineCard() {
                 <div key={opt.id} className="rounded-lg border border-rule px-3 py-2">
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-[12.5px] font-bold text-ink">
+                      <p className="text-[12px] font-bold text-ink">
                         {opt.label}{' '}
                         {isDefault && installed && (
-                          <span className="ml-1 rounded bg-fluff px-1.5 py-0.5 text-[10px] text-yellow-deep">默认</span>
+                          <span className="ml-1 rounded bg-fluff px-1.5 py-0.5 text-[12px] text-yellow-deep">默认</span>
                         )}
                       </p>
-                      <p className="mt-0.5 text-[11.5px] text-mute">{opt.hint}</p>
+                      <p className="mt-0.5 text-[12px] text-mute">{opt.hint}</p>
                     </div>
                     <div className="flex shrink-0 gap-2">
                       {installed ? (
@@ -189,7 +189,7 @@ export function WhisperEngineCard() {
                             <button
                               type="button"
                               onClick={() => void onChangeDefault(opt.id)}
-                              className="rounded-lg border-2 border-rule-strong bg-cream px-2 py-1 text-[11.5px] font-bold text-ink hover:bg-fluff"
+                              className="rounded-lg border-2 border-rule-strong bg-cream px-2 py-1 text-[12px] font-bold text-ink hover:bg-fluff"
                             >
                               设为默认
                             </button>
@@ -198,7 +198,7 @@ export function WhisperEngineCard() {
                             type="button"
                             onClick={() => void onUninstallModel(opt.id)}
                             disabled={busy != null}
-                            className="rounded-lg border-2 border-rule-strong bg-cream px-2 py-1 text-[11.5px] font-bold text-ink hover:bg-fluff disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-lg border-2 border-rule-strong bg-cream px-2 py-1 text-[12px] font-bold text-ink hover:bg-fluff disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             卸载
                           </button>
@@ -224,7 +224,7 @@ export function WhisperEngineCard() {
 
       {/* 偏好 */}
       <div className="mt-3 rounded-xl border-2 border-rule-strong bg-paper p-3">
-        <p className="text-[13px] font-bold text-ink">转写策略</p>
+        <p className="text-[14px] font-bold text-ink">转写策略</p>
         <div className="mt-2 flex flex-col gap-2">
           {PREFERENCE_OPTIONS.map((opt) => {
             const selected = status.preference === opt.id;
@@ -246,11 +246,11 @@ export function WhisperEngineCard() {
                 }`}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12.5px] font-bold text-ink">
+                  <p className="text-[12px] font-bold text-ink">
                     {opt.label}
-                    {disabled && <span className="ml-2 text-[10.5px] font-normal text-mute">需先装引擎和模型</span>}
+                    {disabled && <span className="ml-2 text-[12px] font-normal text-mute">需先装引擎和模型</span>}
                   </p>
-                  <p className="mt-0.5 text-[11.5px] text-mute">{opt.hint}</p>
+                  <p className="mt-0.5 text-[12px] text-mute">{opt.hint}</p>
                 </div>
               </button>
             );
@@ -274,7 +274,7 @@ function DownloadButton({
   label: string;
   compact?: boolean;
 }) {
-  const sizeCls = compact ? 'px-2 py-1 text-[11.5px]' : 'px-3 py-1.5 text-[12px]';
+  const sizeCls = compact ? 'px-2 py-1 text-[12px]' : 'px-3 py-1.5 text-[12px]';
   const iconSize = compact ? 12 : 13;
   return (
     <button
@@ -313,7 +313,7 @@ function ProgressBar({ event }: { event: WhisperProgressEvent }) {
       <div className="h-2 w-full overflow-hidden rounded-full border border-rule bg-cream">
         <div className="h-full bg-yellow transition-all duration-150" style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
-      <p className="mt-1 text-[11px] text-mute">
+      <p className="mt-1 text-[12px] text-mute">
         {phaseLabel[event.event.phase]}
         {received != null && total != null && (
           <span className="ml-2 font-mono">

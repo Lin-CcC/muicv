@@ -37,9 +37,9 @@ export function PreviewList({ items }: { items: PreviewListItem[] }) {
   if (items.length === 0) {
     return (
       <section className="rounded-xl border-2 border-rule bg-paper p-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 还没有预览</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-mute">— 还没有预览</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">来创建第一个分享链接</h2>
-        <p className="mt-2 text-[13.5px] text-ink-soft">
+        <p className="mt-2 text-[14px] text-ink-soft">
           在桌面 app 的 version 详情里点「在线预览」，或者跟 muicv-render skill 说"生成预览链接"。
         </p>
       </section>
@@ -74,10 +74,10 @@ function PreviewRow({ item }: { item: PreviewListItem }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md bg-fluff px-2 py-0.5 font-mono text-[11px] font-bold text-yellow-deep">
+            <span className="rounded-md bg-fluff px-2 py-0.5 font-mono text-[12px] font-bold text-yellow-deep">
               {TEMPLATE_LABELS[item.template] ?? item.template}
             </span>
-            <span className="font-mono text-[11px] uppercase tracking-wider text-mute">{item.lang}</span>
+            <span className="font-mono text-[12px] uppercase tracking-wider text-mute">{item.lang}</span>
             <StatusBadge status={item.status} />
             <ShareBadge shareMode={item.shareMode} />
           </div>
@@ -85,7 +85,7 @@ function PreviewRow({ item }: { item: PreviewListItem }) {
             href={item.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 block break-all font-mono text-[12.5px] text-ink underline decoration-rule-strong underline-offset-2"
+            className="mt-2 block break-all font-mono text-[12px] text-ink underline decoration-rule-strong underline-offset-2"
           >
             {item.url}
           </a>
@@ -117,13 +117,13 @@ function StatusBadge({ status }: { status: PreviewListItem['status'] }) {
   };
   const { label, className } = map[status];
   return (
-    <span className={`rounded px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-wider ${className}`}>{label}</span>
+    <span className={`rounded px-2 py-0.5 font-mono text-[12px] uppercase tracking-wider ${className}`}>{label}</span>
   );
 }
 
 function ShareBadge({ shareMode }: { shareMode: PreviewListItem['shareMode'] }) {
   return (
-    <span className="rounded border-[1.5px] border-rule px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-wider text-mute">
+    <span className="rounded border-[1.5px] border-rule px-2 py-0.5 font-mono text-[12px] uppercase tracking-wider text-mute">
       {shareMode === 'public' ? 'public' : 'link only'}
     </span>
   );
@@ -276,7 +276,7 @@ function InactiveActions({ item }: { item: PreviewListItem }) {
 export function PhotoHistoryList({ items }: { items: PhotoUploadItem[] }) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   if (items.length === 0) {
-    return <p className="mt-4 text-[13px] text-mute">还没上传过照片。下次在桌面 app 编辑简历时选「上传照片」即可。</p>;
+    return <p className="mt-4 text-[14px] text-mute">还没上传过照片。下次在桌面 app 编辑简历时选「上传照片」即可。</p>;
   }
   async function copy(url: string, key: string) {
     try {
@@ -297,15 +297,15 @@ export function PhotoHistoryList({ items }: { items: PhotoUploadItem[] }) {
             className="h-20 w-16 shrink-0 rounded-md object-cover"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-bold text-ink">{p.originalName ?? '(未命名)'}</p>
-            <p className="font-mono text-[11px] text-mute">
+            <p className="truncate text-[14px] font-bold text-ink">{p.originalName ?? '(未命名)'}</p>
+            <p className="font-mono text-[12px] text-mute">
               {formatSize(p.sizeBytes)} · {p.contentType.replace('image/', '')}
             </p>
-            <p className="mt-1 text-[11px] text-mute">{formatTimestamp(p.createdAt)}</p>
+            <p className="mt-1 text-[12px] text-mute">{formatTimestamp(p.createdAt)}</p>
             <button
               type="button"
               onClick={() => void copy(p.url, p.r2Key)}
-              className="mt-2 rounded border-2 border-rule bg-paper px-2 py-1 text-[11px] font-bold text-ink-soft transition hover:border-ink hover:text-ink"
+              className="mt-2 rounded border-2 border-rule bg-paper px-2 py-1 text-[12px] font-bold text-ink-soft transition hover:border-ink hover:text-ink"
             >
               {copiedKey === p.r2Key ? '已复制 URL' : '复制 URL'}
             </button>

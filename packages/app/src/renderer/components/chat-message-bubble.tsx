@@ -156,13 +156,13 @@ function ReasoningBlock({ text, streaming }: { text: string; streaming: boolean 
           className={streaming ? 'shrink-0 animate-pulse text-yellow-deep' : 'shrink-0 text-yellow-deep'}
         />
         <span className="flex-1 truncate">{streaming ? '思考中…' : `思考过程 · ${text.length} 字`}</span>
-        <span className="text-[10px]">{open ? '收起' : '展开'}</span>
+        <span className="text-[12px]">{open ? '收起' : '展开'}</span>
       </summary>
       <div
         ref={bodyRef}
         className="max-h-48 overflow-auto border-t border-rule px-2.5 py-2 text-[12px] leading-relaxed text-mute"
       >
-        <div className="whitespace-pre-wrap font-mono text-[11.5px]">{text}</div>
+        <div className="whitespace-pre-wrap font-mono text-[12px]">{text}</div>
       </div>
     </details>
   );
@@ -191,7 +191,7 @@ function OpsGroup({ toolCalls, reads }: { toolCalls: ToolCallRecord[]; reads: Ar
           className={inflight ? 'shrink-0 animate-spin text-yellow-deep' : 'shrink-0 text-yellow-deep'}
         />
         <span className="flex-1 truncate font-mono">{summary}</span>
-        <span className="text-[10px]">{open ? '收起' : '展开'}</span>
+        <span className="text-[12px]">{open ? '收起' : '展开'}</span>
       </summary>
       <div className="space-y-1 border-t border-rule px-2 py-2">
         {toolCalls.map((c) => (
@@ -199,10 +199,10 @@ function OpsGroup({ toolCalls, reads }: { toolCalls: ToolCallRecord[]; reads: Ar
         ))}
         {reads.length > 0 && (
           <div className="mt-2 border-t border-rule pt-2">
-            <p className="mb-1 px-1 text-[10.5px] text-mute">参考的素材：</p>
+            <p className="mb-1 px-1 text-[12px] text-mute">参考的素材：</p>
             <ul className="space-y-0.5">
               {reads.map((r, i) => (
-                <li key={`${r.path}-${i}`} className="flex items-center gap-1 px-1 font-mono text-[11px] text-ink-soft">
+                <li key={`${r.path}-${i}`} className="flex items-center gap-1 px-1 font-mono text-[12px] text-ink-soft">
                   <FileTextIcon size={11} className="shrink-0 text-mute" />
                   <span className="truncate">{r.title}</span>
                 </li>
@@ -233,7 +233,7 @@ function ToolCallChip({ call }: { call: ToolCallRecord }) {
         <span className="font-bold text-ink">{call.name}</span>
         <span className="truncate text-mute">{previewArgs(call.input)}</span>
       </summary>
-      <div className="border-t border-rule px-2.5 py-2 font-mono text-[11.5px] leading-snug text-ink-soft">
+      <div className="border-t border-rule px-2.5 py-2 font-mono text-[12px] leading-snug text-ink-soft">
         <div>
           <span className="text-mute">input:</span>
           <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-ink">

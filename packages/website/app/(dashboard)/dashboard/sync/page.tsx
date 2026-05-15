@@ -25,7 +25,7 @@ export default async function ResumeSyncPage() {
   return (
     <div className="space-y-8">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 云同步</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 云同步</p>
         <h1 className="mt-3 text-[clamp(1.6rem,3.2vw,2.25rem)] font-extrabold leading-[1.15] tracking-tight text-ink">
           MuiCV 平台云同步
         </h1>
@@ -55,9 +55,9 @@ function BlobActiveCard({
   if (!active) {
     return (
       <section className="rounded-xl border-2 border-rule bg-paper p-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 加密版（推荐）</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-mute">— 加密版（推荐）</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">还没有加密快照</h2>
-        <p className="mt-2 text-[13.5px] text-ink-soft">
+        <p className="mt-2 text-[14px] text-ink-soft">
           跟 muicv-sync 说"
           <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">同步到云端</span>
           "，给一个密码 → 整库 zip 加密上传，服务端只能拿到密文 + 你写的 summary（≤500 字符）。 上限{' '}
@@ -68,20 +68,20 @@ function BlobActiveCard({
   }
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 加密版（推荐）· 当前</p>
+      <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 加密版（推荐）· 当前</p>
       <h2 className="mt-2 text-[18px] font-extrabold text-ink">
         密文{' '}
         <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">{formatSize(active.sizeBytes)}</span>
       </h2>
-      <p className="mt-2 break-words text-[13.5px] text-ink-soft">{active.summary || <em>（无 summary）</em>}</p>
-      <p className="mt-2 text-[13px] text-ink-soft">
+      <p className="mt-2 break-words text-[14px] text-ink-soft">{active.summary || <em>（无 summary）</em>}</p>
+      <p className="mt-2 text-[14px] text-ink-soft">
         最后同步：<span className="font-mono">{formatTimestamp(active.updatedAt)}</span>
       </p>
-      <p className="mt-1 break-all font-mono text-[11px] text-mute">blob {active.blobId.slice(0, 16)}…</p>
+      <p className="mt-1 break-all font-mono text-[12px] text-mute">blob {active.blobId.slice(0, 16)}…</p>
       <div className="mt-5 flex flex-wrap gap-3">
         <a
           href={`/api/resume/sync/blob/${active.blobId}/download`}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-fluff px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)]"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-fluff px-4 py-2 text-[14px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)]"
         >
           下载 .zip 自己解密
         </a>
@@ -100,9 +100,9 @@ function BlobHistoryList({
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 加密版 · 历史</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 加密版 · 历史</p>
         <h2 className="mt-2 text-[16px] font-extrabold text-ink">最近 {RESUME_SYNC_HISTORY_KEEP} 份归档</h2>
-        <p className="mt-1 text-[12.5px] text-ink-soft">
+        <p className="mt-1 text-[12px] text-ink-soft">
           每次上传之前，当前版本会被搬到这里；超出保留份数的旧版会自动连密文一起清理。
         </p>
       </header>
@@ -111,11 +111,9 @@ function BlobHistoryList({
         {items.map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-4 py-3">
             <div className="min-w-0">
-              <p className="text-[13.5px] font-bold text-ink">密文 {formatSize(item.sizeBytes)}</p>
-              <p className="mt-0.5 break-words text-[12.5px] text-ink-soft">
-                {item.summary || <em>（无 summary）</em>}
-              </p>
-              <p className="font-mono text-[11px] text-mute">
+              <p className="text-[14px] font-bold text-ink">密文 {formatSize(item.sizeBytes)}</p>
+              <p className="mt-0.5 break-words text-[12px] text-ink-soft">{item.summary || <em>（无 summary）</em>}</p>
+              <p className="font-mono text-[12px] text-mute">
                 {formatTimestamp(item.archivedAt)} · blob {item.blobId.slice(0, 12)}…
               </p>
             </div>
@@ -135,9 +133,9 @@ function ActiveCard({
   if (!active) {
     return (
       <section className="rounded-xl border-2 border-rule bg-paper p-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 明文版</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-mute">— 明文版</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">还没有明文快照</h2>
-        <p className="mt-2 text-[13.5px] text-ink-soft">
+        <p className="mt-2 text-[14px] text-ink-soft">
           回 muicv-sync "
           <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">不要密码</span>"
           走明文路径——服务端按文件存，dashboard 能看文件列表 / 历史 diff，仅支持 .md， 单库上限{' '}
@@ -148,15 +146,15 @@ function ActiveCard({
   }
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 明文版 · 当前</p>
+      <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 明文版 · 当前</p>
       <h2 className="mt-2 text-[18px] font-extrabold text-ink">
         云端 <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">{active.fileCount}</span> 个文件 ·{' '}
         <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">{formatSize(active.sizeBytes)}</span>
       </h2>
-      <p className="mt-2 text-[13px] text-ink-soft">
+      <p className="mt-2 text-[14px] text-ink-soft">
         最后同步：<span className="font-mono">{formatTimestamp(active.updatedAt)}</span>
       </p>
-      <p className="mt-1 break-all font-mono text-[11px] text-mute">指纹 {active.hash.slice(0, 16)}…</p>
+      <p className="mt-1 break-all font-mono text-[12px] text-mute">指纹 {active.hash.slice(0, 16)}…</p>
       <div className="mt-5">
         <WipeButton />
       </div>
@@ -168,7 +166,7 @@ function SkillHints() {
   return (
     <section className="rounded-xl border-2 border-ink bg-paper p-6">
       <h2 className="text-[16px] font-extrabold text-ink">在 muicv-sync 技能里怎么用</h2>
-      <ol className="mt-3 space-y-2 text-[13.5px] leading-[1.7] text-ink-soft">
+      <ol className="mt-3 space-y-2 text-[14px] leading-[1.7] text-ink-soft">
         <li>
           🐾 <span className="font-bold text-ink">上传到云端</span>：跟 muicv-sync 说"
           <span className="rounded bg-fluff px-1.5 py-0.5 font-mono text-[12px] text-yellow-deep">同步到云端</span>
@@ -198,24 +196,24 @@ function HistoryList({
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header>
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 明文版 · 历史</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 明文版 · 历史</p>
         <h2 className="mt-2 text-[16px] font-extrabold text-ink">最近 {RESUME_SYNC_HISTORY_KEEP} 份归档</h2>
-        <p className="mt-1 text-[12.5px] text-ink-soft">
+        <p className="mt-1 text-[12px] text-ink-soft">
           每次上传之前，当前版本会被搬到这里；超出保留份数的旧版会自动清理。
         </p>
       </header>
 
       {items.length === 0 ? (
-        <p className="mt-5 text-[12.5px] text-mute">还没有历史快照。</p>
+        <p className="mt-5 text-[12px] text-mute">还没有历史快照。</p>
       ) : (
         <ul className="mt-5 divide-y divide-rule">
           {items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-4 py-3">
               <div className="min-w-0">
-                <p className="text-[13.5px] font-bold text-ink">
+                <p className="text-[14px] font-bold text-ink">
                   {item.fileCount} 个文件 · {formatSize(item.sizeBytes)}
                 </p>
-                <p className="font-mono text-[11px] text-mute">
+                <p className="font-mono text-[12px] text-mute">
                   {formatTimestamp(item.archivedAt)} · 指纹 {item.hash.slice(0, 12)}…
                 </p>
               </div>

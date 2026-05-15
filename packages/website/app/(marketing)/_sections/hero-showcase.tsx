@@ -60,8 +60,8 @@ export function HeroShowcase() {
                 onClick={() => setActive(slide.key)}
                 className={
                   isActive
-                    ? 'rounded-full border-2 border-ink bg-yellow px-3 py-1 text-[11.5px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]'
-                    : 'rounded-full border-2 border-rule bg-cream px-3 py-1 text-[11.5px] font-semibold text-ink-soft transition-colors hover:border-corgi hover:text-ink'
+                    ? 'rounded-full border-2 border-ink bg-yellow px-3 py-1 text-[12px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]'
+                    : 'rounded-full border-2 border-rule bg-cream px-3 py-1 text-[12px] font-semibold text-ink-soft transition-colors hover:border-corgi hover:text-ink'
                 }
               >
                 {slide.label}
@@ -82,7 +82,7 @@ export function HeroShowcase() {
           </Slide>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 font-mono text-[11px] text-mute">
+        <div className="mt-3 flex items-center gap-2 font-mono text-[12px] text-mute">
           <span className="inline-block h-2 w-2 rounded-full bg-yellow" />
           先整理，再针对岗位迭代
         </div>
@@ -115,11 +115,11 @@ function ImportSlide() {
           <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
         </div>
-        <span className="font-mono text-[10px] uppercase tracking-wider text-mute">Mui简历 · 第一步</span>
+        <span className="font-mono text-[12px] uppercase tracking-wider text-mute">Mui简历 · 第一步</span>
       </div>
       <div className="p-5">
         <h4 className="text-[18px] font-extrabold text-ink">先放进来一份真实材料</h4>
-        <p className="mt-2 text-[13px] leading-[1.65] text-ink-soft">
+        <p className="mt-2 text-[14px] leading-[1.65] text-ink-soft">
           上传简历、粘贴经历，或者直接说“我想从零整理”。Mui 会从你已经有的内容开始。
         </p>
         <div className="mt-5 grid gap-3">
@@ -136,8 +136,8 @@ function ImportSlide() {
                 <DocIcon className="h-5 w-5" />
               </span>
               <span>
-                <span className="block text-[13px] font-extrabold text-ink">{item.title}</span>
-                <span className="block text-[11.5px] text-mute">{item.desc}</span>
+                <span className="block text-[14px] font-extrabold text-ink">{item.title}</span>
+                <span className="block text-[12px] text-mute">{item.desc}</span>
               </span>
             </div>
           ))}
@@ -154,11 +154,11 @@ function LibrarySlide() {
         <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
-        <span className="ml-3 font-mono text-[11px] uppercase tracking-wider text-mute">职业素材库</span>
+        <span className="ml-3 font-mono text-[12px] uppercase tracking-wider text-mute">职业素材库</span>
       </div>
       <div className="grid h-[calc(100%-2.6rem)] grid-cols-[7.5rem_1fr]">
         <aside className="border-r border-rule bg-paper/50 p-3 text-[12px]">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-wider text-yellow-deep">导航</p>
+          <p className="font-mono text-[12px] font-bold uppercase tracking-wider text-yellow-deep">导航</p>
           <ul className="mt-2 space-y-1.5 text-ink-soft">
             <li className="rounded-md bg-yellow/30 px-2 py-1 font-semibold text-ink">经历</li>
             <li className="px-2 py-1">项目</li>
@@ -178,8 +178,8 @@ function LibrarySlide() {
                 key={item.title}
                 className="flex items-center justify-between rounded-lg border border-rule bg-cream px-3 py-2"
               >
-                <span className="text-[12.5px] font-semibold text-ink">{item.title}</span>
-                <span className="font-mono text-[11px] font-bold text-yellow-deep">{item.match}</span>
+                <span className="text-[12px] font-semibold text-ink">{item.title}</span>
+                <span className="font-mono text-[12px] font-bold text-yellow-deep">{item.match}</span>
               </li>
             ))}
           </ul>
@@ -193,7 +193,7 @@ function ResumeSlide() {
   return (
     <div className="flex h-full items-center justify-center rounded-xl border-2 border-rule bg-paper/60 p-6">
       <div className="relative h-full w-[72%] overflow-hidden rounded-md border border-rule-strong bg-cream shadow-press-ink">
-        <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-yellow px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-ink">
+        <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-yellow px-2 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-ink">
           A4
         </div>
         <div className="px-5 py-4">
@@ -203,7 +203,7 @@ function ResumeSlide() {
             {['React', 'TypeScript', 'Node.js'].map((s) => (
               <span
                 key={s}
-                className="rounded-full bg-fluff px-1.5 py-[1px] font-mono text-[8px] font-bold uppercase tracking-wider text-yellow-deep"
+                className="rounded-full bg-fluff px-1.5 py-[1px] font-mono text-[12px] font-bold uppercase tracking-wider text-yellow-deep"
               >
                 {s}
               </span>

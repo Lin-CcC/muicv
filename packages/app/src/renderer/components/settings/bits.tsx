@@ -24,8 +24,8 @@ export function ExternalButton({ href, label, primary }: { href: string; label: 
       onClick={() => void window.muicv.shell.openExternal(href)}
       className={
         primary
-          ? 'press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 text-[12.5px] font-bold text-ink'
-          : 'rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12.5px] font-bold text-ink hover:bg-fluff'
+          ? 'press inline-flex items-center justify-center gap-1.5 rounded-lg bg-yellow px-3.5 py-1.5 text-[12px] font-bold text-ink'
+          : 'rounded-lg border-2 border-rule-strong bg-cream px-3.5 py-1.5 text-[12px] font-bold text-ink hover:bg-fluff'
       }
     >
       {label}

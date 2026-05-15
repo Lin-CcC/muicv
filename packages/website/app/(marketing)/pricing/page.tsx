@@ -112,7 +112,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
         <div className="absolute inset-0 bg-grid opacity-50" aria-hidden />
         <div className="relative mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 定价</p>
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 定价</p>
             <h1 className="mt-3 text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
               按 <Highlight>token</Highlight> 计费，
               <br />
@@ -150,7 +150,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                 const pack = TOPUP_PACKS[key];
                 return (
                   <div key={key} className="flex flex-col rounded-xl border-2 border-rule bg-cream p-5">
-                    <p className="font-mono text-[10px] uppercase tracking-wider text-mute">{key}</p>
+                    <p className="font-mono text-[12px] uppercase tracking-wider text-mute">{key}</p>
                     <p className="mt-2 text-[20px] font-extrabold text-ink tabular-nums">
                       {pack.tokens.toLocaleString()} tokens
                     </p>
@@ -160,7 +160,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                     ) : (
                       <a
                         href="/sign-up"
-                        className="press-ink mt-5 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-4 py-2 text-[13px] font-bold text-ink"
+                        className="press-ink mt-5 inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-cream px-4 py-2 text-[14px] font-bold text-ink"
                       >
                         注册后购买
                         <ArrowUpRight />
@@ -176,7 +176,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
 
       <section className="border-b border-rule">
         <div className="mx-auto max-w-3xl px-5 py-16 md:px-8 md:py-20">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 关于定价</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 关于定价</p>
           <h2 className="mt-3 text-[clamp(1.75rem,3.5vw,2.5rem)] font-extrabold leading-[1.1] tracking-tight">
             一些会被问到的细节。
           </h2>
@@ -188,7 +188,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                 open={idx === 0}
               >
                 <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-4">
-                  <span className="mt-0.5 inline-flex h-7 shrink-0 items-center rounded-md bg-fluff px-2 font-mono text-[11px] font-bold tabular-nums text-yellow-deep">
+                  <span className="mt-0.5 inline-flex h-7 shrink-0 items-center rounded-md bg-fluff px-2 font-mono text-[12px] font-bold tabular-nums text-yellow-deep">
                     Q{String(idx + 1).padStart(2, '0')}
                   </span>
                   <span className="flex-1 text-[16px] font-bold leading-snug text-ink">{item.q}</span>
@@ -199,7 +199,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                     +
                   </span>
                 </summary>
-                <div className="border-t border-rule px-5 pb-5 pt-4 pl-[4.5rem] text-[15px] leading-[1.7] text-ink-soft">
+                <div className="border-t border-rule px-5 pb-5 pt-4 pl-[4.5rem] text-[16px] leading-[1.7] text-ink-soft">
                   {item.a}
                 </div>
               </details>
@@ -215,7 +215,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
 
 function IntervalToggle({ current }: { current: BillingInterval }) {
   return (
-    <div className="mx-auto mt-6 inline-flex rounded-full border-2 border-ink bg-cream p-1 text-[13px] font-bold shadow-[0_3px_0_0_var(--color-yellow-deep)]">
+    <div className="mx-auto mt-6 inline-flex rounded-full border-2 border-ink bg-cream p-1 text-[14px] font-bold shadow-[0_3px_0_0_var(--color-yellow-deep)]">
       <a
         href="/pricing?interval=monthly"
         className={`rounded-full px-4 py-1.5 transition-colors ${
@@ -230,7 +230,7 @@ function IntervalToggle({ current }: { current: BillingInterval }) {
           current === 'yearly' ? 'bg-yellow text-ink' : 'text-ink-soft hover:text-ink'
         }`}
       >
-        年付 <span className="ml-1 font-mono text-[10px] text-yellow-deep">省 ≈17%</span>
+        年付 <span className="ml-1 font-mono text-[12px] text-yellow-deep">省 ≈17%</span>
       </a>
     </div>
   );
@@ -242,13 +242,13 @@ function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <article className="relative flex flex-col rounded-xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1">
       <h3 className="text-[20px] font-extrabold text-ink">免费起步</h3>
-      <p className="mt-1 text-[13px] leading-[1.6] text-ink-soft">想试一下，先从这开始。</p>
+      <p className="mt-1 text-[14px] leading-[1.6] text-ink-soft">想试一下，先从这开始。</p>
       <div className="mt-5">
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-extrabold text-ink tabular-nums">10,000</span>
           <span className="text-[14px] font-bold text-ink-soft">tokens</span>
         </div>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">注册赠送 · 仅一次</p>
+        <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-mute">注册赠送 · 仅一次</p>
       </div>
       <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">
         <li className="flex items-start gap-2 text-ink-soft">
@@ -298,22 +298,22 @@ function SubscriptionCard({
       }
     >
       {tier.badge && (
-        <span className="absolute -top-3 right-5 inline-flex items-center gap-1 rounded-full bg-yellow px-3 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+        <span className="absolute -top-3 right-5 inline-flex items-center gap-1 rounded-full bg-yellow px-3 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
           <Sparkle />
           {tier.badge}
         </span>
       )}
       <h3 className="text-[20px] font-extrabold text-ink">{plan.label}</h3>
-      <p className="mt-1 text-[13px] leading-[1.6] text-ink-soft">{tier.tagline}</p>
+      <p className="mt-1 text-[14px] leading-[1.6] text-ink-soft">{tier.tagline}</p>
       <div className="mt-5">
         <div className="flex items-baseline gap-2">
           <span className="text-3xl font-extrabold text-ink tabular-nums">{cycle.priceCnyDisplay}</span>
         </div>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">
+        <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-mute">
           {interval === 'yearly' ? '每年' : '每月'} {cycle.tokens.toLocaleString()} tokens
         </p>
         {interval === 'yearly' && 'savingsLabel' in cycle && (
-          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-yellow-deep">{cycle.savingsLabel}</p>
+          <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-yellow-deep">{cycle.savingsLabel}</p>
         )}
       </div>
       <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">

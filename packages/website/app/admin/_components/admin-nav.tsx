@@ -7,7 +7,7 @@ const TABS: { href: string; label: string; matchPrefix: string }[] = [
 
 export function AdminNav({ active }: { active: string }) {
   return (
-    <nav className="flex gap-1 border-b border-rule pb-2 text-[13px] font-bold">
+    <nav className="flex gap-1 border-b border-rule pb-2 text-[14px] font-bold">
       {TABS.map((tab) => {
         const isActive = active.startsWith(tab.matchPrefix);
         return (

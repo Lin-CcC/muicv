@@ -58,8 +58,8 @@ export function SettingsView() {
         <div className="flex items-center gap-3">
           <Avatar session={session} />
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">已登录</p>
-            <p className="text-[15px] font-extrabold text-ink">{session.name}</p>
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">已登录</p>
+            <p className="text-[16px] font-extrabold text-ink">{session.name}</p>
             <p className="text-[12px] text-mute">{session.email}</p>
           </div>
         </div>
@@ -84,11 +84,11 @@ export function SettingsView() {
 
       <ThemeCard />
 
-      <footer className="flex items-center gap-2 text-[11px] text-mute">
+      <footer className="flex items-center gap-2 text-[12px] text-mute">
         <CorgiMascot className="h-5 w-5" />
         <span className="min-w-0 flex-1">所有设置只存本地（macOS Keychain 加密），不上传服务器。</span>
         <div className="flex shrink-0 items-center gap-2">
-          {version && <span className="font-mono text-[10px] tabular-nums text-mute">v{version}</span>}
+          {version && <span className="font-mono text-[12px] tabular-nums text-mute">v{version}</span>}
           <SettingsUpdateButton status={updaterStatus} setStatus={setUpdaterStatus} />
         </div>
       </footer>
@@ -150,7 +150,7 @@ function SettingsUpdateButton({
       type="button"
       onClick={() => void handleCheck()}
       disabled={disabled}
-      className="inline-flex items-center gap-1 rounded-md border border-rule bg-cream px-2 py-1 text-[11px] font-semibold text-ink-soft transition hover:border-rule-strong hover:bg-fluff hover:text-ink disabled:cursor-default disabled:text-mute disabled:hover:border-rule disabled:hover:bg-cream disabled:hover:text-mute"
+      className="inline-flex items-center gap-1 rounded-md border border-rule bg-cream px-2 py-1 text-[12px] font-semibold text-ink-soft transition hover:border-rule-strong hover:bg-fluff hover:text-ink disabled:cursor-default disabled:text-mute disabled:hover:border-rule disabled:hover:bg-cream disabled:hover:text-mute"
     >
       {hasError ? (
         <WarningIcon size={12} weight="bold" className="text-tongue" />

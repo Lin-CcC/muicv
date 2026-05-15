@@ -45,7 +45,7 @@ export function ProfileSection() {
         >
           <CorgiMascot className="h-7 w-7 shrink-0" />
           <span className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-yellow-deep" />
-          <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+          <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-ink">
             {activeProfile?.name ?? 'Mui简历'}
           </span>
           <CaretDownIcon size={11} weight="bold" className="shrink-0 text-mute" />
@@ -148,7 +148,7 @@ function ProfileItem({
               setRenaming(false);
             }
           }}
-          className="block w-full rounded-md bg-cream px-2 py-1 text-[13px] font-bold text-ink focus:outline-none"
+          className="block w-full rounded-md bg-cream px-2 py-1 text-[14px] font-bold text-ink focus:outline-none"
         />
       </div>
     );
@@ -167,7 +167,7 @@ function ProfileItem({
         className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
       >
         {isActive && <CircleIcon size={8} weight="fill" className="shrink-0 text-yellow-deep" />}
-        <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">{profile.name}</span>
+        <span className="min-w-0 flex-1 truncate text-[14px] font-bold text-ink">{profile.name}</span>
       </button>
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition group-hover:opacity-100">
         <IconBtn title="重命名" onClick={() => setRenaming(true)}>
@@ -190,7 +190,7 @@ function ProfileItem({
           <>
             只是从列表去掉，磁盘上的文件不会删。
             <br />
-            <span className="font-mono text-[11px] text-mute">{profile.dir}</span>
+            <span className="font-mono text-[12px] text-mute">{profile.dir}</span>
           </>
         }
         confirmLabel="移除"
@@ -224,7 +224,7 @@ function IconBtn({
         e.stopPropagation();
         onClick();
       }}
-      className={`rounded px-1.5 py-0.5 text-[11px] ${
+      className={`rounded px-1.5 py-0.5 text-[12px] ${
         danger ? 'text-mute hover:bg-tongue/10 hover:text-tongue' : 'text-mute hover:bg-paper hover:text-ink'
       }`}
     >
@@ -242,7 +242,7 @@ function CreateInline({ onCreate }: { onCreate: (name: string) => Promise<void> 
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="block w-full rounded-md px-2 py-1.5 text-left text-[12.5px] text-yellow-deep hover:bg-fluff"
+        className="block w-full rounded-md px-2 py-1.5 text-left text-[12px] text-yellow-deep hover:bg-fluff"
       >
         + 新建职业档案
       </button>
@@ -264,14 +264,14 @@ function CreateInline({ onCreate }: { onCreate: (name: string) => Promise<void> 
           }
         }}
         placeholder="例如：程序员 / 厨师 / 自由插画师"
-        className="block w-full rounded-md border-2 border-rule-strong bg-cream px-2 py-1 text-[12.5px] text-ink placeholder:text-mute focus:border-ink focus:outline-none"
+        className="block w-full rounded-md border-2 border-rule-strong bg-cream px-2 py-1 text-[12px] text-ink placeholder:text-mute focus:border-ink focus:outline-none"
       />
       <div className="flex gap-1">
         <button
           type="button"
           onClick={() => name.trim() && void onCreate(name.trim())}
           disabled={!name.trim()}
-          className="press inline-flex flex-1 items-center justify-center rounded-md bg-yellow px-2 py-1 text-[11.5px] font-bold text-ink disabled:opacity-50"
+          className="press inline-flex flex-1 items-center justify-center rounded-md bg-yellow px-2 py-1 text-[12px] font-bold text-ink disabled:opacity-50"
         >
           选择目录
         </button>
@@ -281,7 +281,7 @@ function CreateInline({ onCreate }: { onCreate: (name: string) => Promise<void> 
             setEditing(false);
             setName('');
           }}
-          className="rounded-md px-2 py-1 text-[11.5px] text-mute hover:text-ink"
+          className="rounded-md px-2 py-1 text-[12px] text-mute hover:text-ink"
         >
           取消
         </button>

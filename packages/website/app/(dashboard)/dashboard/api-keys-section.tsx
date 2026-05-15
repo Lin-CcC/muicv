@@ -125,9 +125,9 @@ export function ApiKeysSection() {
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>
           <h2 className="mt-2 text-[18px] font-extrabold text-ink">给桌面应用 / 技能用的登录钥匙</h2>
-          <p className="mt-1 text-[13px] text-ink-soft">
+          <p className="mt-1 text-[14px] text-ink-soft">
             <strong>桌面应用的唯一登录凭证</strong>。创建后仅显示一次： 桌面应用 → 设置 → 粘进来；或在技能里设到{' '}
             <code className="rounded bg-fluff px-1 font-mono text-[12px]">MUICV_API_KEY</code> 环境变量。最多 10
             个有效凭证。
@@ -138,7 +138,7 @@ export function ApiKeysSection() {
       {error && (
         <div
           role="alert"
-          className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[13px] font-medium text-tongue"
+          className="mt-4 rounded-lg border-2 border-tongue/60 bg-tongue/10 px-3 py-2 text-[14px] font-medium text-tongue"
         >
           {error}
         </div>
@@ -172,10 +172,10 @@ export function ApiKeysSection() {
         <div className="mt-5 rounded-xl border-2 border-yellow-deep bg-fluff p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[13px] font-bold text-ink">⚠️ 复制保存——关掉就再也看不到了</p>
+              <p className="text-[14px] font-bold text-ink">⚠️ 复制保存——关掉就再也看不到了</p>
               <p className="mt-1 text-[12px] text-ink-soft">
                 建议立刻设到终端配置：
-                <code className="rounded bg-cream px-1 font-mono text-[11.5px]">export MUICV_API_KEY=…</code>
+                <code className="rounded bg-cream px-1 font-mono text-[12px]">export MUICV_API_KEY=…</code>
               </p>
             </div>
             <button
@@ -188,13 +188,13 @@ export function ApiKeysSection() {
             </button>
           </div>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <code className="flex-1 break-all rounded-lg bg-[#1a1815] px-3 py-2 font-mono text-[13px] text-corgi">
+            <code className="flex-1 break-all rounded-lg bg-[#1a1815] px-3 py-2 font-mono text-[14px] text-corgi">
               {revealedKey.key}
             </code>
             <button
               type="button"
               onClick={copyKey}
-              className="press-ink inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3 py-2 text-[12.5px] font-bold text-ink"
+              className="press-ink inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-ink bg-cream px-3 py-2 text-[12px] font-bold text-ink"
             >
               {copied ? '✓ 已复制' : '复制'}
             </button>
@@ -205,9 +205,9 @@ export function ApiKeysSection() {
       {/* Key 列表 */}
       <div className="mt-6">
         {keys === null ? (
-          <p className="text-[13px] text-mute">加载中…</p>
+          <p className="text-[14px] text-mute">加载中…</p>
         ) : keys.length === 0 ? (
-          <p className="text-[13px] text-mute">还没有凭证。点上面"生成新凭证"创建第一把。</p>
+          <p className="text-[14px] text-mute">还没有凭证。点上面"生成新凭证"创建第一把。</p>
         ) : (
           <ul className="space-y-2">
             {keys.map((k) => {
@@ -222,7 +222,7 @@ export function ApiKeysSection() {
                     <div className="text-[14px] font-bold text-ink">{k.name}</div>
                     <div className="mt-0.5 font-mono text-[12px] text-mute">{k.keyPreview}</div>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-mute">
+                  <div className="flex items-center gap-3 text-[12px] text-mute">
                     <span title={`创建于 ${formatDate(k.createdAt)}`}>建于 {formatDate(k.createdAt)}</span>
                     <span>·</span>
                     <span>最后使用：{k.lastUsedAt ? formatDate(k.lastUsedAt) : '从未'}</span>

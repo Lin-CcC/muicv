@@ -43,7 +43,7 @@ export function UpdateCard() {
         <button
           type="button"
           onClick={() => setReadyDismissed(false)}
-          className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[11.5px] font-medium text-yellow-deep hover:bg-fluff/60"
+          className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[12px] font-medium text-yellow-deep hover:bg-fluff/60"
         >
           <ArrowCircleUpIcon size={13} weight="fill" />
           <span className="truncate">v{status.version} 已就绪 · 点此重启</span>
@@ -63,7 +63,7 @@ export function UpdateCard() {
     switch (status.phase) {
       case 'checking':
         return (
-          <div className="flex items-center gap-1.5 text-[11.5px] text-mute">
+          <div className="flex items-center gap-1.5 text-[12px] text-mute">
             <ArrowsClockwiseIcon size={12} className="animate-spin" />
             <span>正在检查更新…</span>
           </div>
@@ -73,16 +73,16 @@ export function UpdateCard() {
         const percent = Math.max(0, Math.min(100, Math.round(status.percent ?? 0)));
         return (
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink">
+            <div className="flex items-center gap-1.5 text-[12px] font-medium text-ink">
               <DownloadSimpleIcon size={12} weight="bold" />
               <span className="truncate">下载新版本 v{status.version ?? '?'}</span>
-              <span className="ml-auto font-mono text-[10px] tabular-nums text-mute">{percent}%</span>
+              <span className="ml-auto font-mono text-[12px] tabular-nums text-mute">{percent}%</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full border border-rule-strong bg-cream">
               <div className="h-full bg-yellow transition-[width] duration-150" style={{ width: `${percent}%` }} />
             </div>
             {typeof status.totalBytes === 'number' && status.totalBytes > 0 ? (
-              <span className="font-mono text-[10px] tabular-nums text-mute">
+              <span className="font-mono text-[12px] tabular-nums text-mute">
                 {formatBytes(status.transferredBytes ?? 0)} / {formatBytes(status.totalBytes)}
               </span>
             ) : null}
@@ -93,7 +93,7 @@ export function UpdateCard() {
       case 'ready':
         return (
           <div className="flex flex-col gap-2 rounded-lg border-2 border-ink bg-yellow/30 p-2 shadow-[0_3px_0_0_var(--color-ink)]">
-            <div className="flex items-center gap-1.5 text-[11.5px] font-bold text-ink">
+            <div className="flex items-center gap-1.5 text-[12px] font-bold text-ink">
               <ArrowCircleUpIcon size={13} weight="fill" />
               <span className="truncate">v{status.version} 已就绪</span>
             </div>
@@ -101,14 +101,14 @@ export function UpdateCard() {
               <button
                 type="button"
                 onClick={() => void handleInstall()}
-                className="press flex-1 rounded-md bg-yellow px-2 py-1 text-[11.5px] font-bold text-ink"
+                className="press flex-1 rounded-md bg-yellow px-2 py-1 text-[12px] font-bold text-ink"
               >
                 立即重启
               </button>
               <button
                 type="button"
                 onClick={() => setReadyDismissed(true)}
-                className="rounded-md border-2 border-rule-strong bg-cream px-2 py-1 text-[11.5px] font-medium text-ink-soft hover:bg-fluff"
+                className="rounded-md border-2 border-rule-strong bg-cream px-2 py-1 text-[12px] font-medium text-ink-soft hover:bg-fluff"
               >
                 稍后
               </button>
@@ -119,14 +119,14 @@ export function UpdateCard() {
       case 'error':
         return (
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-start gap-1.5 text-[11.5px] text-ink-soft">
+            <div className="flex items-start gap-1.5 text-[12px] text-ink-soft">
               <WarningIcon size={12} className="mt-0.5 shrink-0" />
               <span className="break-words">更新失败：{status.message ?? '未知错误'}</span>
             </div>
             <button
               type="button"
               onClick={() => void handleCheck()}
-              className="self-start rounded-md border-2 border-rule-strong bg-cream px-2 py-0.5 text-[11px] font-medium text-ink hover:bg-fluff"
+              className="self-start rounded-md border-2 border-rule-strong bg-cream px-2 py-0.5 text-[12px] font-medium text-ink hover:bg-fluff"
             >
               重试
             </button>

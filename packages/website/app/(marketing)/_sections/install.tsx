@@ -26,10 +26,10 @@ export function Install() {
               <br />
               <Highlight>直接装 skill</Highlight>。
             </h2>
-            <p className="mt-5 max-w-md text-[15px] leading-[1.7] text-ink-soft">
+            <p className="mt-5 max-w-md text-[16px] leading-[1.7] text-ink-soft">
               这是高级路径，适合已经习惯在 AI agent 里工作的用户。普通求职者直接下载桌面 app 会更顺。
             </p>
-            <p className="mt-4 max-w-md text-[13px] leading-[1.7] text-mute">
+            <p className="mt-4 max-w-md text-[14px] leading-[1.7] text-mute">
               不熟悉 AI agent？{' '}
               <a
                 href="/download"

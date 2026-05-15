@@ -34,21 +34,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3 md:px-8">
           <Link href="/" className="flex items-center gap-2.5 text-ink no-underline">
             <CorgiMascot className="h-8 w-8" />
-            <span className="text-[17px] font-bold tracking-tight">Mui简历</span>
-            <span className="hidden font-mono text-[10px] font-semibold uppercase tracking-wider text-mute sm:inline">
+            <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
+            <span className="hidden font-mono text-[12px] font-semibold uppercase tracking-wider text-mute sm:inline">
               dashboard
             </span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href="/download"
-              className="press inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[13px] font-bold text-ink"
+              className="press inline-flex items-center gap-1.5 rounded-lg bg-yellow px-3 py-1.5 text-[14px] font-bold text-ink"
             >
               <DownloadSimple size={14} weight="bold" />
               <span className="hidden sm:inline">下载桌面 app</span>
               <span className="sm:hidden">桌面 app</span>
             </Link>
-            <span className="hidden text-[13px] text-ink-soft sm:inline">
+            <span className="hidden text-[14px] text-ink-soft sm:inline">
               👋 <span className="font-semibold text-ink">{userName}</span>
             </span>
             <SignOutButton />

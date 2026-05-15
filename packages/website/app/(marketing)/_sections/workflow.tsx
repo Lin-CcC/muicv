@@ -7,7 +7,7 @@ export function Workflow() {
       <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
         <div className="flex items-end justify-between gap-8">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 怎么开始</p>
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 怎么开始</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
               第一次打开，
               <br className="md:hidden" />
@@ -28,7 +28,7 @@ export function Workflow() {
               <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow text-sm font-extrabold text-ink tabular-nums shadow-[0_2px_0_0_var(--color-yellow-deep)] sm:h-11 sm:w-11 sm:text-base">
                 {String(idx + 1).padStart(2, '0')}
               </span>
-              <span className="max-w-3xl text-[15px] leading-[1.65] text-ink-soft">
+              <span className="max-w-3xl text-[16px] leading-[1.65] text-ink-soft">
                 <span className="font-bold text-ink">{step.title}</span>
                 <span className="mx-2 text-rule-strong">·</span>
                 {step.desc}

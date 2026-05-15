@@ -41,7 +41,7 @@ export function DashboardNav({ variant }: { variant: 'sidebar' | 'tabs' }) {
               key={item.href}
               href={item.href}
               aria-current={current ? 'page' : undefined}
-              className={`shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-1.5 text-[13px] font-bold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-1.5 text-[14px] font-bold transition ${
                 current
                   ? 'border-ink bg-fluff text-ink shadow-[0_2px_0_0_var(--color-ink-line)]'
                   : 'border-rule bg-paper text-ink-soft hover:border-ink hover:text-ink'
@@ -78,14 +78,14 @@ export function DashboardNav({ variant }: { variant: 'sidebar' | 'tabs' }) {
                   {item.label}
                 </p>
                 {item.hint && (
-                  <p className={`mt-0.5 text-[11.5px] ${current ? 'text-yellow-deep' : 'text-mute'}`}>{item.hint}</p>
+                  <p className={`mt-0.5 text-[12px] ${current ? 'text-yellow-deep' : 'text-mute'}`}>{item.hint}</p>
                 )}
               </Link>
             );
           })}
         </nav>
         <div className="mt-2 border-t border-rule pt-3">
-          <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-mute">主题</p>
+          <p className="mb-1.5 font-mono text-[12px] font-bold uppercase tracking-wider text-mute">主题</p>
           <ThemeToggle />
         </div>
       </div>

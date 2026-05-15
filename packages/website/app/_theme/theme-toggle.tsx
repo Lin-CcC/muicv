@@ -34,8 +34,8 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
             onClick={() => setTheme(opt.value)}
             className={
               active
-                ? 'inline-flex items-center gap-1 rounded-sm bg-yellow px-2 py-0.5 font-mono text-[11px] font-bold text-ink shadow-[0_1px_0_0_var(--color-yellow-deep)]'
-                : 'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 font-mono text-[11px] font-semibold text-mute transition-colors hover:text-ink'
+                ? 'inline-flex items-center gap-1 rounded-sm bg-yellow px-2 py-0.5 font-mono text-[12px] font-bold text-ink shadow-[0_1px_0_0_var(--color-yellow-deep)]'
+                : 'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 font-mono text-[12px] font-semibold text-mute transition-colors hover:text-ink'
             }
           >
             {opt.value === 'light' && <SunIcon size={12} weight={active ? 'fill' : 'regular'} />}

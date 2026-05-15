@@ -22,7 +22,7 @@ type Entry = { name: string; path: string; isDirectory: boolean };
  */
 export function FileTree({ rootPath, onPickFile }: { rootPath: string; onPickFile: (path: string) => void }) {
   return (
-    <div className="font-mono text-[12.5px] leading-[1.6] text-ink-soft">
+    <div className="font-mono text-[12px] leading-[1.6] text-ink-soft">
       <DirChildren path={rootPath} depth={0} onPickFile={onPickFile} />
     </div>
   );
@@ -58,21 +58,21 @@ function DirChildren({ path, depth, onPickFile }: { path: string; depth: number;
 
   if (loading) {
     return (
-      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[11.5px] text-mute">
+      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[12px] text-mute">
         读取中…
       </div>
     );
   }
   if (error) {
     return (
-      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[11.5px] text-tongue">
+      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[12px] text-tongue">
         {error}
       </div>
     );
   }
   if (entries && entries.length === 0) {
     return (
-      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[11.5px] text-mute">
+      <div style={{ paddingLeft: padLeft }} className="py-0.5 text-[12px] text-mute">
         (空)
       </div>
     );
@@ -118,7 +118,7 @@ function DirNode({
           {expanded ? <CaretDownIcon size={10} weight="bold" /> : <CaretRightIcon size={10} weight="bold" />}
         </span>
         <FolderIcon size={14} weight="fill" className="shrink-0 text-yellow-deep" />
-        <span className="truncate text-[12.5px] font-bold text-ink">{name}</span>
+        <span className="truncate text-[12px] font-bold text-ink">{name}</span>
       </button>
       {everExpanded && (
         <div style={{ display: expanded ? undefined : 'none' }}>
@@ -150,7 +150,7 @@ function FileNode({
       title={path}
     >
       <FileTypeIcon size={14} className="shrink-0 text-mute" />
-      <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-soft">{name}</span>
+      <span className="min-w-0 flex-1 truncate text-[12px] text-ink-soft">{name}</span>
     </button>
   );
 }

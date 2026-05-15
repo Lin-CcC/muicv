@@ -16,18 +16,18 @@ export function InstallCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-[17px] font-extrabold text-ink">{title}</h3>
+            <h3 className="text-[18px] font-extrabold text-ink">{title}</h3>
             {preferred && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-yellow px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">
+              <span className="inline-flex items-center gap-1 rounded-full bg-yellow px-2.5 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-ink">
                 <Sparkle />
                 推荐
               </span>
             )}
           </div>
-          <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">{meta}</p>
+          <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-mute">{meta}</p>
         </div>
       </div>
-      <pre className="mt-4 overflow-x-auto rounded-lg border-2 border-ink/85 bg-[#1a1815] p-4 font-mono text-[12.5px] leading-relaxed text-cream/90">
+      <pre className="mt-4 overflow-x-auto rounded-lg border-2 border-ink/85 bg-[#1a1815] p-4 font-mono text-[12px] leading-relaxed text-cream/90">
         <code>{code}</code>
       </pre>
     </div>

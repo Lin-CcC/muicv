@@ -126,42 +126,42 @@ export default async function AdminUserDetailPage(props: {
       <AdminNav active="/admin/users" />
 
       <div className="flex items-baseline gap-3">
-        <Link href="/admin/users" className="text-[13px] text-ink-soft hover:text-ink">
+        <Link href="/admin/users" className="text-[14px] text-ink-soft hover:text-ink">
           ← 返回用户列表
         </Link>
       </div>
 
       <header className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 用户详情</p>
+        <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 用户详情</p>
         <h1 className="mt-2 text-[20px] font-extrabold text-ink">{user.name || user.email.split('@')[0]}</h1>
-        <p className="mt-1 font-mono text-[13px] text-ink-soft">{user.email}</p>
-        <p className="mt-1 font-mono text-[11px] text-mute">
+        <p className="mt-1 font-mono text-[14px] text-ink-soft">{user.email}</p>
+        <p className="mt-1 font-mono text-[12px] text-mute">
           ID {user.id} · 注册于 <LocalTime ms={user.createdAt.getTime()} />
         </p>
 
         <dl className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-rule bg-fluff/40 p-3">
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">当前余额</dt>
+            <dt className="font-mono text-[12px] uppercase tracking-wider text-mute">当前余额</dt>
             <dd className="mt-1 font-mono text-[18px] font-extrabold tabular-nums text-yellow-deep">
               {balance ? microToDisplay(balance.balance).toLocaleString() : '0'} tokens
             </dd>
           </div>
           <div className="rounded-lg border border-rule bg-fluff/40 p-3">
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">累计获得</dt>
-            <dd className="mt-1 font-mono text-[15px] tabular-nums text-ink">
+            <dt className="font-mono text-[12px] uppercase tracking-wider text-mute">累计获得</dt>
+            <dd className="mt-1 font-mono text-[16px] tabular-nums text-ink">
               {balance ? microToDisplay(balance.lifetimeEarned).toLocaleString() : '0'}
             </dd>
           </div>
           <div className="rounded-lg border border-rule bg-fluff/40 p-3">
-            <dt className="font-mono text-[10px] uppercase tracking-wider text-mute">累计消耗</dt>
-            <dd className="mt-1 font-mono text-[15px] tabular-nums text-ink">
+            <dt className="font-mono text-[12px] uppercase tracking-wider text-mute">累计消耗</dt>
+            <dd className="mt-1 font-mono text-[16px] tabular-nums text-ink">
               {balance ? microToDisplay(balance.lifetimeSpent).toLocaleString() : '0'}
             </dd>
           </div>
         </dl>
 
         {sub && (
-          <div className="mt-4 rounded-lg border border-rule bg-cream p-3 text-[13px]">
+          <div className="mt-4 rounded-lg border border-rule bg-cream p-3 text-[14px]">
             <p className="font-bold text-ink">
               订阅：{SUB_STATUS_LABEL[sub.status] ?? sub.status}
               {sub.cancelAtPeriodEnd ? '（周期末取消）' : ''}
@@ -180,7 +180,7 @@ export default async function AdminUserDetailPage(props: {
 
       <section className="rounded-xl border-2 border-yellow-deep bg-fluff/30 p-6">
         <h2 className="text-[16px] font-extrabold text-ink">赠送 token</h2>
-        <p className="mt-1 text-[12.5px] text-ink-soft">
+        <p className="mt-1 text-[12px] text-ink-soft">
           走 wallet.credit() 原子入账，type=admin_grant，meta 自动写入 grantedBy 与 reason，可在赠予记录页审计。
         </p>
         <div className="mt-4">
@@ -191,7 +191,7 @@ export default async function AdminUserDetailPage(props: {
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2 className="text-[16px] font-extrabold text-ink">交易流水</h2>
-          <p className="font-mono text-[11px] text-mute">每页 {PAGE_SIZE} 条</p>
+          <p className="font-mono text-[12px] text-mute">每页 {PAGE_SIZE} 条</p>
         </div>
 
         <form action={basePath} method="get" className="mt-3 flex flex-wrap items-center gap-2">
@@ -200,7 +200,7 @@ export default async function AdminUserDetailPage(props: {
             <select
               name="type"
               defaultValue={type}
-              className="rounded-lg border-2 border-rule bg-cream px-2 py-1.5 text-[12.5px] text-ink focus:border-ink focus:outline-none"
+              className="rounded-lg border-2 border-rule bg-cream px-2 py-1.5 text-[12px] text-ink focus:border-ink focus:outline-none"
             >
               <option value="all">全部</option>
               {Object.entries(LEDGER_TYPE_LABEL).map(([k, v]) => (
@@ -215,7 +215,7 @@ export default async function AdminUserDetailPage(props: {
             <select
               name="order"
               defaultValue={order}
-              className="rounded-lg border-2 border-rule bg-cream px-2 py-1.5 text-[12.5px] text-ink focus:border-ink focus:outline-none"
+              className="rounded-lg border-2 border-rule bg-cream px-2 py-1.5 text-[12px] text-ink focus:border-ink focus:outline-none"
             >
               <option value="desc">最新优先</option>
               <option value="asc">最早优先</option>
@@ -223,14 +223,14 @@ export default async function AdminUserDetailPage(props: {
           </label>
           <button
             type="submit"
-            className="press-ink rounded-lg border-2 border-ink bg-yellow px-3 py-1.5 text-[12.5px] font-bold text-ink"
+            className="press-ink rounded-lg border-2 border-ink bg-yellow px-3 py-1.5 text-[12px] font-bold text-ink"
           >
             应用
           </button>
           {hasFilter && (
             <Link
               href={basePath}
-              className="press-ink inline-flex items-center rounded-lg border-2 border-rule bg-cream px-3 py-1.5 text-[12.5px] font-bold text-ink-soft"
+              className="press-ink inline-flex items-center rounded-lg border-2 border-rule bg-cream px-3 py-1.5 text-[12px] font-bold text-ink-soft"
             >
               重置
             </Link>
@@ -238,7 +238,7 @@ export default async function AdminUserDetailPage(props: {
         </form>
 
         {ledger.length === 0 ? (
-          <p className="mt-3 rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[13px] text-mute">
+          <p className="mt-3 rounded-xl border-2 border-rule bg-cream px-4 py-8 text-center text-[14px] text-mute">
             {hasFilter || page > 1 ? '当前筛选下没有流水。' : '还没有任何流水。'}
           </p>
         ) : (
@@ -255,7 +255,7 @@ export default async function AdminUserDetailPage(props: {
               return (
                 <li
                   key={row.id}
-                  className={`flex items-start justify-between gap-4 px-4 py-3 text-[13px] ${
+                  className={`flex items-start justify-between gap-4 px-4 py-3 text-[14px] ${
                     isAdminAction ? 'bg-fluff/40' : ''
                   }`}
                 >
@@ -264,11 +264,11 @@ export default async function AdminUserDetailPage(props: {
                       {LEDGER_TYPE_LABEL[row.type] ?? row.type}
                       {isLlm && <span className="ml-1.5 font-mono text-[12px] text-ink-soft">· {llmModel}</span>}
                     </p>
-                    <p className="mt-0.5 font-mono text-[11px] text-mute">
+                    <p className="mt-0.5 font-mono text-[12px] text-mute">
                       <LocalTime ms={row.createdAt} />
                     </p>
                     {isLlm && llmPrompt != null && llmCompletion != null && (
-                      <p className="mt-0.5 font-mono text-[11px] text-mute">
+                      <p className="mt-0.5 font-mono text-[12px] text-mute">
                         prompt {llmPrompt.toLocaleString()} / completion {llmCompletion.toLocaleString()}
                         {llmCached != null && ` (cached ${llmCached.toLocaleString()})`}
                       </p>
@@ -295,7 +295,7 @@ export default async function AdminUserDetailPage(props: {
           </ul>
         )}
 
-        <div className="mt-3 flex items-center justify-between text-[13px] text-ink-soft">
+        <div className="mt-3 flex items-center justify-between text-[14px] text-ink-soft">
           <span>
             第 {page} 页 · {ledger.length} 条
           </span>

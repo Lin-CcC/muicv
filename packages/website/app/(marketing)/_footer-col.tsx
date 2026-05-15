@@ -1,7 +1,7 @@
 export function FooterCol({ label, links }: { label: string; links: [string, string][] }) {
   return (
     <div>
-      <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">{label}</p>
+      <p className="font-mono text-[12px] font-bold uppercase tracking-[0.18em] text-yellow-deep">{label}</p>
       <ul className="mt-4 space-y-2">
         {links.map(([name, href]) => (
           <li key={name}>

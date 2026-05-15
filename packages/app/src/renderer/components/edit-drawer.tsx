@@ -108,8 +108,8 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
       >
         <header className="flex shrink-0 items-center gap-3 border-b-2 border-rule bg-cream px-4 py-2">
           <div className="min-w-0 flex-1">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-mute">编辑</p>
-            <p className="truncate text-[13px] font-bold text-ink" title={mountedPath}>
+            <p className="font-mono text-[12px] uppercase tracking-wider text-mute">编辑</p>
+            <p className="truncate text-[14px] font-bold text-ink" title={mountedPath}>
               {fileName}
             </p>
           </div>
@@ -125,7 +125,7 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
             onClick={handleSave}
             disabled={!dirty || editorSaving}
             title="保存（⌘S）"
-            className="press inline-flex shrink-0 items-center gap-1 rounded-md bg-yellow px-2.5 py-1 text-[11.5px] font-bold text-ink disabled:opacity-50"
+            className="press inline-flex shrink-0 items-center gap-1 rounded-md bg-yellow px-2.5 py-1 text-[12px] font-bold text-ink disabled:opacity-50"
           >
             <FloppyDiskIcon size={12} weight="bold" />
             保存
@@ -142,7 +142,7 @@ export function EditDrawer({ path, onClose }: { path: string | null; onClose: ()
         </header>
 
         {editorError && (
-          <div className="shrink-0 border-b border-tongue/40 bg-tongue/10 px-4 py-2 text-[12.5px] text-tongue">
+          <div className="shrink-0 border-b border-tongue/40 bg-tongue/10 px-4 py-2 text-[12px] text-tongue">
             <WarningIcon size={12} weight="bold" className="mr-1 inline-block align-text-bottom" />
             {editorError}
           </div>
@@ -199,18 +199,18 @@ function EditStatus({
   lastSavedAt: number | null;
   hasPath: boolean;
 }) {
-  if (saving) return <span className="shrink-0 text-[11.5px] text-mute">保存中…</span>;
+  if (saving) return <span className="shrink-0 text-[12px] text-mute">保存中…</span>;
   if (savedJustNow && lastSavedAt) {
-    return <span className="shrink-0 text-[11.5px] text-yellow-deep">已保存 {formatHHMMSS(lastSavedAt)}</span>;
+    return <span className="shrink-0 text-[12px] text-yellow-deep">已保存 {formatHHMMSS(lastSavedAt)}</span>;
   }
   if (dirty) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1 text-[11.5px] text-yellow-deep">
+      <span className="inline-flex shrink-0 items-center gap-1 text-[12px] text-yellow-deep">
         <CircleIcon size={8} weight="fill" />
         未保存
       </span>
     );
   }
-  if (hasPath) return <span className="shrink-0 text-[11.5px] text-mute">已同步</span>;
+  if (hasPath) return <span className="shrink-0 text-[12px] text-mute">已同步</span>;
   return null;
 }
