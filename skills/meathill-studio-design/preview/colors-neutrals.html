@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Colors — Neutrals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px 22px; background: var(--color-cream); display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .sw { display: flex; flex-direction: column; gap: 4px; }
+  .chip { height: 64px; border-radius: var(--radius-md); border: 1px solid var(--color-rule); }
+  .name { font-family: var(--font-sans); font-size: 12px; font-weight: 700; color: var(--color-ink); }
+  .hex  { font-family: var(--font-mono); font-size: 10px; color: var(--color-mute); }
+</style>
+</head>
+<body>
+  <div class="sw"><div class="chip" style="background: var(--color-cream)"></div><div class="name">cream</div><div class="hex">#fdfaf2</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-paper)"></div><div class="name">paper</div><div class="hex">#f6efde</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-paper-deep)"></div><div class="name">paper-deep</div><div class="hex">#ede2c5</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-rule)"></div><div class="name">rule</div><div class="hex">#e0d3b8</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-rule-strong)"></div><div class="name">rule-strong</div><div class="hex">#c9b790</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-mute)"></div><div class="name">mute</div><div class="hex">#8a7660</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-ink-soft)"></div><div class="name">ink-soft</div><div class="hex">#5a4938</div></div>
+  <div class="sw"><div class="chip" style="background: var(--color-ink)"></div><div class="name">ink</div><div class="hex">#3a2e23</div></div>
+</body>
+</html>

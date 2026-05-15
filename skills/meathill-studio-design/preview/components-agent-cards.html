@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Agent runtime cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 18px 22px; background: var(--color-cream); font-family: var(--font-sans); color: var(--color-ink); display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: dense; gap: 12px; align-items: start; }
+  .card { background: var(--color-paper); border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); padding: 12px 14px; }
+  .top { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; min-width: 0; }
+  .ico { width: 26px; height: 26px; border-radius: var(--radius-sm); background: var(--color-fluff); color: var(--color-yellow-deep); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .name { font-family: var(--font-mono); font-weight: 700; font-size: 12px; color: var(--color-ink); white-space: nowrap; flex-shrink: 0; }
+  .arg  { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); margin-left: 6px; flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill.ok   { color: var(--color-success); background: var(--color-success-bg); }
+  .pill.run  { color: var(--color-yellow-deep); background: var(--color-fluff); }
+  .pill.err  { color: var(--color-danger); background: var(--color-danger-bg); }
+  .pill .d { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  .body { margin-top: 8px; padding-left: 34px; font-size: 14px; color: var(--color-ink-soft); line-height: 1.5; }
+  .body code { font-size: 12px; }
+
+  /* Inline terminal inside a card */
+  .terminal { margin-left: 34px; background: #1a1815; color: color-mix(in srgb, var(--color-cream) 90%, transparent); font-family: var(--font-mono); font-size: 12px; border-radius: var(--radius-sm); padding: 8px 12px; overflow-x: auto; line-height: 1.55; }
+  .terminal .p { color: var(--color-corgi); }
+  .terminal .ok { color: #b8d878; }
+
+  /* file diff */
+  .diff { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--color-rule); border-radius: var(--radius-sm); overflow: hidden; }
+  .diff .row { padding: 2px 12px; display: grid; grid-template-columns: 28px 1fr; gap: 8px; }
+  .diff .row.add { background: color-mix(in srgb, var(--color-success-bg) 70%, transparent); color: var(--color-success); }
+  .diff .row.del { background: color-mix(in srgb, var(--color-danger-bg) 60%, transparent); color: var(--color-danger); }
+  .diff .row.ctx { color: var(--color-ink-soft); }
+  .diff .ln  { text-align: right; color: var(--color-mute); }
+
+  /* thinking */
+  .thinking-trace { background: var(--color-paper); border: 1px dashed var(--color-rule-strong); border-radius: var(--radius-md); padding: 10px 14px; font-size: 14px; color: var(--color-ink-soft); line-height: 1.55; }
+  .thinking-trace .label { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--color-yellow-deep); text-transform: uppercase; letter-spacing: var(--tracking-mono); margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+
+  /* token usage */
+  .usage { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; background: var(--color-paper-deep); border-radius: var(--radius-md); font-size: 14px; flex-wrap: nowrap; }
+  .usage .label { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); text-transform: uppercase; letter-spacing: var(--tracking-mono); font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  .usage .nums  { font-family: var(--font-mono); font-feature-settings: 'tnum'; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .usage .nums b { color: var(--color-yellow-deep); }
+
+  /* approve gate */
+  .gate { padding: 12px 14px; border: 2px solid var(--color-warning); border-radius: var(--radius-md); background: var(--color-warning-bg); display: grid; gap: 10px; }
+  .gate h4 { margin: 0; font-size: 14px; color: var(--color-ink); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .gate h4 code { font-family: var(--font-mono); white-space: nowrap; background: rgb(58 46 35 / 0.08); padding: 2px 6px; border-radius: 4px; }
+  .gate .desc { font-size: 14px; color: var(--color-ink-soft); line-height: 1.5; }
+  .gate .acts { display: flex; gap: 8px; }
+  .btn { padding: 6px 12px; border-radius: var(--radius-md); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .btn.deny { background: transparent; border: 1px solid var(--color-rule-strong); color: var(--color-ink); }
+  .btn.allow { background: var(--color-warning); color: #fff; border: 1px solid color-mix(in srgb, var(--color-warning) 70%, black); box-shadow: 0 2px 0 0 color-mix(in srgb, var(--color-warning) 60%, black); }
+</style>
+</head>
+<body>
+
+<!-- Tool call: read file (success) -->
+<div class="card">
+  <div class="top">
+    <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></svg></span>
+    <span class="name">read_file</span>
+    <span class="arg">experience/2024-q2.md</span>
+    <span class="pill ok"><span class="d"></span>已完成 · 240ms</span>
+  </div>
+  <div class="body">读到 1,184 tokens 的素材。包含 3 个项目段落，1 段总结。</div>
+</div>
+
+<!-- Tool call: bash (running) — full width so terminal output has room -->
+<div class="card" style="grid-column: 1 / -1;">
+  <div class="top">
+    <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg></span>
+    <span class="name">bash</span>
+    <span class="arg">pnpm run build</span>
+    <span class="pill run"><span class="d"></span>运行中 · 12s</span>
+  </div>
+  <div class="body" style="font-family: var(--font-mono); font-size: 12px; padding-left: 0;">
+    <div class="terminal">
+      <span class="p">$</span> pnpm run build<br>
+      Building Next.js routes...<br>
+      <span class="ok">✓</span> Compiled successfully<br>
+      Generating static pages (4/12)<span class="p">_</span>
+    </div>
+  </div>
+</div>
+
+<!-- File edit with diff -->
+<div class="card" style="grid-column: 1 / -1;">
+  <div class="top">
+    <span class="ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>
+    <span class="name">edit_file</span>
+    <span class="arg">versions/bytedance-ssr.md</span>
+    <span class="pill ok"><span class="d"></span>+3 / −1</span>
+  </div>
+  <div class="diff" style="margin-left: 34px;">
+    <div class="row ctx"><span class="ln">42</span><span>### 重构前端发布链路</span></div>
+    <div class="row del"><span class="ln">−43</span><span>把发布耗时从 30 分钟降到 6 分钟。</span></div>
+    <div class="row add"><span class="ln">+43</span><span>把整包发布拆为路由级 canary 部署，发布耗时 30min → 6min。</span></div>
+    <div class="row add"><span class="ln">+44</span><span>引入回滚开关，回滚耗时 12min → 40s。</span></div>
+    <div class="row add"><span class="ln">+45</span><span>覆盖 4 条业务线、12 个前端应用。</span></div>
+  </div>
+</div>
+
+<!-- Thinking trace -->
+<div class="thinking-trace">
+  <div class="label">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    Mui 在思考
+  </div>
+  目标岗位强调"SSR 性能",素材里"路由级 canary"和"回滚 40s"最贴近。我会把首条 bullet 改写成 SSR 视角，把数字提前。
+</div>
+
+<!-- Token usage / cost — full width single info bar -->
+<div class="usage" style="grid-column: 1 / -1;">
+  <span class="label">本轮</span>
+  <span class="nums">输入 <b>1,420</b> · 输出 <b>380</b> · 缓存命中 <b>71%</b></span>
+</div>
+
+<!-- Approval gate -->
+<div class="gate" style="grid-column: 1 / -1;">
+  <h4>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+    Mui 想运行：<code style="background: rgb(58 46 35 / 0.08); padding: 0 6px; border-radius: 4px;">rm versions/draft-old-*.md</code>
+  </h4>
+  <p class="desc" style="margin: 0;">这会从 <code>.claude/muicv/versions/</code> 删除 4 份草稿。删除前会先备份到 R2。</p>
+  <div class="acts">
+    <button class="btn deny">拒绝</button>
+    <button class="btn allow">允许并继续</button>
+  </div>
+</div>
+
+</body>
+</html>

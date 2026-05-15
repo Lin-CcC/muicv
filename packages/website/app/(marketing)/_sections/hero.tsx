@@ -38,14 +38,14 @@ export function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <a
               href="/download"
-              className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
+              className="press inline-flex items-center gap-2 rounded-md border-2 border-ink bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
             >
               下载桌面 app
               <ArrowUpRight />
             </a>
             <a
               href="#workflow"
-              className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
+              className="press-ink inline-flex items-center gap-2 rounded-md border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
             >
               看 3 步怎么开始
               <ArrowUpRight />

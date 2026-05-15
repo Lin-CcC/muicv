@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>Dark mode — mini panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 20px; background: var(--color-cream); font-family: var(--font-sans); color: var(--color-ink); }
+  .panel { background: var(--color-paper); border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); overflow: hidden; max-width: 720px; }
+  .head { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--color-rule); }
+  .head h3 { font-size: 16px; margin: 0; font-weight: 800; }
+  .head .meta { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--color-rule); }
+  .kpi { background: var(--color-paper); padding: 12px 14px; }
+  .kpi .lbl { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; }
+  .kpi .num { display: flex; align-items: baseline; gap: 6px; margin-top: 4px; font-family: var(--font-display); font-size: 28px; font-weight: 800; color: var(--color-ink); letter-spacing: -0.02em; }
+  .kpi .delta { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #b8d878; }
+  .kpi .delta.down { color: var(--color-tongue); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); text-transform: uppercase; letter-spacing: 0.16em; font-weight: 700; padding: 8px 14px; background: var(--color-paper-deep); border-bottom: 1px solid var(--color-rule); }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--color-rule); }
+  tr.sel td { background: color-mix(in srgb, var(--color-yellow) 18%, var(--color-paper)); }
+  tr:hover td { background: rgb(243 233 213 / 0.04); }
+  .pri { font-weight: 700; color: var(--color-ink); }
+  .sub { color: var(--color-mute); font-size: 12px; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; }
+  .pill.ok { background: var(--color-success-bg); color: #b8d878; }
+  .pill.run { background: var(--color-fluff); color: var(--color-yellow-deep); }
+  .pill.draft { background: var(--color-paper-deep); color: var(--color-mute); }
+  .pill .d { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+  .num { font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<section class="panel">
+  <header class="head">
+    <h3>简历版本</h3>
+    <span class="meta">默认按修改时间 · 7 项</span>
+  </header>
+  <div class="kpis">
+    <div class="kpi"><span class="lbl">职业素材</span><span class="num">28<span class="delta">+4</span></span></div>
+    <div class="kpi"><span class="lbl">本月 tokens</span><span class="num">7,840<span class="delta down">−1,160</span></span></div>
+    <div class="kpi"><span class="lbl">匹配度均值</span><span class="num">68%<span class="delta">+5</span></span></div>
+  </div>
+  <table>
+    <thead><tr><th>版本</th><th>目标</th><th>状态</th><th>修改</th></tr></thead>
+    <tbody>
+      <tr class="sel">
+        <td><div class="pri">SSR 工程师 · 字节跳动</div><div class="sub">versions/bytedance-ssr.md</div></td>
+        <td class="num">字节跳动</td>
+        <td><span class="pill ok"><span class="d"></span>已投递</span></td>
+        <td class="num">3 分钟前</td>
+      </tr>
+      <tr>
+        <td><div class="pri">全栈 lead · Linear</div><div class="sub">versions/linear-lead.md</div></td>
+        <td class="num">Linear</td>
+        <td><span class="pill draft"><span class="d"></span>草稿</span></td>
+        <td class="num">今天 11:24</td>
+      </tr>
+      <tr>
+        <td><div class="pri">AI 工具 · Anthropic</div><div class="sub">versions/anthropic-ai.md</div></td>
+        <td class="num">Anthropic</td>
+        <td><span class="pill run"><span class="d"></span>评审中</span></td>
+        <td class="num">昨天</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+</body>
+</html>

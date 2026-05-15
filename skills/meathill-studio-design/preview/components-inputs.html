@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Form Inputs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 18px 22px; background: var(--color-cream); display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; font-family: var(--font-sans); }
+  label { font-size: 14px; font-weight: 600; color: var(--color-ink); display: block; margin-bottom: 5px; }
+  .help { font-size: 12px; color: var(--color-mute); margin-top: 4px; font-family: var(--font-sans); }
+  .err  { font-size: 12px; color: var(--color-danger); margin-top: 4px; }
+  .input, .select, .textarea { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); background: var(--color-cream); font: inherit; font-size: 14px; color: var(--color-ink); }
+  .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--color-yellow); box-shadow: var(--focus-ring); }
+  .input.invalid { border-color: var(--color-danger); }
+  .input:disabled { background: var(--color-paper); color: var(--color-mute); cursor: not-allowed; }
+  .with-prefix { position: relative; }
+  .with-prefix svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--color-mute); }
+  .with-prefix .input { padding-left: 32px; }
+  .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--color-ink); }
+  .check input { accent-color: var(--color-yellow); width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+  <div>
+    <label>邮箱</label>
+    <div class="with-prefix">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+      <input class="input" placeholder="you@example.com" value="meathill@gmail.com">
+    </div>
+    <div class="help">用来登录与接收同步通知</div>
+  </div>
+  <div>
+    <label>角色</label>
+    <select class="select"><option>个人开发者</option><option>团队管理员</option><option>仅查看</option></select>
+  </div>
+  <div>
+    <label>密码</label>
+    <input class="input invalid" type="password" value="123">
+    <div class="err">至少 8 位，含字母 + 数字</div>
+  </div>
+  <div>
+    <label>API key</label>
+    <input class="input" disabled value="sk-mui-9f3a••••••">
+  </div>
+  <div style="grid-column: 1 / -1;">
+    <label>简介</label>
+    <textarea class="textarea" rows="2" placeholder="一句话描述你做的事…">19 年全栈，最近主要做 AI agent 工具。</textarea>
+  </div>
+  <div style="grid-column: 1 / -1; display: flex; gap: 18px;">
+    <label class="check"><input type="checkbox" checked> 接收每周技术摘要</label>
+    <label class="check"><input type="checkbox"> 加入实验功能</label>
+    <label class="check"><input type="radio" name="r" checked> 中文</label>
+    <label class="check"><input type="radio" name="r"> English</label>
+  </div>
+</body>
+</html>

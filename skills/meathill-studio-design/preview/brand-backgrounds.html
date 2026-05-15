@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Brand — Backgrounds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 20px; background: var(--color-cream); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: stretch; }
+  .swatch { position: relative; height: 130px; border-radius: var(--radius-md); border: 1px solid var(--color-rule-strong); overflow: hidden; }
+  .tag { position: absolute; top: 8px; left: 8px; font-family: var(--font-mono); font-size: 12px; color: var(--color-ink); background: var(--color-cream); padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--color-rule); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; }
+  .grid-bg  { background: var(--color-cream); background-image: radial-gradient(circle, rgb(58 46 35 / 0.12) 1.2px, transparent 1.2px); background-size: 16px 16px; }
+  .sun-bg   { background:
+    radial-gradient(ellipse 60% 50% at 80% 0%, rgb(243 197 116 / 0.65) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 50% at 10% 100%, rgb(251 241 216 / 0.85) 0%, transparent 50%),
+    var(--color-cream);
+  }
+  .corgi-bg { background: var(--color-cream); position: relative; }
+  .corgi-bg::after { content: ""; position: absolute; right: -20px; top: -20px; width: 120px; height: 120px; background: var(--color-corgi); opacity: 0.35; border-radius: 999px; filter: blur(20px); }
+  .corgi-bg::before { content: ""; position: absolute; left: -10px; bottom: -10px; width: 80px; height: 80px; background: var(--color-yellow); opacity: 0.3; border-radius: 999px; filter: blur(14px); }
+</style>
+</head>
+<body>
+  <div class="swatch grid-bg"><span class="tag">.bg-grid</span></div>
+  <div class="swatch sun-bg"><span class="tag">.bg-sun</span></div>
+  <div class="swatch corgi-bg"><span class="tag">corgi blur</span></div>
+</body>
+</html>

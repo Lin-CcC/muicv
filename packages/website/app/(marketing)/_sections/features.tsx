@@ -42,9 +42,9 @@ function FeatureCard({ feature }: { feature: KeyFeature }) {
   const Icon = ICON_BY_TITLE[feature.title] ?? DocIcon;
   const isLive = feature.status === 'live';
   return (
-    <article className="group relative flex flex-col rounded-2xl border-2 border-ink bg-cream p-5 transition-transform hover:-translate-y-1">
+    <article className="group relative flex flex-col rounded-xl border-2 border-ink bg-cream p-5 transition-transform hover:-translate-y-1">
       <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
           <Icon className="h-5 w-5" />
         </span>
         <span

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Drawer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 0; background: var(--color-cream); font-family: var(--font-sans); }
+  /* "page" mock to give drawer context */
+  .page-mock { padding: 16px 20px; opacity: 0.5; pointer-events: none; user-select: none; height: 380px; box-sizing: border-box; }
+  .page-mock h2 { font-size: 22px; margin: 0 0 12px; }
+  .page-mock .row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .page-mock .chip { background: var(--color-paper); border: 1px solid var(--color-rule); padding: 4px 10px; border-radius: var(--radius-md); font-size: 14px; }
+  .page-mock .bar  { height: 8px; background: var(--color-paper); border-radius: 4px; margin-bottom: 6px; width: 70%; }
+  .page-mock .bar.short { width: 38%; }
+
+  /* backdrop */
+  .backdrop { position: absolute; inset: 0; background: rgb(58 46 35 / 0.32); backdrop-filter: blur(2px); }
+
+  /* drawer */
+  .drawer { position: absolute; top: 0; right: 0; width: 460px; height: 100%; background: var(--color-cream); border-left: 2px solid var(--color-ink); box-shadow: -8px 0 0 0 rgb(58 46 35 / 0.08); display: flex; flex-direction: column; }
+  .dh { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--color-rule); }
+  .dh-title { display: flex; align-items: center; gap: 8px; }
+  .dh h3 { font-size: 16px; margin: 0; font-weight: 800; }
+  .dh .crumb { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); text-transform: uppercase; letter-spacing: var(--tracking-mono); font-weight: 700; }
+  .dh .close { width: 28px; height: 28px; border-radius: var(--radius-sm); border: 0; background: transparent; color: var(--color-mute); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+  .dh .close:hover { background: var(--color-fluff); color: var(--color-ink); }
+  .db { flex: 1; padding: 16px 18px; overflow-y: auto; }
+  .df { padding: 12px 18px; border-top: 1px solid var(--color-rule); display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--color-paper); }
+
+  /* form bits */
+  .frow { display: grid; gap: 6px; margin-bottom: 14px; }
+  .frow label { font-size: 14px; font-weight: 700; color: var(--color-ink); }
+  .frow .hint { font-size: 12px; color: var(--color-mute); }
+  .ipt { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); background: var(--color-cream); font: inherit; font-size: 14px; color: var(--color-ink); }
+  .ipt:focus { outline: none; border-color: var(--color-yellow); box-shadow: var(--focus-ring); }
+  textarea.ipt { resize: vertical; min-height: 72px; }
+  .pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill-tag { padding: 2px 10px; border-radius: 999px; background: var(--color-fluff); color: var(--color-yellow-deep); font-size: 12px; font-weight: 600; border: 1px solid color-mix(in srgb, var(--color-corgi) 40%, transparent); }
+
+  /* buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-md); border: 1px solid var(--color-rule-strong); background: var(--color-cream); color: var(--color-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--color-yellow); border-color: var(--color-ink); font-weight: 800; box-shadow: 0 2px 0 0 var(--color-yellow-deep); }
+  .btn-ghost { border-color: transparent; background: transparent; }
+  .btn-ghost:hover { background: var(--color-fluff); }
+</style>
+</head>
+<body>
+<div style="position: relative; height: 380px;">
+  <div class="page-mock">
+    <h2>职业素材 · 重构发布链路</h2>
+    <div class="row"><span class="chip">前端</span><span class="chip">DevOps</span><span class="chip">2024</span></div>
+    <div class="bar"></div><div class="bar short"></div><div class="bar"></div><div class="bar short"></div><div class="bar"></div>
+  </div>
+  <div class="backdrop"></div>
+  <aside class="drawer">
+    <header class="dh">
+      <div class="dh-title">
+        <span class="crumb">编辑 · 经历</span>
+      </div>
+      <button class="close" aria-label="关闭">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+    <div class="db">
+      <h3 style="margin: 0 0 4px; font-size: 18px;">重构前端发布链路</h3>
+      <p style="margin: 0 0 16px; color: var(--color-mute); font-size: 12px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: var(--tracking-mono); font-weight: 700;">experience / 2024-q2.md</p>
+      <div class="frow"><label>标题</label><input class="ipt" value="重构前端发布链路"></div>
+      <div class="frow"><label>动作</label>
+        <textarea class="ipt">把 30 分钟的整包发布拆成按路由独立部署，引入 canary 流量与回滚开关。</textarea>
+        <span class="hint">STAR 中的 Action 段。可以分点写，但保留段落感更易读。</span>
+      </div>
+      <div class="frow"><label>结果（量化）</label>
+        <input class="ipt" value="发布耗时 30min → 6min，回滚耗时 12min → 40s">
+      </div>
+      <div class="frow"><label>标签</label>
+        <div class="pill-row">
+          <span class="pill-tag">前端架构</span>
+          <span class="pill-tag">CI / CD</span>
+          <span class="pill-tag">DX</span>
+          <span class="pill-tag">+ 添加</span>
+        </div>
+      </div>
+    </div>
+    <footer class="df">
+      <button class="btn btn-ghost">取消</button>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn">保存草稿</button>
+        <button class="btn btn-primary">保存并关闭</button>
+      </div>
+    </footer>
+  </aside>
+</div>
+</body>
+</html>

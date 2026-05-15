@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Badges & Tags</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 18px 22px; background: var(--color-cream); display: flex; flex-direction: column; gap: 12px; font-family: var(--font-sans); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .label { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); min-width: 84px; text-transform: uppercase; letter-spacing: var(--tracking-mono); }
+  .tag-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid; }
+  .tag-soft { padding: 3px 9px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; }
+  .mono-tag { font-family: var(--font-mono); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; padding: 2px 8px; border-radius: 999px; }
+  .dot { width: 6px; height: 6px; border-radius: 999px; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <span class="label">status</span>
+    <span class="tag-pill" style="background: var(--color-fluff); color: var(--color-yellow-deep); border-color: color-mix(in srgb, var(--color-corgi) 50%, transparent)"><span class="dot" style="background: var(--color-yellow-deep)"></span>已上线</span>
+    <span class="tag-pill" style="background: var(--color-paper); color: var(--color-mute); border-color: var(--color-rule-strong)"><span class="dot" style="background: var(--color-mute)"></span>即将推出</span>
+    <span class="tag-pill" style="background: var(--color-success-bg); color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 30%, transparent)"><span class="dot" style="background: var(--color-success)"></span>同步成功</span>
+    <span class="tag-pill" style="background: var(--color-danger-bg); color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 30%, transparent)"><span class="dot" style="background: var(--color-danger)"></span>已删除</span>
+  </div>
+  <div class="row">
+    <span class="label">category</span>
+    <span class="tag-soft" style="background: color-mix(in srgb, var(--color-yellow) 20%, transparent); color: var(--color-yellow-deep); border: 1px solid color-mix(in srgb, var(--color-yellow) 40%, transparent)">前端架构</span>
+    <span class="tag-soft" style="background: var(--color-paper); color: var(--color-ink-soft); border: 1px solid var(--color-rule)">TypeScript</span>
+    <span class="tag-soft" style="background: var(--color-paper); color: var(--color-ink-soft); border: 1px solid var(--color-rule)">Cloudflare</span>
+  </div>
+  <div class="row">
+    <span class="label">mono</span>
+    <span class="mono-tag" style="background: var(--color-yellow); color: var(--color-ink)">PRO</span>
+    <span class="mono-tag" style="background: var(--color-fluff); color: var(--color-yellow-deep)">Q01</span>
+    <span class="mono-tag" style="background: var(--color-ink); color: var(--color-cream)">v0.8.3</span>
+  </div>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Charts — line / area / bar / sparkline / donut</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Nunito:wght@500;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 18px; background: var(--color-cream); font-family: var(--font-sans); color: var(--color-ink); display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: dense; gap: 12px; }
+  .card { background: var(--color-paper); border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); padding: 12px 14px; }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .head h3 { margin: 0; font-size: 14px; font-weight: 800; white-space: nowrap; }
+  .head .meta { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); white-space: nowrap; }
+  .kpi-row { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 8px; }
+  .kpi-row .num { font-family: var(--font-display); font-size: 28px; font-weight: 800; color: var(--color-ink); letter-spacing: -0.02em; }
+  .kpi-row .delta { font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--color-success); white-space: nowrap; }
+  .axis { font-family: var(--font-mono); font-size: 10px; fill: var(--color-mute); }
+  .gridline { stroke: var(--color-rule); stroke-width: 1; stroke-dasharray: 2 4; }
+  .full { grid-column: 1 / -1; }
+  .sparkrow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--color-rule); }
+  .sparkrow:last-child { border: 0; }
+  .sparkrow .lbl { font-size: 14px; font-weight: 600; color: var(--color-ink); min-width: 88px; }
+  .sparkrow .val { font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: var(--color-ink); text-align: right; }
+  .sparkrow .val .d { display: block; font-size: 11px; font-weight: 600; color: var(--color-success); }
+  .sparkrow .val .d.down { color: var(--color-danger); }
+</style>
+</head>
+<body>
+
+<!-- LINE + AREA chart (full width) -->
+<section class="card full">
+  <header class="head">
+    <h3>本月 token 用量</h3>
+    <span class="meta">7 月 1 日 — 30 日 · 累计 28.4k</span>
+  </header>
+  <div class="kpi-row">
+    <span class="num">28,420</span>
+    <span class="delta">+12% vs 6 月</span>
+  </div>
+  <svg viewBox="0 0 700 180" width="100%" height="180" preserveAspectRatio="none" style="display: block;">
+    <defs>
+      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#e6c34a" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#e6c34a" stop-opacity="0.04"/>
+      </linearGradient>
+    </defs>
+    <!-- Y gridlines -->
+    <line class="gridline" x1="40" y1="20"  x2="690" y2="20"/>
+    <line class="gridline" x1="40" y1="60"  x2="690" y2="60"/>
+    <line class="gridline" x1="40" y1="100" x2="690" y2="100"/>
+    <line class="gridline" x1="40" y1="140" x2="690" y2="140"/>
+    <!-- Y labels -->
+    <text class="axis" x="34" y="24" text-anchor="end">2k</text>
+    <text class="axis" x="34" y="64" text-anchor="end">1.5k</text>
+    <text class="axis" x="34" y="104" text-anchor="end">1k</text>
+    <text class="axis" x="34" y="144" text-anchor="end">500</text>
+    <!-- Area fill (under the line) -->
+    <path fill="url(#areaGrad)" d="M40,120 L62,108 L84,124 L106,90 L128,98 L150,82 L172,72 L194,86 L216,68 L238,58 L260,72 L282,50 L304,44 L326,62 L348,46 L370,30 L392,52 L414,40 L436,56 L458,36 L480,52 L502,44 L524,62 L546,38 L568,52 L590,30 L612,46 L634,36 L656,58 L678,42 L690,42 L690,160 L40,160 Z"/>
+    <!-- Line stroke -->
+    <path fill="none" stroke="#b3851c" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"
+      d="M40,120 L62,108 L84,124 L106,90 L128,98 L150,82 L172,72 L194,86 L216,68 L238,58 L260,72 L282,50 L304,44 L326,62 L348,46 L370,30 L392,52 L414,40 L436,56 L458,36 L480,52 L502,44 L524,62 L546,38 L568,52 L590,30 L612,46 L634,36 L656,58 L678,42"/>
+    <!-- Latest point -->
+    <circle cx="678" cy="42" r="4" fill="#e6c34a" stroke="#3a2e23" stroke-width="2"/>
+    <circle cx="678" cy="42" r="9" fill="none" stroke="#e6c34a" stroke-width="2" opacity="0.4"/>
+    <!-- X labels -->
+    <text class="axis" x="40"  y="172">1</text>
+    <text class="axis" x="194" y="172">8</text>
+    <text class="axis" x="348" y="172">15</text>
+    <text class="axis" x="502" y="172">22</text>
+    <text class="axis" x="678" y="172" text-anchor="end">30</text>
+  </svg>
+</section>
+
+<!-- BAR chart -->
+<section class="card">
+  <header class="head">
+    <h3>每周生成版本数</h3>
+    <span class="meta">最近 8 周</span>
+  </header>
+  <div class="kpi-row">
+    <span class="num">38</span>
+    <span class="delta">本周 +5</span>
+  </div>
+  <svg viewBox="0 0 340 150" width="100%" height="150" style="display: block;">
+    <line class="gridline" x1="36" y1="30"  x2="332" y2="30"/>
+    <line class="gridline" x1="36" y1="60"  x2="332" y2="60"/>
+    <line class="gridline" x1="36" y1="90"  x2="332" y2="90"/>
+    <line class="gridline" x1="36" y1="120" x2="332" y2="120"/>
+    <text class="axis" x="30" y="34"  text-anchor="end">10</text>
+    <text class="axis" x="30" y="64"  text-anchor="end">8</text>
+    <text class="axis" x="30" y="94"  text-anchor="end">5</text>
+    <text class="axis" x="30" y="124" text-anchor="end">2</text>
+    <!-- bars (w26 gap10) -->
+    <g>
+      <rect x="44"  y="84" width="28" height="36" rx="2" fill="#f3c574"/>
+      <rect x="80"  y="60" width="28" height="60" rx="2" fill="#f3c574"/>
+      <rect x="116" y="70" width="28" height="50" rx="2" fill="#f3c574"/>
+      <rect x="152" y="50" width="28" height="70" rx="2" fill="#f3c574"/>
+      <rect x="188" y="56" width="28" height="64" rx="2" fill="#f3c574"/>
+      <rect x="224" y="40" width="28" height="80" rx="2" fill="#f3c574"/>
+      <rect x="260" y="52" width="28" height="68" rx="2" fill="#f3c574"/>
+      <rect x="296" y="26" width="28" height="94" rx="2" fill="#e6c34a" stroke="#3a2e23" stroke-width="1.6"/>
+    </g>
+    <!-- labels -->
+    <text class="axis" x="58"  y="140" text-anchor="middle">−7</text>
+    <text class="axis" x="94"  y="140" text-anchor="middle">−6</text>
+    <text class="axis" x="130" y="140" text-anchor="middle">−5</text>
+    <text class="axis" x="166" y="140" text-anchor="middle">−4</text>
+    <text class="axis" x="202" y="140" text-anchor="middle">−3</text>
+    <text class="axis" x="238" y="140" text-anchor="middle">−2</text>
+    <text class="axis" x="274" y="140" text-anchor="middle">−1</text>
+    <text class="axis" x="310" y="140" text-anchor="middle" font-weight="700" fill="#3a2e23">本周</text>
+  </svg>
+</section>
+
+<!-- DONUT chart -->
+<section class="card">
+  <header class="head">
+    <h3>素材分布</h3>
+    <span class="meta">28 项</span>
+  </header>
+  <div style="display: flex; align-items: center; gap: 18px; padding: 6px 0;">
+    <svg viewBox="0 0 120 120" width="120" height="120" style="flex-shrink: 0;">
+      <!-- background ring -->
+      <circle cx="60" cy="60" r="48" fill="none" stroke="var(--color-rule)" stroke-width="16"/>
+      <!-- segments (circumference = 2πr = 301.6) -->
+      <!-- 经历 12/28 = 43% → 129.7 -->
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#e6c34a" stroke-width="16" stroke-dasharray="129.7 301.6" transform="rotate(-90 60 60)" stroke-linecap="butt"/>
+      <!-- 项目 9/28 = 32% → 96.5  ; offset = 129.7 -->
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#f3c574" stroke-width="16" stroke-dasharray="96.5 301.6" stroke-dashoffset="-129.7" transform="rotate(-90 60 60)"/>
+      <!-- 技能 5/28 = 18% → 54.3 ; offset = 226.2 -->
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#b3851c" stroke-width="16" stroke-dasharray="54.3 301.6" stroke-dashoffset="-226.2" transform="rotate(-90 60 60)"/>
+      <!-- 成就 2/28 = 7% → 21.1 ; offset = 280.5 -->
+      <circle cx="60" cy="60" r="48" fill="none" stroke="#d8694e" stroke-width="16" stroke-dasharray="21.1 301.6" stroke-dashoffset="-280.5" transform="rotate(-90 60 60)"/>
+      <text x="60" y="58" text-anchor="middle" font-family="Fraunces, serif" font-size="22" font-weight="800" fill="#3a2e23">28</text>
+      <text x="60" y="74" text-anchor="middle" class="axis" font-size="9">素材</text>
+    </svg>
+    <ul style="list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 13px; flex: 1; min-width: 0;">
+      <li style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><span style="width: 10px; height: 10px; background: #e6c34a; border-radius: 2px; flex-shrink: 0;"></span>经历<span style="margin-left: auto; font-family: var(--font-mono); color: var(--color-mute);">12&nbsp;·&nbsp;43%</span></li>
+      <li style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><span style="width: 10px; height: 10px; background: #f3c574; border-radius: 2px; flex-shrink: 0;"></span>项目<span style="margin-left: auto; font-family: var(--font-mono); color: var(--color-mute);">9&nbsp;·&nbsp;32%</span></li>
+      <li style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><span style="width: 10px; height: 10px; background: #b3851c; border-radius: 2px; flex-shrink: 0;"></span>技能<span style="margin-left: auto; font-family: var(--font-mono); color: var(--color-mute);">5&nbsp;·&nbsp;18%</span></li>
+      <li style="display: flex; align-items: center; gap: 8px; white-space: nowrap;"><span style="width: 10px; height: 10px; background: #d8694e; border-radius: 2px; flex-shrink: 0;"></span>成就<span style="margin-left: auto; font-family: var(--font-mono); color: var(--color-mute);">2&nbsp;·&nbsp;7%</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- SPARKLINE list -->
+<section class="card full">
+  <header class="head">
+    <h3>关键指标</h3>
+    <span class="meta">14 天 · sparklines</span>
+  </header>
+  <div class="sparkrow">
+    <span class="lbl">每日生成数</span>
+    <svg viewBox="0 0 220 28" width="100%" height="28" preserveAspectRatio="none" style="display: block;">
+      <polyline points="0,20 18,16 36,18 54,12 72,14 90,8 108,12 126,6 144,10 162,4 180,8 198,2 216,6" fill="none" stroke="#b3851c" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="216" cy="6" r="2.4" fill="#e6c34a" stroke="#3a2e23" stroke-width="1"/>
+    </svg>
+    <span class="val">42<span class="d">+8</span></span>
+  </div>
+  <div class="sparkrow">
+    <span class="lbl">岗位抓取</span>
+    <svg viewBox="0 0 220 28" width="100%" height="28" preserveAspectRatio="none" style="display: block;">
+      <polyline points="0,12 18,14 36,10 54,18 72,16 90,20 108,14 126,18 144,10 162,16 180,12 198,18 216,14" fill="none" stroke="#3b6f9a" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="216" cy="14" r="2.4" fill="#3b6f9a" stroke="#3a2e23" stroke-width="1"/>
+    </svg>
+    <span class="val">112<span class="d down">−3</span></span>
+  </div>
+  <div class="sparkrow">
+    <span class="lbl">PDF 导出</span>
+    <svg viewBox="0 0 220 28" width="100%" height="28" preserveAspectRatio="none" style="display: block;">
+      <polyline points="0,22 18,18 36,22 54,16 72,20 90,12 108,16 126,10 144,14 162,6 180,10 198,4 216,8" fill="none" stroke="#4f8a3a" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="216" cy="8" r="2.4" fill="#4f8a3a" stroke="#3a2e23" stroke-width="1"/>
+    </svg>
+    <span class="val">28<span class="d">+11</span></span>
+  </div>
+  <div class="sparkrow">
+    <span class="lbl">订阅留存</span>
+    <svg viewBox="0 0 220 28" width="100%" height="28" preserveAspectRatio="none" style="display: block;">
+      <polyline points="0,8 18,10 36,8 54,12 72,10 90,14 108,12 126,16 144,14 162,18 180,16 198,20 216,18" fill="none" stroke="#c44a32" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="216" cy="18" r="2.4" fill="#c44a32" stroke="#3a2e23" stroke-width="1"/>
+    </svg>
+    <span class="val">92%<span class="d down">−2%</span></span>
+  </div>
+</section>
+
+</body>
+</html>

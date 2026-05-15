@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Type — Mono & Eyebrow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--color-cream); display: flex; flex-direction: column; gap: 16px; }
+  .stack { display: flex; flex-direction: column; gap: 6px; }
+  pre { margin: 0; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-paper); border: 1px solid var(--color-rule); font-family: var(--font-mono); font-size: 14px; color: var(--color-ink-soft); white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+</style>
+</head>
+<body>
+  <div class="stack">
+    <span class="eyebrow">— 怎么开始 / EYEBROW LABEL</span>
+    <p style="font-size: 14px; margin: 0; color: var(--color-mute);">JetBrains Mono · 11px · UPPERCASE · letter-spacing 0.18em · yellow-deep</p>
+  </div>
+  <div class="stack">
+    <p style="margin: 0; font-size: 14px; color: var(--color-ink-soft);">行内 <code>useState</code> + 调用 <code>window.claude.complete()</code></p>
+  </div>
+  <pre>$ npx skills add muicv -g
+✓ installed muicv-core
+✓ installed muicv-generate</pre>
+</body>
+</html>

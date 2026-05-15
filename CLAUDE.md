@@ -86,6 +86,18 @@
 - 调 muicv 远端 API 的 skill：**必须**遵守 [docs/skill-api-key.md](docs/skill-api-key.md) 的 key gate / 标准教育文案 / 错误映射。
 - 标准文案改动统一改 `docs/skill-api-key.md`，再回写所有引用 skill（`grep -lr "docs/skill-api-key.md" skills/`）。
 
+## 设计语言
+
+- 视觉规范以 `skills/meathill-studio-design/` 为单一真相源（柯基黄 + 奶油白 + 暖深棕的 Meathill Studio Design System）。
+- token 入口：`packages/website/app/globals.css` 与 `packages/app/src/renderer/styles/globals.css` 的 `@theme` 块，UI 包通过 `packages/ui/src/styles.css` 映射到品牌 token。
+- 硬约束（owner 设的，不要单方面放宽）：
+  - **暖色单线**。不出现冷蓝紫，底色用 `--color-cream`，字色用 `--color-ink`，禁用纯白 / 纯黑。
+  - **圆角紧凑**。默认 `--radius` 6px，最大 `--radius-xl` 14px。不做 pill 化卡片（pill 仅用于 tag / badge / chip）。
+  - **信息密度优先**。4px 基准，section 内最大 32px。
+  - **字号只走偶数**：12 / 14 / 16 / 18 / 20 / 24 / 30 / 36 / 48。不上奇数、不上小数。
+- 招牌效果：`.press` / `.press-ink` 卡通厚阴影、`.highlight` 荧光笔标记、`.eyebrow` mono uppercase 小标签、`.bg-sun` 暖光晕。
+- 想了解细节或扩充新组件之前，先看 `skills/meathill-studio-design/README.md` 与 `preview/` 目录的参考卡片。
+
 ## 代码规范
 
 - 除非专门提及，否则默认使用 TypeScript，尽可能把类型写好

@@ -17,7 +17,7 @@ export function FaqAndWaitlist() {
             {FAQ_ITEMS.map((item, idx) => (
               <details
                 key={item.q}
-                className="group rounded-xl border-2 border-rule bg-cream transition-colors hover:border-corgi"
+                className="group rounded-lg border-2 border-rule-strong bg-cream transition-colors hover:border-corgi"
                 open={idx === 0}
               >
                 <summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-4">
@@ -43,7 +43,7 @@ export function FaqAndWaitlist() {
         <aside className="space-y-6 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
           <a
             href="/download"
-            className="group relative block overflow-hidden rounded-2xl border-2 border-ink bg-corgi/30 p-7 shadow-[0_5px_0_0_oklch(0.62_0.14_70)] transition-transform hover:-translate-y-1"
+            className="group relative block overflow-hidden rounded-xl border-2 border-ink bg-corgi/30 p-7 shadow-press-yellow-lg transition-transform hover:-translate-y-1"
           >
             <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl" aria-hidden />
             <div className="absolute right-3 top-3">
@@ -66,7 +66,7 @@ export function FaqAndWaitlist() {
 
           <a
             href="/pricing"
-            className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)] transition-transform hover:-translate-y-1"
+            className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-xl border-2 border-ink bg-cream p-5 shadow-press-ink transition-transform hover:-translate-y-1"
           >
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 定价</p>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Menus & Tabs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 16px 20px; background: var(--color-cream); display: grid; grid-template-columns: 220px 1fr 220px; gap: 18px; font-family: var(--font-sans); align-items: start; }
+  /* Tabs (segmented) */
+  .tabs { display: inline-flex; gap: 6px; padding: 3px; background: var(--color-paper); border: 1px solid var(--color-rule); border-radius: var(--radius-md); }
+  .tab  { padding: 5px 12px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; color: var(--color-ink-soft); border: 0; background: transparent; cursor: pointer; }
+  .tab.active { background: var(--color-yellow); color: var(--color-ink); box-shadow: 0 1px 0 0 var(--color-yellow-deep); }
+
+  /* Dropdown menu */
+  .menu { background: var(--color-cream); border: 2px solid var(--color-ink); border-radius: var(--radius-md); padding: 4px; box-shadow: 0 4px 0 0 var(--color-ink); width: 200px; }
+  .item { display: flex; align-items: center; gap: 9px; padding: 6px 10px; border-radius: var(--radius-sm); font-size: 14px; color: var(--color-ink); cursor: pointer; }
+  .item:hover, .item.active { background: var(--color-fluff); }
+  .item .kbd { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); border: 1px solid var(--color-rule); padding: 0 5px; border-radius: 3px; background: var(--color-paper); }
+  .divider { height: 1px; background: var(--color-rule); margin: 4px 0; }
+  .item.danger { color: var(--color-danger); }
+
+  /* Vertical nav */
+  .nav { display: flex; flex-direction: column; gap: 2px; }
+  .nav a { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--color-ink-soft); text-decoration: none; }
+  .nav a:hover { background: var(--color-fluff); color: var(--color-ink); }
+  .nav a.active { background: var(--color-yellow); color: var(--color-ink); font-weight: 700; }
+  .nav .group { font-family: var(--font-mono); font-size: 10px; color: var(--color-mute); text-transform: uppercase; letter-spacing: var(--tracking-mono); padding: 8px 10px 4px; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="tabs">
+      <button class="tab active">概览</button>
+      <button class="tab">订阅</button>
+      <button class="tab">API key</button>
+    </div>
+    <p style="font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); margin: 10px 0 0">segmented · 用于面板内切换</p>
+  </div>
+  <div class="menu">
+    <div class="item active">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+      新建文章 <span class="kbd">⌘ N</span>
+    </div>
+    <div class="item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      导出 PDF
+    </div>
+    <div class="item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6m-3-3v6"/><circle cx="12" cy="12" r="10"/></svg>
+      复制为模板
+    </div>
+    <div class="divider"></div>
+    <div class="item danger">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      删除
+    </div>
+  </div>
+  <nav class="nav">
+    <span class="group">— 工作区</span>
+    <a class="active"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 12 2l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> 概览</a>
+    <a><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg> 文章</a>
+    <a><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg> 岗位匹配</a>
+    <a><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> 设置</a>
+  </nav>
+</body>
+</html>

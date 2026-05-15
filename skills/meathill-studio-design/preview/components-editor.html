@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Rich text editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 14px 18px; background: var(--color-cream); font-family: var(--font-sans); color: var(--color-ink); }
+  .editor { border: 1px solid var(--color-rule-strong); border-radius: var(--radius-md); background: var(--color-cream); overflow: hidden; }
+
+  /* Toolbar */
+  .tb { display: flex; align-items: center; gap: 2px; padding: 6px 8px; border-bottom: 1px solid var(--color-rule); background: var(--color-paper); }
+  .tb .group { display: inline-flex; gap: 2px; padding-right: 6px; border-right: 1px solid var(--color-rule); margin-right: 6px; }
+  .tb .group:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+  .tb button { width: 28px; height: 28px; border: 0; background: transparent; color: var(--color-ink-soft); border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .tb button:hover { background: var(--color-fluff); color: var(--color-ink); }
+  .tb button.active { background: var(--color-yellow); color: var(--color-ink); }
+  .tb select { font: inherit; font-size: 14px; padding: 4px 8px; border: 1px solid var(--color-rule); border-radius: var(--radius-sm); background: var(--color-cream); color: var(--color-ink); cursor: pointer; }
+  .tb .ai { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-sm); background: var(--color-fluff); color: var(--color-yellow-deep); font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: var(--tracking-mono); cursor: pointer; border: 0; }
+  .tb .ai:hover { background: var(--color-corgi); color: var(--color-ink); }
+
+  /* Editing area */
+  .doc { padding: 20px 24px; min-height: 240px; }
+  .doc h1, .doc h2, .doc h3 { color: var(--color-ink); margin: 0; }
+  .doc h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 12px; }
+  .doc h3 { font-size: 18px; font-weight: 700; margin: 16px 0 8px; }
+  .doc p  { font-size: 16px; line-height: 1.7; color: var(--color-ink-soft); margin: 0 0 12px; }
+  .doc strong { color: var(--color-ink); font-weight: 700; }
+  .doc em { font-family: var(--font-display); font-style: italic; }
+
+  /* Block — hover handle */
+  .block { position: relative; padding-left: 28px; margin: 0 -8px; padding-right: 8px; border-radius: var(--radius-sm); }
+  .block:hover { background: color-mix(in srgb, var(--color-fluff) 50%, transparent); }
+  .block:hover .handle { opacity: 1; }
+  .handle { position: absolute; left: 0; top: 6px; opacity: 0; display: inline-flex; gap: 2px; align-items: center; transition: opacity var(--t-fast); }
+  .handle button { width: 18px; height: 22px; border: 0; background: transparent; color: var(--color-mute); border-radius: 3px; cursor: grab; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  .handle button:hover { color: var(--color-ink); background: var(--color-paper); }
+
+  /* Slash menu hint */
+  .slash { position: relative; display: inline-block; }
+  .slash-menu { position: absolute; left: 0; top: 32px; width: 240px; background: var(--color-cream); border: 2px solid var(--color-ink); border-radius: var(--radius-md); box-shadow: 0 4px 0 0 var(--color-ink); padding: 4px; z-index: 5; }
+  .slash-menu .hd { padding: 4px 10px; font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); text-transform: uppercase; letter-spacing: var(--tracking-mono); font-weight: 700; }
+  .slash-menu .opt { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: var(--radius-sm); font-size: 14px; cursor: pointer; }
+  .slash-menu .opt:hover, .slash-menu .opt.active { background: var(--color-fluff); }
+  .slash-menu .opt .k { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); }
+
+  /* Block — list, quote, code */
+  .doc ul { padding-left: 22px; margin: 0 0 12px; }
+  .doc li { font-size: 16px; line-height: 1.7; color: var(--color-ink-soft); margin-bottom: 4px; }
+  .doc li::marker { color: var(--color-corgi); }
+  .doc blockquote { border-left: 4px solid var(--color-yellow); padding: 4px 0 4px 16px; margin: 12px 0; font-family: var(--font-display); font-style: italic; font-size: 18px; color: var(--color-ink); }
+  .doc pre.code { margin: 12px 0; padding: 12px 16px; background: #1a1815; color: color-mix(in srgb, var(--color-cream) 90%, transparent); font-family: var(--font-mono); font-size: 14px; border-radius: var(--radius-md); line-height: 1.55; overflow-x: auto; }
+  .doc pre.code .k { color: var(--color-corgi); }
+  .doc pre.code .s { color: #b8d878; }
+
+  /* Status bar */
+  .status { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; border-top: 1px solid var(--color-rule); background: var(--color-paper); font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); }
+  .status .saved { display: inline-flex; align-items: center; gap: 6px; color: var(--color-success); font-weight: 700; }
+
+  /* Helpers — tb svg sizing */
+  .tb svg { width: 16px; height: 16px; }
+</style>
+</head>
+<body>
+<div class="editor">
+  <div class="tb">
+    <div class="group">
+      <select aria-label="块类型">
+        <option>段落</option>
+        <option>标题 1</option>
+        <option>标题 2</option>
+        <option>列表</option>
+        <option>引用</option>
+        <option>代码块</option>
+      </select>
+    </div>
+    <div class="group">
+      <button class="active" aria-label="加粗"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg></button>
+      <button aria-label="斜体"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg></button>
+      <button aria-label="删除线"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6M4 12h16"/></svg></button>
+      <button aria-label="行内代码"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>
+    </div>
+    <div class="group">
+      <button aria-label="无序列表"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg></button>
+      <button aria-label="有序列表"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" x2="21" y1="6" y2="6"/><line x1="10" x2="21" y1="12" y2="12"/><line x1="10" x2="21" y1="18" y2="18"/><path d="M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></button>
+      <button aria-label="引用"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1zm12 0c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c.75 0 .75 0 .75 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/></svg></button>
+    </div>
+    <div class="group">
+      <button aria-label="链接"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+      <button aria-label="图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></button>
+    </div>
+    <button class="ai" aria-label="AI 改写">
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" style="width: 12px; height: 12px;"><path d="M12 2 L13.6 9.4 L21 12 L13.6 14.6 L12 22 L10.4 14.6 L3 12 L10.4 9.4 Z"/></svg>
+      AI 改写
+    </button>
+  </div>
+
+  <div class="doc" contenteditable="false">
+    <div class="block"><div class="handle"><button title="拖动">⋮⋮</button></div>
+      <h2>重构前端发布链路</h2>
+    </div>
+    <div class="block"><div class="handle"><button title="拖动">⋮⋮</button></div>
+      <p>把 <strong>整包发布</strong> 拆为按路由独立部署，引入 <em>canary 流量</em> 与回滚开关。覆盖 4 条业务线、12 个前端应用。</p>
+    </div>
+    <div class="block"><div class="handle"><button title="拖动">⋮⋮</button></div>
+      <h3>关键数字</h3>
+    </div>
+    <div class="block"><div class="handle"><button title="拖动">⋮⋮</button></div>
+      <ul>
+        <li>发布耗时 <strong>30min → 6min</strong></li>
+        <li>回滚耗时 <strong>12min → 40s</strong></li>
+        <li>线上事故月均 <strong>4 → 1</strong></li>
+      </ul>
+    </div>
+    <div class="block"><div class="handle"><button title="拖动">⋮⋮</button></div>
+      <blockquote>"发布从一件需要排队的事，变成随时可以发的事。"</blockquote>
+    </div>
+    <div class="block"><div class="handle"><button title="拖动">⋮⋮</button></div>
+      <pre class="code"><span class="k">pnpm</span> dlx <span class="s">@meathill/release-cli</span> deploy --canary 5</pre>
+    </div>
+
+    <!-- slash menu demo -->
+    <div class="slash">
+      <div class="slash-menu">
+        <div class="hd">— 插入</div>
+        <div class="opt active"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M6 12h12"/></svg> 标题 2 <span class="k">##</span></div>
+        <div class="opt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="18" r="1.5" fill="currentColor"/><line x1="10" x2="20" y1="6" y2="6"/><line x1="10" x2="20" y1="12" y2="12"/><line x1="10" x2="20" y1="18" y2="18"/></svg> 无序列表 <span class="k">-</span></div>
+        <div class="opt"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> 代码块 <span class="k">```</span></div>
+        <div class="opt"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/></svg> 引用 <span class="k">&gt;</span></div>
+        <div class="opt"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L13.6 9.4 L21 12 L13.6 14.6 L12 22 L10.4 14.6 L3 12 L10.4 9.4 Z"/></svg> AI 块（让 Mui 生成） <span class="k">/ai</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status">
+    <span class="saved">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>
+      已自动保存 · 12s 前
+    </span>
+    <span>1,124 字 · 6 段 · ⌘ S 强制保存</span>
+  </div>
+</div>
+</body>
+</html>

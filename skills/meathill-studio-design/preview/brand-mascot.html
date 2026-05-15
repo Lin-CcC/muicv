@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Brand — Mascot & Mark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&family=Nunito:wght@500;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body { margin: 0; padding: 18px 22px; background: var(--color-cream); display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; align-items: center; }
+  .tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px 10px; border: 1px dashed var(--color-rule-strong); border-radius: var(--radius-md); background: var(--color-paper); min-height: 130px; }
+  .tile.dark { background: var(--color-ink); }
+  .tile.dark .lbl { color: var(--color-cream); }
+  .lbl { font-family: var(--font-mono); font-size: 12px; color: var(--color-mute); text-transform: uppercase; letter-spacing: var(--tracking-mono); }
+  .mark { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 800; color: var(--color-ink); font-size: 22px; letter-spacing: -0.02em; }
+  .mark.on-dark { color: var(--color-cream); }
+  .mark .sub { font-family: var(--font-mono); font-size: 10px; color: var(--color-mute); text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
+  img { display: block; }
+</style>
+</head>
+<body>
+  <div class="tile"><img src="../assets/mui-mascot.png" width="64" height="64" alt="mascot"><div class="lbl">mascot · 80×80</div></div>
+  <div class="tile"><img src="../assets/mui-mark.png" width="64" height="64" alt="mark" style="border-radius: 14px"><div class="lbl">app mark · 1024</div></div>
+  <div class="tile">
+    <span class="mark">
+      <img src="../assets/mui-mascot.png" width="30" height="30" alt="">
+      Meathill Studio
+    </span>
+    <div class="lbl">lockup · light</div>
+  </div>
+  <div class="tile dark">
+    <span class="mark on-dark">
+      <img src="../assets/mui-mascot.png" width="30" height="30" alt="">
+      Meathill Studio
+    </span>
+    <div class="lbl">lockup · dark</div>
+  </div>
+</body>
+</html>
