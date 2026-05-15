@@ -27,7 +27,7 @@ export function InstallCard({
           <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-mute">{meta}</p>
         </div>
       </div>
-      <pre className="mt-4 overflow-x-auto rounded-lg border-2 border-ink/85 bg-[#1a1815] p-4 font-mono text-[12px] leading-relaxed text-cream/90">
+      <pre className="mt-4 overflow-x-auto rounded-lg border-2 border-ink/85 bg-[#1a1815] p-4 font-mono text-[12px] leading-relaxed text-[#f3e9d5]/90">
         <code>{code}</code>
       </pre>
     </div>

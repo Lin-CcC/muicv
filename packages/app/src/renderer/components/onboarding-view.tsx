@@ -90,7 +90,7 @@ export function OnboardingView() {
               disabled={busy !== null}
               className="group flex min-h-[210px] flex-col items-start rounded-xl border-2 border-ink bg-cream p-5 text-left shadow-[0_4px_0_0_var(--color-ink)] transition hover:-translate-y-0.5 hover:bg-fluff disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]">
                 <Icon size={20} weight="bold" />
               </span>
               <span className="mt-4 text-[16px] font-extrabold text-ink">{title}</span>

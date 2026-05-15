@@ -215,7 +215,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
 
 function IntervalToggle({ current }: { current: BillingInterval }) {
   return (
-    <div className="mx-auto mt-6 inline-flex rounded-full border-2 border-ink bg-cream p-1 text-[14px] font-bold shadow-[0_3px_0_0_var(--color-yellow-deep)]">
+    <div className="mx-auto mt-6 inline-flex rounded-full border-2 border-ink bg-cream p-1 text-[14px] font-bold shadow-[0_3px_0_0_var(--color-yellow-shadow)]">
       <a
         href="/pricing?interval=monthly"
         className={`rounded-full px-4 py-1.5 transition-colors ${
@@ -293,12 +293,12 @@ function SubscriptionCard({
     <article
       className={
         tier.highlight
-          ? 'relative flex flex-col rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_var(--color-yellow-deep)]'
+          ? 'relative flex flex-col rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_var(--color-yellow-shadow)]'
           : 'relative flex flex-col rounded-xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1'
       }
     >
       {tier.badge && (
-        <span className="absolute -top-3 right-5 inline-flex items-center gap-1 rounded-full bg-yellow px-3 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+        <span className="absolute -top-3 right-5 inline-flex items-center gap-1 rounded-full bg-yellow px-3 py-0.5 font-mono text-[12px] font-bold uppercase tracking-wider text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]">
           <Sparkle />
           {tier.badge}
         </span>

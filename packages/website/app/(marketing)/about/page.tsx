@@ -108,7 +108,7 @@ export default async function AboutPage() {
           <div className="mt-8 grid items-start gap-8 md:grid-cols-[auto_1fr]">
             <div className="relative">
               <div className="absolute -inset-3 rounded-full bg-yellow/20 blur-xl" aria-hidden />
-              <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-ink bg-cream shadow-[0_4px_0_0_var(--color-yellow-deep)]">
+              <div className="relative flex h-32 w-32 items-center justify-center rounded-full border-2 border-ink bg-cream shadow-[0_4px_0_0_var(--color-yellow-shadow)]">
                 <CorgiMascot className="h-20 w-20" />
               </div>
             </div>

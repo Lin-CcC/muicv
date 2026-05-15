@@ -57,7 +57,7 @@ export function FaqAndWaitlist() {
               <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">
                 macOS / Windows / Linux 全平台可用。 不想装 skill 也能用上同一套云端能力。
               </p>
-              <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+              <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]">
                 下载桌面 app
                 <ArrowUpRight />
               </span>
@@ -73,7 +73,7 @@ export function FaqAndWaitlist() {
               <p className="mt-1.5 text-[16px] font-extrabold text-ink">查看价格方案</p>
               <p className="mt-1 text-[12px] text-ink-soft">Free / Pro / Max + BYOK 四档可选</p>
             </div>
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]">
+            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]">
               <ArrowUpRight />
             </span>
           </a>

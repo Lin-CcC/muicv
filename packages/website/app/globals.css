@@ -56,6 +56,20 @@
   --color-info: #3b6f9a; /* 唯一冷色，链接 / 信息提示 */
   --color-info-bg: #dceaf4;
 
+  /* ---------- Always-readable foregrounds (don't flip with theme) ----
+   * yellow / corgi / tongue 这些"高饱和度品牌色"在浅色和暗色模式下都是亮色，
+   * 所以它们之上的文字应该是不翻面的固定色：黄底配深棕字，红底配奶油白字。
+   */
+  --color-on-yellow: #1a1410; /* 黄底字色，固定暖深棕，不随主题翻 */
+  --color-on-tongue: #fdfaf2; /* tongue 红底字色，固定暖米白 */
+
+  /* yellow-shadow: 专门用来给 yellow 卡片画 "press" 厚阴影。
+   * 浅色 = 深棕黄；暗色 = 更深的橄榄黄。
+   * 跟 --color-yellow-deep 区分开，因为后者要兼顾"暗底上做强调字"需要提亮，
+   * 而阴影要的是与 bg 拉开对比，不能跟着 deep 一起变亮。
+   */
+  --color-yellow-shadow: #b3851c;
+
   /* ---------- Radii — 紧凑 ------------------------- */
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -206,11 +220,11 @@ body {
 }
 .btn-press:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 0 var(--color-yellow-deep);
+  box-shadow: 0 4px 0 0 var(--color-yellow-shadow);
 }
 .btn-press:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 0 var(--color-yellow-deep);
+  box-shadow: 0 1px 0 0 var(--color-yellow-shadow);
 }
 .btn-press-ink {
   background: var(--color-cream);
@@ -246,11 +260,11 @@ body {
 }
 .press:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 0 var(--color-yellow-deep);
+  box-shadow: 0 4px 0 0 var(--color-yellow-shadow);
 }
 .press:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 0 var(--color-yellow-deep);
+  box-shadow: 0 1px 0 0 var(--color-yellow-shadow);
 }
 .press-ink {
   box-shadow: var(--shadow-press-ink);
@@ -333,9 +347,11 @@ body {
   --color-ink-line: rgb(243 233 213 / 0.55);
   --color-fluff: #38291a;
   --color-corgi: #f3c574;
-  --color-yellow: #ecc94a;
-  --color-yellow-warm: #ecb04a;
-  --color-yellow-deep: #e6b240;
+  /* yellow 在暗底上稍微压一点饱和度，避免"奶黄发糊" */
+  --color-yellow: #e0bd3a;
+  --color-yellow-warm: #e0a232;
+  --color-yellow-deep: #e6b240; /* deep 提亮供 link / accent 在暗底可读 */
+  --color-yellow-shadow: #8a6814; /* press 阴影要保持深，不能跟 deep 一起变亮 */
   --color-tongue: #e8775a;
   --color-success-bg: #1e2a18;
   --color-warning-bg: #2a1e10;
@@ -366,9 +382,10 @@ body {
     --color-ink-line: rgb(243 233 213 / 0.55);
     --color-fluff: #38291a;
     --color-corgi: #f3c574;
-    --color-yellow: #ecc94a;
-    --color-yellow-warm: #ecb04a;
+    --color-yellow: #e0bd3a;
+    --color-yellow-warm: #e0a232;
     --color-yellow-deep: #e6b240;
+    --color-yellow-shadow: #8a6814;
     --color-tongue: #e8775a;
     --color-success-bg: #1e2a18;
     --color-warning-bg: #2a1e10;
@@ -384,5 +401,34 @@ body {
     --shadow-press-ink-lg: 0 5px 0 0 rgb(243 233 213 / 0.32);
     --glow-yellow: 0 0 24px rgb(236 201 74 / 0.25);
     --focus-ring: 0 0 0 3px rgb(236 201 74 / 0.45);
+  }
+}
+
+/* -------------------------------------------------------------
+ * Dark-mode contrast guards
+ *
+ * yellow / corgi / tongue 是高饱和品牌色，浅色与暗色模式下都是亮色，
+ * 因此放在它们之上的文字不能跟着 --color-ink 翻面。这里在暗色下强制
+ * 用固定的 on-* token 覆盖，省得每个 CTA 都手动加 dark: 修饰。
+ * ----------------------------------------------------------- */
+
+:root[data-theme="dark"] .bg-yellow.text-ink,
+:root[data-theme="dark"] .bg-corgi.text-ink,
+.dark .bg-yellow.text-ink,
+.dark .bg-corgi.text-ink {
+  color: var(--color-on-yellow);
+}
+:root[data-theme="dark"] .bg-tongue.text-cream,
+.dark .bg-tongue.text-cream {
+  color: var(--color-on-tongue);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .bg-yellow.text-ink,
+  :root[data-theme="auto"] .bg-corgi.text-ink {
+    color: var(--color-on-yellow);
+  }
+  :root[data-theme="auto"] .bg-tongue.text-cream {
+    color: var(--color-on-tongue);
   }
 }

@@ -43,7 +43,7 @@ export function HeroShowcase() {
       }}
     >
       <div className="absolute -right-3 -top-7 z-10 hidden md:block">
-        <CorgiMascot className="h-16 w-16 drop-shadow-[0_3px_0_var(--color-yellow-deep)]" />
+        <CorgiMascot className="h-16 w-16 drop-shadow-[0_3px_0_var(--color-yellow-shadow)]" />
       </div>
       <div className="absolute -inset-x-1 -inset-y-1 rounded-xl bg-yellow/15 blur-md" aria-hidden />
 
@@ -60,7 +60,7 @@ export function HeroShowcase() {
                 onClick={() => setActive(slide.key)}
                 className={
                   isActive
-                    ? 'rounded-full border-2 border-ink bg-yellow px-3 py-1 text-[12px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]'
+                    ? 'rounded-full border-2 border-ink bg-yellow px-3 py-1 text-[12px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]'
                     : 'rounded-full border-2 border-rule bg-cream px-3 py-1 text-[12px] font-semibold text-ink-soft transition-colors hover:border-corgi hover:text-ink'
                 }
               >

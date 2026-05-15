@@ -40,7 +40,7 @@ const buttonVariants = cva(
         outline:
           'border-border bg-background bg-clip-padding shadow-xs not-disabled:not-active:not-data-pressed:before:shadow-[0_1px_--theme(--color-black/4%)] dark:bg-input/32 dark:not-in-data-[slot=group]:bg-clip-border dark:not-disabled:before:shadow-[0_-1px_--theme(--color-white/4%)] dark:not-disabled:not-active:not-data-pressed:before:shadow-[0_-1px_--theme(--color-white/8%)] [:disabled,:active,[data-pressed]]:shadow-none [:hover,[data-pressed]]:bg-accent/50 dark:[:hover,[data-pressed]]:bg-input/64',
         press:
-          'border-2 border-ink-line bg-yellow text-ink font-extrabold shadow-press-yellow transition-[transform,box-shadow] duration-[120ms] ease-out hover:-translate-y-px hover:shadow-[0_4px_0_0_var(--color-yellow-deep)] [:active,[data-pressed]]:translate-y-0.5 [:active,[data-pressed]]:shadow-[0_1px_0_0_var(--color-yellow-deep)]',
+          'border-2 border-ink-line bg-yellow text-ink font-extrabold shadow-press-yellow transition-[transform,box-shadow] duration-[120ms] ease-out hover:-translate-y-px hover:shadow-[0_4px_0_0_var(--color-yellow-shadow)] [:active,[data-pressed]]:translate-y-0.5 [:active,[data-pressed]]:shadow-[0_1px_0_0_var(--color-yellow-shadow)]',
         'press-ink':
           'border-2 border-ink-line bg-cream text-ink font-extrabold shadow-press-ink transition-[transform,box-shadow] duration-[120ms] ease-out hover:-translate-y-px hover:shadow-[0_4px_0_0_var(--color-ink-line)] [:active,[data-pressed]]:translate-y-0.5 [:active,[data-pressed]]:shadow-[0_1px_0_0_var(--color-ink-line)]',
         secondary:

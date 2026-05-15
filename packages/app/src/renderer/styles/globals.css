@@ -47,6 +47,15 @@
   --color-info: #3b6f9a;
   --color-info-bg: #dceaf4;
 
+  /* Always-readable foregrounds: yellow/corgi/tongue 是高饱和品牌色，
+   * 它们之上的文字不应该跟随 --color-ink 翻面。固定值。 */
+  --color-on-yellow: #1a1410;
+  --color-on-tongue: #fdfaf2;
+
+  /* yellow-shadow 专门给 press 卡片画厚阴影，两套主题都要"比 bg 深"，
+   * 不跟 yellow-deep 同步浮动（后者暗模式要提亮做 accent）。 */
+  --color-yellow-shadow: #b3851c;
+
   /* ---------- Radii — 紧凑 ------------------------- */
   --radius-xs: 3px;
   --radius-sm: 4px;
@@ -147,11 +156,11 @@ body {
 }
 .press:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 0 var(--color-yellow-deep);
+  box-shadow: 0 4px 0 0 var(--color-yellow-shadow);
 }
 .press:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 0 var(--color-yellow-deep);
+  box-shadow: 0 1px 0 0 var(--color-yellow-shadow);
 }
 
 .press-ink {
@@ -223,9 +232,11 @@ body {
   --color-ink-line: rgb(243 233 213 / 0.55);
   --color-fluff: #38291a;
   --color-corgi: #f3c574;
-  --color-yellow: #ecc94a;
-  --color-yellow-warm: #ecb04a;
-  --color-yellow-deep: #e6b240;
+  /* yellow 在暗底上稍微压一点饱和度，避免"奶黄发糊" */
+  --color-yellow: #e0bd3a;
+  --color-yellow-warm: #e0a232;
+  --color-yellow-deep: #e6b240; /* 暗模式提亮，供 link / accent text 在深底可读 */
+  --color-yellow-shadow: #8a6814; /* press 阴影保持深 */
   --color-tongue: #e8775a;
   --color-success-bg: #1e2a18;
   --color-warning-bg: #2a1e10;
@@ -241,4 +252,16 @@ body {
   --shadow-press-ink-lg: 0 5px 0 0 rgb(243 233 213 / 0.32);
   --glow-yellow: 0 0 24px rgb(236 201 74 / 0.25);
   --focus-ring: 0 0 0 3px rgb(236 201 74 / 0.45);
+}
+
+/* Dark-mode contrast guards——见 packages/website/app/globals.css 的说明 */
+:root[data-theme="dark"] .bg-yellow.text-ink,
+:root[data-theme="dark"] .bg-corgi.text-ink,
+.dark .bg-yellow.text-ink,
+.dark .bg-corgi.text-ink {
+  color: var(--color-on-yellow);
+}
+:root[data-theme="dark"] .bg-tongue.text-cream,
+.dark .bg-tongue.text-cream {
+  color: var(--color-on-tongue);
 }

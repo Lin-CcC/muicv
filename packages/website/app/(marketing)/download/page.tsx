@@ -171,7 +171,7 @@ function FirstMinute() {
     { title: '开始第一段整理对话', desc: 'Mui 会先帮你把材料拆成可复用素材，之后再针对岗位生成版本。' },
   ];
   return (
-    <section className="mt-10 rounded-xl border-2 border-ink bg-corgi/20 p-5 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
+    <section className="mt-10 rounded-xl border-2 border-ink bg-corgi/20 p-5 shadow-[0_4px_0_0_var(--color-yellow-shadow)]">
       <p className="font-mono text-[12px] font-bold uppercase tracking-[0.18em] text-yellow-deep">下载后第一分钟</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {steps.map((step, idx) => (

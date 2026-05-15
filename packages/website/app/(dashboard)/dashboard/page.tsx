@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <section className="rounded-xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
+      <section className="rounded-xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_var(--color-yellow-shadow)]">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div>
             <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 推荐下一步</p>

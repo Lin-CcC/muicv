@@ -25,7 +25,7 @@ export function Workflow() {
               key={step.title}
               className="group grid grid-cols-[auto_1fr] items-baseline gap-x-5 gap-y-1 rounded-xl border-2 border-rule bg-cream px-4 py-4 transition-all hover:border-corgi hover:bg-fluff hover:translate-x-1 sm:gap-x-6 sm:px-5"
             >
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow text-sm font-extrabold text-ink tabular-nums shadow-[0_2px_0_0_var(--color-yellow-deep)] sm:h-11 sm:w-11 sm:text-base">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow text-sm font-extrabold text-ink tabular-nums shadow-[0_2px_0_0_var(--color-yellow-shadow)] sm:h-11 sm:w-11 sm:text-base">
                 {String(idx + 1).padStart(2, '0')}
               </span>
               <span className="max-w-3xl text-[16px] leading-[1.65] text-ink-soft">

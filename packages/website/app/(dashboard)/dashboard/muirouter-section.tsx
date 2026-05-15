@@ -259,7 +259,7 @@ export function MuirouterSection() {
               type="button"
               onClick={() => void onUnlink()}
               disabled={busy}
-              className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:opacity-60"
+              className="rounded-lg border-2 border-tongue/60 px-3 py-1.5 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-[#fdfaf2] disabled:opacity-60"
             >
               解除关联
             </button>

@@ -58,7 +58,7 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
                 onClick={() => setInterval('monthly')}
                 className={`rounded-md px-3 py-1 ${
                   interval === 'monthly'
-                    ? 'bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]'
+                    ? 'bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]'
                     : 'text-ink-soft'
                 }`}
               >
@@ -69,7 +69,7 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
                 onClick={() => setInterval('yearly')}
                 className={`rounded-md px-3 py-1 ${
                   interval === 'yearly'
-                    ? 'bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-deep)]'
+                    ? 'bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]'
                     : 'text-ink-soft'
                 }`}
               >

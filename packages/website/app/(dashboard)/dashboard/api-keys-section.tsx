@@ -231,7 +231,7 @@ export function ApiKeysSection() {
                     type="button"
                     onClick={() => onRevoke(k.id)}
                     disabled={deleting}
-                    className="inline-flex min-w-[64px] items-center justify-center rounded-md border-2 border-tongue/60 px-3 py-1 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-cream disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-tongue"
+                    className="inline-flex min-w-[64px] items-center justify-center rounded-md border-2 border-tongue/60 px-3 py-1 text-[12px] font-bold text-tongue transition hover:bg-tongue hover:text-[#fdfaf2] disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-tongue"
                   >
                     {deleting ? <Spinner /> : '撤销'}
                   </button>

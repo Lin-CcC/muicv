@@ -33,7 +33,7 @@ export function ThemeCard() {
               onClick={() => setTheme(opt.value)}
               className={
                 active
-                  ? 'inline-flex flex-col items-start gap-1 rounded-md border-2 border-ink bg-yellow px-3 py-2 text-left shadow-[0_2px_0_0_var(--color-yellow-deep)]'
+                  ? 'inline-flex flex-col items-start gap-1 rounded-md border-2 border-ink bg-yellow px-3 py-2 text-left shadow-[0_2px_0_0_var(--color-yellow-shadow)]'
                   : 'inline-flex flex-col items-start gap-1 rounded-md border-2 border-rule bg-cream px-3 py-2 text-left transition-colors hover:border-corgi'
               }
             >
