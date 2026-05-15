@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Fraunces, JetBrains_Mono, Nunito } from 'next/font/google';
 
+import { ThemeInitScript } from './_theme/theme-init-script';
 import './globals.css';
 
 const SITE_URL = 'https://muicv.com';
@@ -85,6 +86,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" className={`${fontDisplay.variable} ${fontSans.variable} ${fontMono.variable}`}>
+      <head>
+        <ThemeInitScript />
+      </head>
       <body className="bg-cream text-ink antialiased">{children}</body>
     </html>
   );

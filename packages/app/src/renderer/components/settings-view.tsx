@@ -9,6 +9,7 @@ import { CustomLlmCard } from './settings/custom-llm-card';
 import { ModelCard } from './settings/model-card';
 import { MuirouterCard } from './settings/muirouter-card';
 import { PlanCard } from './settings/plan-card';
+import { ThemeCard } from './settings/theme-card';
 import { WhisperEngineCard } from './settings/whisper-engine-card';
 
 const LATEST_FEEDBACK_MS = 5_000;
@@ -80,6 +81,8 @@ export function SettingsView() {
       <CustomLlmCard />
 
       <WhisperEngineCard />
+
+      <ThemeCard />
 
       <footer className="flex items-center gap-2 text-[11px] text-mute">
         <CorgiMascot className="h-5 w-5" />

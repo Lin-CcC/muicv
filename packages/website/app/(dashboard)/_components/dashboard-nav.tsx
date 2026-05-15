@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { ThemeToggle } from '../../_theme/theme-toggle';
+
 type NavItem = {
   href: string;
   label: string;
@@ -55,32 +57,38 @@ export function DashboardNav({ variant }: { variant: 'sidebar' | 'tabs' }) {
 
   return (
     <aside className="hidden w-60 shrink-0 md:block">
-      <nav aria-label="Dashboard 导航" className="sticky top-20 flex flex-col gap-1.5">
-        {NAV_ITEMS.map((item) => {
-          const current = isCurrent(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={current ? 'page' : undefined}
-              className={`group rounded-xl border-2 px-4 py-3 transition ${
-                current
-                  ? 'border-ink bg-cream shadow-[0_3px_0_0_var(--color-ink-line)]'
-                  : 'border-transparent hover:border-rule hover:bg-paper'
-              }`}
-            >
-              <p
-                className={`text-[14px] font-extrabold ${current ? 'text-ink' : 'text-ink-soft group-hover:text-ink'}`}
+      <div className="sticky top-20 flex flex-col gap-3">
+        <nav aria-label="Dashboard 导航" className="flex flex-col gap-1.5">
+          {NAV_ITEMS.map((item) => {
+            const current = isCurrent(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={current ? 'page' : undefined}
+                className={`group rounded-xl border-2 px-4 py-3 transition ${
+                  current
+                    ? 'border-ink bg-cream shadow-[0_3px_0_0_var(--color-ink-line)]'
+                    : 'border-transparent hover:border-rule hover:bg-paper'
+                }`}
               >
-                {item.label}
-              </p>
-              {item.hint && (
-                <p className={`mt-0.5 text-[11.5px] ${current ? 'text-yellow-deep' : 'text-mute'}`}>{item.hint}</p>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+                <p
+                  className={`text-[14px] font-extrabold ${current ? 'text-ink' : 'text-ink-soft group-hover:text-ink'}`}
+                >
+                  {item.label}
+                </p>
+                {item.hint && (
+                  <p className={`mt-0.5 text-[11.5px] ${current ? 'text-yellow-deep' : 'text-mute'}`}>{item.hint}</p>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="mt-2 border-t border-rule pt-3">
+          <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-mute">主题</p>
+          <ThemeToggle />
+        </div>
+      </div>
     </aside>
   );
 }

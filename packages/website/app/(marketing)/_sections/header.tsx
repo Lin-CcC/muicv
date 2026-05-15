@@ -1,5 +1,6 @@
 import { CorgiMascot } from '@/components/corgi-mascot';
 
+import { ThemeToggle } from '../../_theme/theme-toggle';
 import { ArrowUpRight } from '../_icons';
 
 const NAV_LINKS: { label: string; href: string }[] = [
@@ -30,6 +31,7 @@ export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
               {link.label}
             </a>
           ))}
+          <ThemeToggle className="ml-2 hidden md:inline-flex" />
           {isLoggedIn ? (
             <a
               href="/dashboard"
