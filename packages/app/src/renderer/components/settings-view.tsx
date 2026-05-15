@@ -53,7 +53,7 @@ export function SettingsView() {
         <span>返回</span>
       </button>
 
-      <header className="flex items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+      <header className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
         <div className="flex items-center gap-3">
           <Avatar session={session} />
           <div>

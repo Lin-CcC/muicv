@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export function Lead({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-10 rounded-2xl border-2 border-rule bg-paper/60 p-5 text-[15.5px] leading-[1.8] text-ink-soft">
+    <p className="mb-10 rounded-xl border-2 border-rule bg-paper/60 p-5 text-[15.5px] leading-[1.8] text-ink-soft">
       {children}
     </p>
   );

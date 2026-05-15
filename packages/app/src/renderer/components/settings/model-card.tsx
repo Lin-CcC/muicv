@@ -8,7 +8,7 @@ export function ModelCard({ isBYOK, currentModel }: { isBYOK: boolean; currentMo
 
   if (isBYOK) {
     return (
-      <section className="rounded-2xl border-2 border-rule bg-paper p-5">
+      <section className="rounded-xl border-2 border-rule bg-paper p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-yellow-deep">
             <CpuIcon size={18} weight="duotone" />
@@ -27,7 +27,7 @@ export function ModelCard({ isBYOK, currentModel }: { isBYOK: boolean; currentMo
   }
 
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">模型</p>
       <h3 className="mt-1 text-[14px] font-bold text-ink">选默认模型</h3>
       <p className="mt-1 text-[12.5px] leading-[1.6] text-mute">

@@ -68,7 +68,7 @@ export default async function AboutPage() {
             ].map((item) => (
               <div
                 key={item.t}
-                className="rounded-2xl border-2 border-ink bg-cream p-6 transition-transform hover:-translate-y-1"
+                className="rounded-xl border-2 border-ink bg-cream p-6 transition-transform hover:-translate-y-1"
               >
                 <p className="text-[16px] font-extrabold text-ink">{item.t}</p>
                 <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">{item.d}</p>

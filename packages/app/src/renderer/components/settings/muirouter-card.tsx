@@ -30,7 +30,7 @@ export function MuirouterCard({
 
   if (hasBYOK && muirouter) {
     return (
-      <section className="rounded-2xl border-2 border-corgi/60 bg-fluff p-5">
+      <section className="rounded-xl border-2 border-corgi/60 bg-fluff p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cream text-yellow-deep">
             <WalletIcon size={18} weight="duotone" />
@@ -69,7 +69,7 @@ export function MuirouterCard({
   }
 
   return (
-    <section className="rounded-2xl border-2 border-rule bg-paper p-5">
+    <section className="rounded-xl border-2 border-rule bg-paper p-5">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-yellow-deep">
           <WalletIcon size={18} weight="duotone" />

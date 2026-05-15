@@ -96,14 +96,14 @@ export function WhisperEngineCard() {
 
   if (!status) {
     return (
-      <section className="rounded-2xl border-2 border-rule bg-paper p-5 text-[12px] text-mute">读取插件状态…</section>
+      <section className="rounded-xl border-2 border-rule bg-paper p-5 text-[12px] text-mute">读取插件状态…</section>
     );
   }
 
   const engineInstalled = status.engine.installed;
 
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-fluff text-yellow-deep">
           <MicrophoneIcon size={18} weight="duotone" />

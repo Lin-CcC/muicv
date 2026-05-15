@@ -56,7 +56,7 @@ export function AttachmentPreviewDialog({ attachment, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={`预览 ${mounted.name}`}
-        className={`relative flex max-h-[85vh] w-full max-w-[900px] flex-col overflow-hidden rounded-2xl border-2 border-ink bg-paper shadow-[0_6px_0_0_var(--color-ink)] transition-all duration-200 ease-out ${
+        className={`relative flex max-h-[85vh] w-full max-w-[900px] flex-col overflow-hidden rounded-xl border-2 border-ink bg-paper shadow-[0_6px_0_0_var(--color-ink)] transition-all duration-200 ease-out ${
           visible ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.97]'
         }`}
       >

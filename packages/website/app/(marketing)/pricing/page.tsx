@@ -149,7 +149,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
               {(['small', 'medium', 'large'] as const).map((key) => {
                 const pack = TOPUP_PACKS[key];
                 return (
-                  <div key={key} className="flex flex-col rounded-2xl border-2 border-rule bg-cream p-5">
+                  <div key={key} className="flex flex-col rounded-xl border-2 border-rule bg-cream p-5">
                     <p className="font-mono text-[10px] uppercase tracking-wider text-mute">{key}</p>
                     <p className="mt-2 text-[20px] font-extrabold text-ink tabular-nums">
                       {pack.tokens.toLocaleString()} tokens
@@ -240,7 +240,7 @@ function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
   const ctaHref = isLoggedIn ? '/dashboard' : '/sign-up';
   const ctaLabel = isLoggedIn ? '进入控制台' : '免费注册领 10K tokens';
   return (
-    <article className="relative flex flex-col rounded-2xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1">
+    <article className="relative flex flex-col rounded-xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1">
       <h3 className="text-[20px] font-extrabold text-ink">免费起步</h3>
       <p className="mt-1 text-[13px] leading-[1.6] text-ink-soft">想试一下，先从这开始。</p>
       <div className="mt-5">
@@ -293,8 +293,8 @@ function SubscriptionCard({
     <article
       className={
         tier.highlight
-          ? 'relative flex flex-col rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_var(--color-yellow-deep)]'
-          : 'relative flex flex-col rounded-2xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1'
+          ? 'relative flex flex-col rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_var(--color-yellow-deep)]'
+          : 'relative flex flex-col rounded-xl border-2 border-rule bg-cream p-6 transition-transform hover:-translate-y-1'
       }
     >
       {tier.badge && (

@@ -158,7 +158,7 @@ export function MuirouterSection() {
   }
 
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header className="flex items-baseline justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— muirouter</p>
@@ -294,5 +294,5 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function PlaceholderCard({ children }: { children: React.ReactNode }) {
-  return <section className="rounded-2xl border-2 border-rule bg-paper p-6 text-[13px] text-mute">{children}</section>;
+  return <section className="rounded-xl border-2 border-rule bg-paper p-6 text-[13px] text-mute">{children}</section>;
 }

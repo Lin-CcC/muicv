@@ -64,13 +64,13 @@ export function LoginView() {
         aria-hidden
         style={{
           background:
-            'radial-gradient(ellipse 70% 60% at 50% -20%, oklch(0.86 0.13 85 / 0.45) 0%, oklch(0.96 0.05 88 / 0.35) 35%, transparent 75%)',
+            'radial-gradient(ellipse 70% 60% at 50% -20%, color-mix(in srgb, var(--color-corgi) 45%, transparent) 0%, color-mix(in srgb, var(--color-fluff) 35%, transparent) 35%, transparent 75%)',
         }}
       />
 
       <div className="relative z-10 w-full max-w-md">
         {step === 'oauth' && (
-          <div className="rounded-3xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
+          <div className="rounded-xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
             <CorgiMascot className="mx-auto h-20 w-20" />
             <h1 className="mt-5 text-center text-3xl font-extrabold tracking-tight text-ink">欢迎来到 Mui简历</h1>
             <p className="mt-3 text-center text-[14px] leading-[1.65] text-ink-soft">
@@ -178,7 +178,7 @@ function PasteFallback({
   }
 
   return (
-    <div className="rounded-3xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
+    <div className="rounded-xl border-2 border-ink bg-cream p-8 shadow-[0_5px_0_0_var(--color-ink)]">
       <div className="flex items-start gap-3">
         <CorgiMascot className="h-12 w-12 shrink-0" />
         <div>

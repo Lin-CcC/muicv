@@ -35,7 +35,7 @@ export default async function PreviewsPage() {
 
       <PreviewList items={previews} />
 
-      <section className="rounded-2xl border-2 border-rule bg-paper p-6">
+      <section className="rounded-xl border-2 border-rule bg-paper p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 证件照</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">
           已上传的照片

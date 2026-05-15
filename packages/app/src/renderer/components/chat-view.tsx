@@ -163,7 +163,7 @@ export function ChatView() {
 
       {attachments.isDragging && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-cream/85 backdrop-blur-sm">
-          <div className="rounded-2xl border-4 border-dashed border-yellow-deep bg-cream/90 px-8 py-6 text-center">
+          <div className="rounded-xl border-4 border-dashed border-yellow-deep bg-cream/90 px-8 py-6 text-center">
             <p className="text-[15px] font-bold text-ink">把文件松开就行 📎</p>
             <p className="mt-1 text-[12px] text-ink-soft">支持 PDF / DOCX / Markdown / 文本，单次最多 5 个</p>
           </div>

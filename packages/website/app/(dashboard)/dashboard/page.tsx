@@ -34,7 +34,7 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <section className="rounded-2xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_oklch(0.62_0.14_70)]">
+      <section className="rounded-xl border-2 border-ink bg-corgi/30 p-6 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-6">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">— 推荐下一步</p>
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
         />
       </section>
 
-      <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+      <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
         <h2 className="text-[18px] font-extrabold text-ink">高级入口：已经在用 AI 助手？</h2>
         <p className="mt-2 text-[14px] leading-[1.7] text-ink-soft">
           如果你已经熟悉 Claude Code / Codex / Cursor / OpenCode，可以直接装 skill，不必走桌面 app：
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
 
 function Card({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <div className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-yellow-deep">{label}</p>
       <p className="mt-2 break-words text-[16px] font-bold text-ink">{value}</p>
       {hint && <p className="mt-2 text-[11px] text-mute">{hint}</p>}

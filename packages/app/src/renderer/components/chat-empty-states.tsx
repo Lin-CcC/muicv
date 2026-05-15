@@ -18,7 +18,7 @@ export function CenteredCard({
 }) {
   return (
     <div className="flex h-full items-center justify-center px-6">
-      <div className="max-w-md rounded-2xl border-2 border-ink bg-cream p-7 text-center shadow-[0_4px_0_0_var(--color-ink)]">
+      <div className="max-w-md rounded-xl border-2 border-ink bg-cream p-7 text-center shadow-[0_4px_0_0_var(--color-ink)]">
         <CorgiMascot className="mx-auto h-16 w-16" />
         <h2 className="mt-3 text-2xl font-extrabold text-ink">{title}</h2>
         <p className="mt-2 text-[13px] text-ink-soft">{body}</p>
@@ -71,7 +71,7 @@ export function NoConversationCard() {
               key={title}
               type="button"
               onClick={onClick}
-              className="group flex min-h-[170px] flex-col items-start rounded-2xl border-2 border-ink bg-cream p-4 text-left shadow-[0_3px_0_0_var(--color-ink)] transition hover:-translate-y-0.5 hover:bg-fluff"
+              className="group flex min-h-[170px] flex-col items-start rounded-xl border-2 border-ink bg-cream p-4 text-left shadow-[0_3px_0_0_var(--color-ink)] transition hover:-translate-y-0.5 hover:bg-fluff"
             >
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-yellow text-ink">
                 <Icon size={18} weight="bold" />
@@ -110,7 +110,7 @@ export function EmptyConversation({ type }: { type: ConversationType }) {
 
 export function AiSetupCard({ onGoSettings, onDismiss }: { onGoSettings: () => void; onDismiss: () => void }) {
   return (
-    <div className="rounded-2xl border-2 border-ink bg-fluff p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+    <div className="rounded-xl border-2 border-ink bg-fluff p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div className="flex items-start gap-3">
         <CorgiMascot className="h-10 w-10 shrink-0" />
         <div className="flex-1">

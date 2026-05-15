@@ -43,9 +43,9 @@ export function HeroShowcase() {
       }}
     >
       <div className="absolute -right-3 -top-7 z-10 hidden md:block">
-        <CorgiMascot className="h-16 w-16 drop-shadow-[0_3px_0_oklch(0.62_0.14_70)]" />
+        <CorgiMascot className="h-16 w-16 drop-shadow-[0_3px_0_var(--color-yellow-deep)]" />
       </div>
-      <div className="absolute -inset-x-1 -inset-y-1 rounded-2xl bg-yellow/15 blur-md" aria-hidden />
+      <div className="absolute -inset-x-1 -inset-y-1 rounded-xl bg-yellow/15 blur-md" aria-hidden />
 
       <div className="relative">
         <div role="tablist" aria-label="演示切换" className="mb-3 flex flex-wrap gap-1.5">
@@ -108,7 +108,7 @@ function Slide({ active, children }: { active: boolean; children: React.ReactNod
 
 function ImportSlide() {
   return (
-    <div className="relative h-full overflow-hidden rounded-2xl border-2 border-ink bg-cream shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
+    <div className="relative h-full overflow-hidden rounded-xl border-2 border-ink bg-cream shadow-press-ink-lg">
       <div className="flex items-center justify-between border-b-2 border-rule bg-paper px-4 py-2.5">
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
@@ -149,7 +149,7 @@ function ImportSlide() {
 
 function LibrarySlide() {
   return (
-    <div className="relative h-full overflow-hidden rounded-2xl border-2 border-ink bg-cream shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
+    <div className="relative h-full overflow-hidden rounded-xl border-2 border-ink bg-cream shadow-press-ink-lg">
       <div className="flex items-center gap-2 border-b-2 border-rule bg-paper px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
@@ -191,8 +191,8 @@ function LibrarySlide() {
 
 function ResumeSlide() {
   return (
-    <div className="flex h-full items-center justify-center rounded-2xl border-2 border-rule bg-paper/60 p-6">
-      <div className="relative h-full w-[72%] overflow-hidden rounded-md border border-rule-strong bg-cream shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <div className="flex h-full items-center justify-center rounded-xl border-2 border-rule bg-paper/60 p-6">
+      <div className="relative h-full w-[72%] overflow-hidden rounded-md border border-rule-strong bg-cream shadow-press-ink">
         <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-yellow px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-ink">
           A4
         </div>

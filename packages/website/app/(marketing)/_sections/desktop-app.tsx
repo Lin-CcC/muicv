@@ -14,7 +14,7 @@ export function DesktopApp() {
         aria-hidden
         style={{
           background:
-            'radial-gradient(ellipse 80% 55% at 50% 100%, oklch(0.86 0.13 85 / 0.55) 0%, oklch(0.96 0.05 88 / 0.45) 40%, transparent 78%)',
+            'radial-gradient(ellipse 80% 55% at 50% 100%, color-mix(in srgb, var(--color-corgi) 55%, transparent) 0%, color-mix(in srgb, var(--color-fluff) 45%, transparent) 40%, transparent 78%)',
         }}
       />
       <div className="absolute inset-0 bg-grid opacity-30" aria-hidden />
@@ -38,7 +38,7 @@ export function DesktopApp() {
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <a
                 href="/download"
-                className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
+                className="press inline-flex items-center gap-2 rounded-md border-2 border-ink bg-yellow px-5 py-3 text-[15px] font-bold text-ink"
               >
                 下载桌面 app
                 <ArrowUpRight />
@@ -58,7 +58,7 @@ export function DesktopApp() {
                 <a
                   key={p.name}
                   href="/download"
-                  className="press-ink group block rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)] transition-transform hover:-translate-y-0.5"
+                  className="press-ink group block rounded-xl border-2 border-ink bg-cream p-5 shadow-press-ink transition-transform hover:-translate-y-0.5"
                 >
                   <p className="text-[15px] font-extrabold text-ink">{p.name}</p>
                   <p className="mt-1 font-mono text-[11px] uppercase tracking-wider text-mute">{p.sub}</p>

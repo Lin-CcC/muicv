@@ -41,7 +41,7 @@ export function DashboardNav({ variant }: { variant: 'sidebar' | 'tabs' }) {
               aria-current={current ? 'page' : undefined}
               className={`shrink-0 whitespace-nowrap rounded-full border-2 px-3.5 py-1.5 text-[13px] font-bold transition ${
                 current
-                  ? 'border-ink bg-fluff text-ink shadow-[0_2px_0_0_oklch(0.24_0.04_65)]'
+                  ? 'border-ink bg-fluff text-ink shadow-[0_2px_0_0_var(--color-ink-line)]'
                   : 'border-rule bg-paper text-ink-soft hover:border-ink hover:text-ink'
               }`}
             >
@@ -65,7 +65,7 @@ export function DashboardNav({ variant }: { variant: 'sidebar' | 'tabs' }) {
               aria-current={current ? 'page' : undefined}
               className={`group rounded-xl border-2 px-4 py-3 transition ${
                 current
-                  ? 'border-ink bg-cream shadow-[0_3px_0_0_oklch(0.24_0.04_65)]'
+                  ? 'border-ink bg-cream shadow-[0_3px_0_0_var(--color-ink-line)]'
                   : 'border-transparent hover:border-rule hover:bg-paper'
               }`}
             >

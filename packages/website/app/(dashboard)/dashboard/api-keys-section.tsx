@@ -122,7 +122,7 @@ export function ApiKeysSection() {
   }
 
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header className="flex items-baseline justify-between gap-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— API Keys</p>

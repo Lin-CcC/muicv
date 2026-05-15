@@ -66,7 +66,7 @@ export default async function ContactPage() {
             {CONTACTS.map((c) => (
               <article
                 key={c.email}
-                className="flex flex-col rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)] transition-transform hover:-translate-y-1"
+                className="flex flex-col rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)] transition-transform hover:-translate-y-1"
               >
                 <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-yellow-deep">{c.tag}</p>
                 <h2 className="mt-2 text-[18px] font-extrabold text-ink">{c.label}</h2>
@@ -82,7 +82,7 @@ export default async function ContactPage() {
             ))}
           </div>
 
-          <div className="mt-10 rounded-2xl border-2 border-rule bg-paper/50 p-6 text-[14px] leading-[1.7] text-ink-soft md:p-8">
+          <div className="mt-10 rounded-xl border-2 border-rule bg-paper/50 p-6 text-[14px] leading-[1.7] text-ink-soft md:p-8">
             <p>
               <strong className="text-ink">想直接试用？</strong>{' '}
               <a

@@ -51,7 +51,7 @@ export default async function ConnectPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <div className="rounded-2xl border-2 border-ink bg-cream p-7 shadow-[0_5px_0_0_oklch(0.24_0.04_65)]">
+      <div className="rounded-xl border-2 border-ink bg-cream p-7 shadow-[0_5px_0_0_var(--color-ink-line)]">
         <p className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-yellow-deep">连接确认</p>
         <h1 className="mt-2 text-[24px] font-extrabold leading-tight tracking-tight text-ink">登录到 Mui简历桌面端</h1>
         <p className="mt-3 text-[14px] leading-[1.65] text-ink-soft">
@@ -83,7 +83,7 @@ function ConnectionLine({ label, value }: { label: string; value: string }) {
 function ErrorCard() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-12">
-      <div className="rounded-3xl border-2 border-tongue/60 bg-tongue/5 p-7">
+      <div className="rounded-xl border-2 border-tongue/60 bg-tongue/5 p-7">
         <h1 className="text-xl font-extrabold text-ink">登录请求已失效</h1>
         <p className="mt-2 text-[14px] text-ink-soft">请回到桌面 app，重新点一次登录。</p>
       </div>

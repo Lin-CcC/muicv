@@ -256,7 +256,7 @@ export function ChatInputBar({
         {recorder.phase === 'idle' ? (
           <div
             ref={inputContainerRef}
-            className="flex items-end gap-2 rounded-2xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink"
+            className="flex items-end gap-2 rounded-xl border-2 border-rule-strong bg-cream p-2 transition focus-within:border-ink"
           >
             <button
               type="button"

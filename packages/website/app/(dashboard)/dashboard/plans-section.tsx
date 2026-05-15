@@ -77,7 +77,7 @@ export async function PlansSection() {
   const ledger = await listLedger(userId, { limit: 15 });
 
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 余额与计费</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">

@@ -36,7 +36,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
 export function PreviewList({ items }: { items: PreviewListItem[] }) {
   if (items.length === 0) {
     return (
-      <section className="rounded-2xl border-2 border-rule bg-paper p-6">
+      <section className="rounded-xl border-2 border-rule bg-paper p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 还没有预览</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">来创建第一个分享链接</h2>
         <p className="mt-2 text-[13.5px] text-ink-soft">
@@ -65,9 +65,9 @@ function PreviewRow({ item }: { item: PreviewListItem }) {
   }
   return (
     <article
-      className={`rounded-2xl border-2 p-5 ${
+      className={`rounded-xl border-2 p-5 ${
         item.status === 'active'
-          ? 'border-ink bg-cream shadow-[0_3px_0_0_oklch(0.24_0.04_65)]'
+          ? 'border-ink bg-cream shadow-[0_3px_0_0_var(--color-ink-line)]'
           : 'border-rule bg-paper opacity-80'
       }`}
     >

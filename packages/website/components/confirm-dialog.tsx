@@ -67,7 +67,7 @@ export const ConfirmDialog = forwardRef<ConfirmDialogHandle>(function ConfirmDia
         event.preventDefault();
         settle(false);
       }}
-      className="m-auto w-full max-w-sm rounded-2xl border-2 border-ink bg-cream p-0 text-ink shadow-[0_6px_0_0_oklch(0.24_0.04_65)] backdrop:bg-ink/40"
+      className="m-auto w-full max-w-sm rounded-xl border-2 border-ink bg-cream p-0 text-ink shadow-[0_6px_0_0_var(--color-ink-line)] backdrop:bg-ink/40"
     >
       {opts && (
         <div className="flex flex-col gap-4 p-6">

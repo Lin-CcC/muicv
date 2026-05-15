@@ -100,7 +100,7 @@ export function AuthForm({
 
       <form
         onSubmit={onSubmit}
-        className="mt-7 space-y-4 rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_oklch(0.24_0.04_65)]"
+        className="mt-7 space-y-4 rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_5px_0_0_var(--color-ink-line)]"
       >
         {githubEnabled && (
           <>

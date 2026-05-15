@@ -131,7 +131,7 @@ export default async function AdminUserDetailPage(props: {
         </Link>
       </div>
 
-      <header className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+      <header className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 用户详情</p>
         <h1 className="mt-2 text-[20px] font-extrabold text-ink">{user.name || user.email.split('@')[0]}</h1>
         <p className="mt-1 font-mono text-[13px] text-ink-soft">{user.email}</p>
@@ -178,7 +178,7 @@ export default async function AdminUserDetailPage(props: {
         )}
       </header>
 
-      <section className="rounded-2xl border-2 border-yellow-deep bg-fluff/30 p-6">
+      <section className="rounded-xl border-2 border-yellow-deep bg-fluff/30 p-6">
         <h2 className="text-[16px] font-extrabold text-ink">赠送 token</h2>
         <p className="mt-1 text-[12.5px] text-ink-soft">
           走 wallet.credit() 原子入账，type=admin_grant，meta 自动写入 grantedBy 与 reason，可在赠予记录页审计。

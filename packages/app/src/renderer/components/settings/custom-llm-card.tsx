@@ -41,7 +41,7 @@ export function CustomLlmCard() {
   }
 
   return (
-    <details className="rounded-2xl border-2 border-rule bg-paper" open={customConfigured}>
+    <details className="rounded-xl border-2 border-rule bg-paper" open={customConfigured}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5">
         <div>
           <p className="text-[13px] font-bold text-ink-soft">用我自己的模型和额度</p>

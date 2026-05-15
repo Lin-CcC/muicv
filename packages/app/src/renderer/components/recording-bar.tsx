@@ -28,7 +28,7 @@ export function RecordingBar({ phase, elapsedMs, limitSec, rms, errorMsg, onCanc
 
   return (
     <div
-      className={`flex items-center gap-2 rounded-2xl border-2 bg-cream p-2 transition ${
+      className={`flex items-center gap-2 rounded-xl border-2 bg-cream p-2 transition ${
         isError ? 'border-tongue/60' : 'border-rule-strong'
       }`}
     >

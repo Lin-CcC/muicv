@@ -11,7 +11,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         aria-hidden
         style={{
           background:
-            'radial-gradient(ellipse 80% 60% at 50% -10%, oklch(0.86 0.13 85 / 0.55) 0%, oklch(0.96 0.05 88 / 0.4) 35%, transparent 75%)',
+            'radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--color-corgi) 55%, transparent) 0%, color-mix(in srgb, var(--color-fluff) 40%, transparent) 35%, transparent 75%)',
         }}
       />
       <div className="absolute inset-0 bg-grid opacity-30" aria-hidden />

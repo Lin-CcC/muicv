@@ -171,7 +171,7 @@ function FirstMinute() {
     { title: '开始第一段整理对话', desc: 'Mui 会先帮你把材料拆成可复用素材，之后再针对岗位生成版本。' },
   ];
   return (
-    <section className="mt-10 rounded-2xl border-2 border-ink bg-corgi/20 p-5 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
+    <section className="mt-10 rounded-xl border-2 border-ink bg-corgi/20 p-5 shadow-[0_4px_0_0_var(--color-yellow-deep)]">
       <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-yellow-deep">下载后第一分钟</p>
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {steps.map((step, idx) => (
@@ -201,7 +201,7 @@ function ReleasePanel({ release }: { release: GhRelease }) {
 
   return (
     <section className="mt-12 space-y-6">
-      <div className="flex flex-wrap items-baseline gap-3 rounded-2xl border-2 border-ink bg-cream px-5 py-3 shadow-[0_4px_0_0_var(--color-ink)]">
+      <div className="flex flex-wrap items-baseline gap-3 rounded-xl border-2 border-ink bg-cream px-5 py-3 shadow-[0_4px_0_0_var(--color-ink)]">
         <span className="font-mono text-[12px] font-bold tabular-nums text-yellow-deep">{release.tag_name}</span>
         <span className="text-[12px] text-mute">发布于 {formatDate(release.published_at)}</span>
       </div>
@@ -222,7 +222,7 @@ function ReleasePanel({ release }: { release: GhRelease }) {
 
 function Platform({ title, subtitle, assets }: { title: string; subtitle: string; assets: ParsedAsset[] }) {
   return (
-    <div className="rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+    <div className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div>
         <h3 className="text-[15px] font-extrabold text-ink">{title}</h3>
         <p className="mt-0.5 text-[12px] text-mute">{subtitle}</p>
@@ -254,7 +254,7 @@ function Platform({ title, subtitle, assets }: { title: string; subtitle: string
 
 function NoRelease() {
   return (
-    <section className="mt-12 rounded-2xl border-2 border-rule bg-paper p-6 text-[14px] text-ink-soft">
+    <section className="mt-12 rounded-xl border-2 border-rule bg-paper p-6 text-[14px] text-ink-soft">
       <p>🐾 桌面 app 暂时拉不到发布版本。在那之前你可以：</p>
       <ul className="mt-3 list-disc space-y-1 pl-5 text-[13px]">
         <li>已经在用 Claude Code、Codex、Cursor 等 AI agent 的话，回首页看 skill 安装命令，5 秒就能接入</li>
@@ -274,7 +274,7 @@ function NoRelease() {
 
 function FirstRunHelp() {
   return (
-    <section className="mt-12 space-y-6 rounded-2xl border-2 border-ink bg-fluff p-6">
+    <section className="mt-12 space-y-6 rounded-xl border-2 border-ink bg-fluff p-6">
       <header>
         <h2 className="text-[16px] font-extrabold text-ink">⚠️ 首次打开需要解除限制</h2>
         <p className="mt-2 text-[13.5px] leading-[1.7] text-ink-soft">

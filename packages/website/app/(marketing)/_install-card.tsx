@@ -12,7 +12,7 @@ export function InstallCard({
   preferred?: boolean;
 }) {
   return (
-    <div className="group relative rounded-2xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_oklch(0.24_0.04_65)] transition-transform hover:-translate-y-1">
+    <div className="group relative rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink-line)] transition-transform hover:-translate-y-1">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

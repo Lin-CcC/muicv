@@ -54,7 +54,7 @@ function BlobActiveCard({
 }) {
   if (!active) {
     return (
-      <section className="rounded-2xl border-2 border-rule bg-paper p-6">
+      <section className="rounded-xl border-2 border-rule bg-paper p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 加密版（推荐）</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">还没有加密快照</h2>
         <p className="mt-2 text-[13.5px] text-ink-soft">
@@ -67,7 +67,7 @@ function BlobActiveCard({
     );
   }
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 加密版（推荐）· 当前</p>
       <h2 className="mt-2 text-[18px] font-extrabold text-ink">
         密文{' '}
@@ -81,7 +81,7 @@ function BlobActiveCard({
       <div className="mt-5 flex flex-wrap gap-3">
         <a
           href={`/api/resume/sync/blob/${active.blobId}/download`}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-fluff px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_oklch(0.24_0.04_65)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_oklch(0.24_0.04_65)]"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink bg-fluff px-4 py-2 text-[13px] font-bold text-ink shadow-[0_3px_0_0_var(--color-ink-line)] transition active:translate-y-[2px] active:shadow-[0_1px_0_0_var(--color-ink-line)]"
         >
           下载 .zip 自己解密
         </a>
@@ -98,7 +98,7 @@ function BlobHistoryList({
 }) {
   if (items.length === 0) return null;
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 加密版 · 历史</p>
         <h2 className="mt-2 text-[16px] font-extrabold text-ink">最近 {RESUME_SYNC_HISTORY_KEEP} 份归档</h2>
@@ -134,7 +134,7 @@ function ActiveCard({
 }) {
   if (!active) {
     return (
-      <section className="rounded-2xl border-2 border-rule bg-paper p-6">
+      <section className="rounded-xl border-2 border-rule bg-paper p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-mute">— 明文版</p>
         <h2 className="mt-2 text-[18px] font-extrabold text-ink">还没有明文快照</h2>
         <p className="mt-2 text-[13.5px] text-ink-soft">
@@ -147,7 +147,7 @@ function ActiveCard({
     );
   }
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 明文版 · 当前</p>
       <h2 className="mt-2 text-[18px] font-extrabold text-ink">
         云端 <span className="rounded-md bg-fluff px-2 py-0.5 font-mono tabular-nums">{active.fileCount}</span> 个文件 ·{' '}
@@ -166,7 +166,7 @@ function ActiveCard({
 
 function SkillHints() {
   return (
-    <section className="rounded-2xl border-2 border-ink bg-paper p-6">
+    <section className="rounded-xl border-2 border-ink bg-paper p-6">
       <h2 className="text-[16px] font-extrabold text-ink">在 muicv-sync 技能里怎么用</h2>
       <ol className="mt-3 space-y-2 text-[13.5px] leading-[1.7] text-ink-soft">
         <li>
@@ -196,7 +196,7 @@ function HistoryList({
   items: Array<{ id: string; hash: string; sizeBytes: number; fileCount: number; archivedAt: number }>;
 }) {
   return (
-    <section className="rounded-2xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_oklch(0.24_0.04_65)]">
+    <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
       <header>
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-yellow-deep">— 明文版 · 历史</p>
         <h2 className="mt-2 text-[16px] font-extrabold text-ink">最近 {RESUME_SYNC_HISTORY_KEEP} 份归档</h2>

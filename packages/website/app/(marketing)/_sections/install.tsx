@@ -9,7 +9,7 @@ export function Install() {
         aria-hidden
         style={{
           background:
-            'radial-gradient(ellipse 90% 60% at 50% 0%, oklch(0.86 0.13 85 / 0.65) 0%, oklch(0.96 0.05 88 / 0.5) 35%, transparent 75%)',
+            'radial-gradient(ellipse 90% 60% at 50% 0%, color-mix(in srgb, var(--color-corgi) 65%, transparent) 0%, color-mix(in srgb, var(--color-fluff) 50%, transparent) 35%, transparent 75%)',
         }}
       />
       <div className="absolute inset-0 bg-grid opacity-40" aria-hidden />
