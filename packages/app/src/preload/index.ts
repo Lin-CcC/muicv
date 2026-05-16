@@ -5,6 +5,7 @@ import type {
   AppConfig,
   AttachmentSaveResult,
   AttachmentUploadInput,
+  AudioAttachOutcome,
   AudioFailedRecording,
   AudioRecordOutcome,
   AudioRecordingPayload,
@@ -149,6 +150,8 @@ const api: RendererApi = {
       ipcRenderer.invoke('audio:cancel', requestId, reason) as Promise<void>,
     recordAndTranscribe: (opts: { durationLimitSec?: number }) =>
       ipcRenderer.invoke('audio:recordAndTranscribe', opts) as Promise<AudioRecordOutcome>,
+    recordAndAttach: (opts: { profileId: string; durationLimitSec?: number }) =>
+      ipcRenderer.invoke('audio:recordAndAttach', opts) as Promise<AudioAttachOutcome>,
     retranscribe: (audio: AudioFailedRecording) =>
       ipcRenderer.invoke('audio:retranscribe', audio) as Promise<AudioRecordOutcome>,
     onTranscodeRequest: (handler: (req: AudioTranscodeRequest) => void | Promise<void>) => {

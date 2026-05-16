@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
 
-import type { AudioFailedRecording, AudioRecordOutcome } from '../../shared/types.ts';
+import type { AttachmentRef, AudioFailedRecording, AudioRecordOutcome } from '../../shared/types.ts';
 
 type Opts = {
   textareaRef: RefObject<HTMLTextAreaElement | null>;
@@ -10,6 +10,16 @@ type Opts = {
   /** 与 use-slash-command 共享的"setInput 后 focus + setSelectionRange"模式。 */
   pendingCursorRef: RefObject<number | null>;
   onMicError: (message: string) => void;
+  /**
+   * 当前模型是否原生听音频（mimo-v2.5 全模态）。true 时麦克风按下走 recordAndAttach
+   * 把 wav 落 inbox/ 当 audio 附件，跳过 Whisper STT；false 时走老的 recordAndTranscribe。
+   */
+  audioPassthrough?: boolean;
+  /** audioPassthrough = true 时用：把录音附件 push 进 chatbox 待发送列表。 */
+  audioPassthroughDeps?: {
+    profileId: string | null;
+    addAttachment: (ref: AttachmentRef) => void;
+  };
 };
 
 /**
@@ -109,6 +119,21 @@ export function useChatInputRecorder(opts: Opts): {
     cursorAtClickRef.current = currentAnchor();
     setRecording(true);
     try {
+      if (opts.audioPassthrough && opts.audioPassthroughDeps) {
+        const { profileId, addAttachment } = opts.audioPassthroughDeps;
+        if (!profileId) {
+          opts.onMicError('请先选中职业档案再录音');
+          return;
+        }
+        const outcome = await window.muicv.audio.recordAndAttach({ profileId, durationLimitSec: 180 });
+        if (outcome.ok) {
+          addAttachment(outcome.ref);
+          setInfo('已录入语音附件，直接发送让模型听原音（mimo-v2.5 全模态）');
+        } else if (outcome.reason !== 'cancel') {
+          opts.onMicError(outcome.message);
+        }
+        return;
+      }
       const outcome = await window.muicv.audio.recordAndTranscribe({ durationLimitSec: 180 });
       if (outcome.ok) handleSuccess(outcome);
       else handleFailure(outcome);

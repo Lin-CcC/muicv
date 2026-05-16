@@ -9,6 +9,7 @@ const KIND_LABEL: Record<AttachmentRef['kind'], string> = {
   markdown: 'MD',
   text: 'TXT',
   image: 'IMG',
+  audio: 'WAV',
 };
 
 type Props = {

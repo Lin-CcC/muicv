@@ -8,7 +8,10 @@ import {
 } from '@phosphor-icons/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+import { modelSupportsAudioInput } from '@muicv/shared';
+
 import type { AttachmentRef } from '../../shared/types.ts';
+import { useAppStore } from '../lib/store';
 import type { ChatAttachmentsApi } from '../lib/use-chat-attachments';
 import { ATTACHMENT_ACCEPT, MAX_ATTACHMENTS_PER_SEND } from '../lib/use-chat-attachments';
 import { useChatInputPaste } from '../lib/use-chat-input-paste';
@@ -62,6 +65,9 @@ export function ChatInputBar({
   // setInput 提交后再 focus + setSelectionRange 落光标（复用 use-slash-command 的模式）。
   const pendingCursorRef = useRef<number | null>(null);
   const slash = useSlashCommand({ value: input, onChange: setInput, textareaRef });
+  const activeProfileId = useAppStore((s) => s.activeProfile?.id ?? null);
+  const defaultModel = useAppStore((s) => s.config.defaultModel);
+  const audioPassthrough = modelSupportsAudioInput(defaultModel);
 
   const recorderState = useChatInputRecorder({
     textareaRef,
@@ -69,6 +75,8 @@ export function ChatInputBar({
     setInput,
     pendingCursorRef,
     onMicError,
+    audioPassthrough,
+    audioPassthroughDeps: { profileId: activeProfileId, addAttachment: attachments.addAttachment },
   });
   const handlePaste = useChatInputPaste(attachments);
 

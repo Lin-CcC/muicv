@@ -4,7 +4,7 @@ import { Agent, run } from '@openai/agents';
 
 import { randomUUID } from 'node:crypto';
 
-import { modelSupportsVision } from '@muicv/shared';
+import { modelSupportsAudioInput, modelSupportsVision } from '@muicv/shared';
 
 import type { AgentChunk, AppConfig, ChatMessage, ConversationType, ToolCallRecord } from '../../shared/types.ts';
 import { getConversation, saveConversation } from '../conversations.ts';
@@ -13,7 +13,7 @@ import { buildSyncTools } from './api-tools-sync.ts';
 import { buildApiTools } from './api-tools.ts';
 import { buildAgentInput, getModelBudget } from './history.ts';
 import { configureLlmForRun } from './llm-config.ts';
-import { readImageAsDataUrl } from './multimodal.ts';
+import { readAudioAsDataUrl, readImageAsDataUrl } from './multimodal.ts';
 import { resetReasoningState, setReasoningDeltaListener } from './reasoning-capture.ts';
 import { buildSystemPrompt } from './skills.ts';
 import {
@@ -112,6 +112,10 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   // 仅在 model 支持 vision 时把图 base64 进 input_image；不支持就跳过 imageReader，
   // 让 footer 的"调 upload_photo"提示引导 agent 走 R2 上传路径。
   const supportsVision = modelSupportsVision(config.defaultModel);
+  // Audio 直通：mimo-v2.5（全模态版）原生听音频，把 wav 以 Xiaomi 规范的
+  // `data:audio/wav;base64,...` 灌进 input_audio content block，跳过 Whisper STT。
+  // 其它 model 维持现状（chatbox 麦克风走 recordAndTranscribe → 转写文本）。
+  const supportsAudio = modelSupportsAudioInput(config.defaultModel);
 
   // 把历史按 SDK 原生 AgentInputItem[] 组装，并按 token budget 做滑动窗口裁剪。
   // 历史里所有 user message 的图都重新 base64 进 input_image content block——
@@ -124,6 +128,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
   } = await buildAgentInput(messages, {
     budgetTokens: getModelBudget(config.defaultModel),
     ...(supportsVision ? { imageReader: (ref) => readImageAsDataUrl(workspaceDir, ref) } : {}),
+    ...(supportsAudio ? { audioReader: (ref) => readAudioAsDataUrl(workspaceDir, ref) } : {}),
   });
   if (droppedCount > 0) {
     console.log(
@@ -243,7 +248,7 @@ export async function runAgent(opts: RunOpts): Promise<void> {
       const msg = isContextLengthError(rawMsg)
         ? '本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。'
         : isReasoningContentError(error, rawMsg)
-          ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.5 / gpt-5.4）。`
+          ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.4）。`
           : rawMsg;
       send({ type: 'error', message: msg });
       send({ type: 'finish', reason: 'error' });

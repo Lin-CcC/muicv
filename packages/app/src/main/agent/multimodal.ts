@@ -35,3 +35,33 @@ export async function readImageAsDataUrl(
     return null;
   }
 }
+
+/**
+ * 把 inbox/ 下的音频附件读成 Xiaomi MiMo 规范的 `data:<mime>;base64,...` 字符串
+ * （单 `data` 字段含 data URL 前缀，跟 OpenAI 原生 `{ data, format }` 二字段写法不同；
+ * 见 https://platform.xiaomimimo.com/static/docs/usage-guide/multimodal-understanding/audio-understanding.md）。
+ *
+ * 越界保护同 readImageAsDataUrl。Xiaomi 单文件 base64 ≤ 50 MB，超了模型层会自己拒，
+ * 这里不重复拦——上层 saveAttachment 的 20 MB 上限已经远在范围内。
+ */
+export async function readAudioAsDataUrl(
+  workspaceDir: string,
+  audio: AttachmentRef,
+  readFn: (abs: string) => Promise<Buffer> = (p) => readFile(p),
+): Promise<string | null> {
+  const normalized = audio.path.replace(/^[/\\]+/, '');
+  const abs = resolve(workspaceDir, normalized);
+  const root = workspaceDir.endsWith('/') || workspaceDir.endsWith('\\') ? workspaceDir : `${workspaceDir}/`;
+  if (!abs.startsWith(root) && abs !== workspaceDir) {
+    console.warn('[multimodal] reject out-of-workspace audio:', audio.path);
+    return null;
+  }
+  try {
+    const buf = await readFn(abs);
+    const mime = audio.mimeType || 'audio/wav';
+    return `data:${mime};base64,${buf.toString('base64')}`;
+  } catch (err) {
+    console.warn('[multimodal] failed to read audio', audio.path, err);
+    return null;
+  }
+}

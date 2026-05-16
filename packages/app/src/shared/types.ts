@@ -238,7 +238,7 @@ export type FeedbackCommentOutcome =
     };
 
 /** 附件支持的文件种类。新增类型时同步更新 main/attachments.ts 的白名单。 */
-export type AttachmentKind = 'pdf' | 'docx' | 'markdown' | 'text' | 'image';
+export type AttachmentKind = 'pdf' | 'docx' | 'markdown' | 'text' | 'image' | 'audio';
 
 /**
  * 附件引用 —— 由 main 进程在 'attachments:save' 中写盘后返给 renderer。
@@ -461,6 +461,15 @@ export type AudioRecordOutcome =
       /** 本地引擎是否已装好默认模型。renderer 据此决定是否提示「安装本地模型再试」。 */
       localReady?: boolean;
     };
+
+/**
+ * mimo-v2.5 全模态分支：录音直接落盘当 audio 附件，跳过 STT 的回执。
+ * 成功 = 拿到 AttachmentRef（kind='audio'），renderer push 到 pendingAttachments。
+ * 失败比 AudioRecordOutcome 多 'recording-error'，区别于"录音 OK 但转写失败"。
+ */
+export type AudioAttachOutcome =
+  | AttachmentSaveResult
+  | { ok: false; reason: 'mic-denied' | 'cancel' | 'recording-error'; message: string };
 
 /**
  * 文件转码 IPC（issue #1 M4）：main 端 transcribe_audio_file 工具读完文件
@@ -794,6 +803,12 @@ export type RendererApi = {
     cancel(requestId: string, reason: string): Promise<void>;
     /** chatbox 麦克风按钮：renderer 主动触发一次录音 → 转写。 */
     recordAndTranscribe(opts: { durationLimitSec?: number }): Promise<AudioRecordOutcome>;
+    /**
+     * mimo-v2.5 全模态分支：录一段 → 直接落 inbox/ 当 audio 附件（不做 Whisper STT）。
+     * 成功时返回的 AttachmentRef.kind === 'audio'，调用方应推入 pendingAttachments，
+     * 让发送时走 input_audio content block。
+     */
+    recordAndAttach(opts: { profileId: string; durationLimitSec?: number }): Promise<AudioAttachOutcome>;
     /**
      * 用上一次失败保留的 wav 重新走转写（issue #6 手动重试）。
      * 不再录音，直接复用 `lastAudio`。失败仍返回 lastAudio，可继续尝试。

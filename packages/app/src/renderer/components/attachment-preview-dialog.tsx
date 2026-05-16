@@ -77,6 +77,7 @@ const KIND_LABEL: Record<AttachmentRef['kind'], string> = {
   markdown: 'Markdown',
   text: '纯文本',
   image: '图像',
+  audio: '音频',
 };
 
 function PreviewHeader({ name, kind, onClose }: { name: string; kind: AttachmentRef['kind']; onClose: () => void }) {
@@ -134,9 +135,21 @@ function PreviewBody({
 }) {
   if (attachment.kind === 'image') return <ImagePreview absPath={absPath} name={attachment.name} />;
   if (attachment.kind === 'pdf') return <PdfPreview absPath={absPath} name={attachment.name} />;
+  if (attachment.kind === 'audio') return <AudioPreview absPath={absPath} name={attachment.name} />;
   // markdown / text 直接读 utf8；docx 读它的 .txt sidecar（main 上传时已经提取）
   const textPath = attachment.kind === 'docx' ? absTextPath : absPath;
   return <TextPreview absPath={textPath} kind={attachment.kind} />;
+}
+
+function AudioPreview({ absPath, name }: { absPath: string; name: string }) {
+  // 走 muicv-pdf:// 协议让 Chromium 直接 stream，不读 base64 一次性塞 data URL，
+  // 大文件（10MB+ wav）友好。
+  return (
+    <div className="flex min-h-full items-center justify-center p-6">
+      {/* biome-ignore lint/a11y/useMediaCaption: 用户自录音频，没有字幕轨道 */}
+      <audio key={absPath} controls src={pathToMuicvPdfUrl(absPath)} className="w-full max-w-lg" title={name} />
+    </div>
+  );
 }
 
 function ImagePreview({ absPath, name }: { absPath: string; name: string }) {

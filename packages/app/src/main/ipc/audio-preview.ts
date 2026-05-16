@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 
-import type { AppConfig } from '../../shared/types.ts';
+import type { AppConfig, AttachmentSaveResult } from '../../shared/types.ts';
 import {
   type CreatePreviewInput,
   type CreatePreviewResult,
@@ -11,6 +11,7 @@ import {
   listPhotos,
   uploadPhoto,
 } from '../api-preview.ts';
+import { saveAttachment } from '../attachments.ts';
 import {
   MicPermissionDenied,
   RecordingCancelled,
@@ -77,6 +78,40 @@ export function registerAudioPreviewIpc(): void {
         return { ok: false, reason: 'error', message: err instanceof Error ? err.message : String(err) };
       }
       return transcribeWavPayloadToOutcome(payload, getConfig());
+    },
+  );
+
+  /**
+   * mimo-v2.5 全模态分支：renderer 麦克风按下 → 录 wav → 直接落 inbox/ 当 audio 附件，
+   * 不做 Whisper STT。AttachmentRef 由 renderer 推进 pendingAttachments，发送时
+   * 走 input_audio content block 让模型亲耳听原音（issue 跳过 STT）。
+   * profileId 必须 = 当前激活档案，否则 profile-mismatch 错。
+   */
+  ipcMain.handle(
+    'audio:recordAndAttach',
+    async (
+      e,
+      opts: { profileId: string; durationLimitSec?: number },
+    ): Promise<
+      AttachmentSaveResult | { ok: false; reason: 'mic-denied' | 'cancel' | 'recording-error'; message: string }
+    > => {
+      const cfg = getConfig();
+      if (!opts?.profileId || opts.profileId !== cfg.activeProfileId) {
+        return { ok: false, reason: 'profile-mismatch', message: '请先选中职业档案' };
+      }
+      let payload: Awaited<ReturnType<typeof recordWav>>;
+      try {
+        payload = await recordWav({ durationLimitSec: opts.durationLimitSec ?? 180, sender: e.sender });
+      } catch (err) {
+        if (err instanceof MicPermissionDenied) return { ok: false, reason: 'mic-denied', message: err.message };
+        if (err instanceof RecordingCancelled) return { ok: false, reason: 'cancel', message: err.message };
+        return { ok: false, reason: 'recording-error', message: err instanceof Error ? err.message : String(err) };
+      }
+      const wav = Buffer.from(payload.audioBase64, 'base64');
+      const arrBuffer = wav.buffer.slice(wav.byteOffset, wav.byteOffset + wav.byteLength) as ArrayBuffer;
+      const seconds = Math.max(1, Math.round(payload.durationMs / 1000));
+      const name = `voice-${seconds}s.wav`;
+      return saveAttachment(cfg.workspaceDir, { name, mimeType: 'audio/wav', bytes: arrBuffer });
     },
   );
 

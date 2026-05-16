@@ -38,6 +38,14 @@ const COMPACT_THRESHOLD = 0.8;
  */
 export const IMAGE_TOKEN_BUDGET = 1200;
 
+/**
+ * 每条音频附件在预算里按多少 token 计入。
+ * Xiaomi 文档：Total tokens ≈ duration_sec × 6.25。
+ * 我们没有 duration 字段，按"普通一段 30s 自我介绍 ~190 tokens"打底，给个 200 token 的常量估计。
+ * 偏低估，让滑动窗口少 evict 一条历史；真实账单以 API 响应为准。
+ */
+export const AUDIO_TOKEN_BUDGET = 200;
+
 /** 估算 token 数：char/2.5。中文密集场景偏保守（实际 ~1 token/汉字），英文略低估。 */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 2.5);
@@ -49,6 +57,7 @@ export function getModelBudget(_modelId: string): number {
 }
 
 export type ImageReader = (ref: AttachmentRef) => Promise<string | null>;
+export type AudioReader = (ref: AttachmentRef) => Promise<string | null>;
 
 export type BuildAgentInputResult = {
   items: AgentInputItem[];
@@ -76,7 +85,7 @@ export type BuildAgentInputResult = {
  */
 export async function buildAgentInput(
   messages: ChatMessage[],
-  opts?: { budgetTokens?: number; imageReader?: ImageReader },
+  opts?: { budgetTokens?: number; imageReader?: ImageReader; audioReader?: AudioReader },
 ): Promise<BuildAgentInputResult> {
   const budget = opts?.budgetTokens ?? Math.floor(MODEL_CONTEXT_LIMIT * COMPACT_THRESHOLD);
   if (messages.length === 0) {
@@ -89,7 +98,8 @@ export async function buildAgentInput(
   let isFirst = true;
 
   for (const m of reversed) {
-    const cost = estimateTokens(m.content ?? '') + countImages(m) * IMAGE_TOKEN_BUDGET;
+    const cost =
+      estimateTokens(m.content ?? '') + countImages(m) * IMAGE_TOKEN_BUDGET + countAudios(m) * AUDIO_TOKEN_BUDGET;
     if (isFirst) {
       // 最后一条（reverse 后的第一条）不论多大都保留
       kept.push(m);
@@ -104,7 +114,7 @@ export async function buildAgentInput(
 
   kept.reverse();
   const droppedCount = messages.length - kept.length;
-  const items: AgentInputItem[] = await Promise.all(kept.map((m) => toItem(m, opts?.imageReader)));
+  const items: AgentInputItem[] = await Promise.all(kept.map((m) => toItem(m, opts?.imageReader, opts?.audioReader)));
 
   if (droppedCount > 0) {
     const ellipsisText = `（已省略 ${droppedCount} 条更早的对话）`;
@@ -120,7 +130,12 @@ function countImages(msg: ChatMessage): number {
   return (msg.attachments ?? []).filter((a) => a.kind === 'image').length;
 }
 
-async function toItem(msg: ChatMessage, imageReader?: ImageReader): Promise<AgentInputItem> {
+function countAudios(msg: ChatMessage): number {
+  if (msg.role !== 'user') return 0;
+  return (msg.attachments ?? []).filter((a) => a.kind === 'audio').length;
+}
+
+async function toItem(msg: ChatMessage, imageReader?: ImageReader, audioReader?: AudioReader): Promise<AgentInputItem> {
   const text = msg.content ?? '';
   if (msg.role === 'assistant') {
     return {
@@ -133,27 +148,47 @@ async function toItem(msg: ChatMessage, imageReader?: ImageReader): Promise<Agen
     return { role: 'system', content: text };
   }
   // user / tool（持久化里不该出现 tool，兜底当 user 处理避免崩）
-  const images = (msg.attachments ?? []).filter((a) => a.kind === 'image');
-  if (!imageReader || images.length === 0) {
+  const attachments = msg.attachments ?? [];
+  const images = imageReader ? attachments.filter((a) => a.kind === 'image') : [];
+  const audios = audioReader ? attachments.filter((a) => a.kind === 'audio') : [];
+  if (images.length === 0 && audios.length === 0) {
     return { role: 'user', content: text };
   }
 
-  const dataUrls: string[] = [];
-  for (const img of images) {
-    const url = await imageReader(img);
-    if (url) dataUrls.push(url);
+  const imageUrls: string[] = [];
+  if (imageReader) {
+    for (const img of images) {
+      const url = await imageReader(img);
+      if (url) imageUrls.push(url);
+    }
   }
-  if (dataUrls.length === 0) {
-    // 全部读失败：留下文本（footer 里仍说"已附图"，至少模型知道用户上传过图——
+  const audioUrls: string[] = [];
+  if (audioReader) {
+    for (const audio of audios) {
+      const url = await audioReader(audio);
+      if (url) audioUrls.push(url);
+    }
+  }
+  if (imageUrls.length === 0 && audioUrls.length === 0) {
+    // 全部读失败：留下文本（footer 里仍说"已附图/音频"，至少模型知道用户上传过——
     // 比偷换成空 array 更诚实，且老对话被搬迁过工作目录时不至于完全断流）
     return { role: 'user', content: text };
   }
 
-  type UserContentBlock = { type: 'input_text'; text: string } | { type: 'input_image'; image: string };
+  // 注：input_audio block 用的是 Xiaomi MiMo 的单 `data` 字段格式（含 data URL 前缀），
+  // 跟 OpenAI 原生 `{ data, format }` 二字段写法不同。SDK 不强校验 content shape，
+  // 经 `as AgentInputItem` 透传，loggingFetch → muicv API → 小米上游一路 JSON 透传。
+  type UserContentBlock =
+    | { type: 'input_text'; text: string }
+    | { type: 'input_image'; image: string }
+    | { type: 'input_audio'; input_audio: { data: string } };
   const content: UserContentBlock[] = [];
   if (text) content.push({ type: 'input_text', text });
-  for (const url of dataUrls) {
+  for (const url of imageUrls) {
     content.push({ type: 'input_image', image: url });
+  }
+  for (const url of audioUrls) {
+    content.push({ type: 'input_audio', input_audio: { data: url } });
   }
   return { role: 'user', content } as AgentInputItem;
 }

@@ -55,6 +55,7 @@ const KIND_LABEL: Record<AttachmentKind, string> = {
   markdown: 'Markdown',
   text: '纯文本',
   image: '图像',
+  audio: '音频',
 };
 
 /**
@@ -67,7 +68,10 @@ const KIND_LABEL: Record<AttachmentKind, string> = {
  *   两种情况下 agent 都**禁止 read_file 二进制图片**——会拿到一堆乱码。
  *   简历用的证件照上传走"预览 drawer → 上传头像"UI 路径，agent 不参与。
  */
-export function formatAttachmentsFooter(refs: AttachmentRef[], opts: { supportsVision: boolean }): string {
+export function formatAttachmentsFooter(
+  refs: AttachmentRef[],
+  opts: { supportsVision: boolean; supportsAudioInput?: boolean },
+): string {
   if (refs.length === 0) return '';
   const lines = refs.map((r) => {
     const head = `- ${r.path}（${KIND_LABEL[r.kind]}`;
@@ -75,6 +79,11 @@ export function formatAttachmentsFooter(refs: AttachmentRef[], opts: { supportsV
       return opts.supportsVision
         ? `${head}，已随消息附图，agent 直接看图，不要 read_file）`
         : `${head}，当前模型不支持 vision，看不到图；请用户用文字描述图片内容。不要 read_file）`;
+    }
+    if (r.kind === 'audio') {
+      return opts.supportsAudioInput
+        ? `${head}，已随消息附音频，模型直接听原音，不要 read_file）`
+        : `${head}，当前模型不支持音频，请切到 mimo-v2.5 再发，或先做语音转写。不要 read_file）`;
     }
     return r.textPath ? `${head}，已提取文本：${r.textPath}）` : `${head}）`;
   });

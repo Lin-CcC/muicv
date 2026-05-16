@@ -36,6 +36,10 @@ export type ChatAttachmentsApi = {
   uploadingCount: number;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFiles: (files: FileList | File[]) => Promise<void>;
+  /** 直接推一个已经落盘的 ref 进 pending 列表（不重复上传）。给麦克风音频直通用。 */
+  addAttachment: (ref: AttachmentRef) => void;
+  /** 给外部冒泡错误（mic-denied / 录音失败等）用，复用同一份 TTL 自清队列。 */
+  pushAttachmentError: (message: string) => void;
   removeAttachment: (path: string) => void;
   clearAfterSend: () => void;
   onPickFiles: () => void;
@@ -189,6 +193,14 @@ export function useChatAttachments(
     }
   }
 
+  function addAttachment(ref: AttachmentRef): void {
+    setPendingAttachments((prev) => {
+      // 同路径去重，避免连续触发同一次录音 IPC 时残留两条
+      if (prev.some((a) => a.path === ref.path)) return prev;
+      return [...prev, ref];
+    });
+  }
+
   return {
     pendingAttachments,
     attachmentErrors,
@@ -196,6 +208,8 @@ export function useChatAttachments(
     uploadingCount,
     fileInputRef,
     handleFiles,
+    addAttachment,
+    pushAttachmentError,
     removeAttachment,
     clearAfterSend,
     onPickFiles,

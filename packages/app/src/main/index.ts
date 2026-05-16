@@ -123,6 +123,12 @@ function mimeForLocalAsset(filePath: string): string | null {
   if (lower.endsWith('.avif')) return 'image/avif';
   if (lower.endsWith('.heic')) return 'image/heic';
   if (lower.endsWith('.heif')) return 'image/heif';
+  // 音频附件预览：renderer 用 <audio controls src="muicv-pdf://local/..."> 回放。
+  if (lower.endsWith('.wav')) return 'audio/wav';
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.m4a')) return 'audio/mp4';
+  if (lower.endsWith('.flac')) return 'audio/flac';
+  if (lower.endsWith('.ogg')) return 'audio/ogg';
   return null;
 }
 

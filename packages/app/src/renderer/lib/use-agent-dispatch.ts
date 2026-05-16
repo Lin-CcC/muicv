@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-import { modelSupportsVision } from '@muicv/shared';
+import { modelSupportsAudioInput, modelSupportsVision } from '@muicv/shared';
 
 import type { AgentChunk, ArtifactRef, AttachmentRef, ToolCallRecord } from '../../shared/types.ts';
 import { classifyError, cryptoRandomId, formatAttachmentsFooter, safeParseJson } from '../components/chat-utils';
@@ -68,7 +68,10 @@ export function useAgentDispatch(callbacks: DispatchCallbacks): AgentDispatchApi
       onError(null);
       onNeedsAiSetup(false);
 
-      const footer = formatAttachmentsFooter(attachments, { supportsVision: modelSupportsVision(defaultModel) });
+      const footer = formatAttachmentsFooter(attachments, {
+        supportsVision: modelSupportsVision(defaultModel),
+        supportsAudioInput: modelSupportsAudioInput(defaultModel),
+      });
       const userContent = text ? `${text}${footer}` : footer.replace(/^\n\n/, '');
       const userMsg = {
         id: cryptoRandomId(),
