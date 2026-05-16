@@ -1,6 +1,33 @@
-import { isJsonTemplateId, JSON_TEMPLATE_IDS } from '@muicv/shared';
+import { assertTemplateResumeData, isJsonTemplateId, JSON_TEMPLATE_IDS, type TemplateResumeData } from '@muicv/shared';
 
 export type JsonTemplateId = (typeof JSON_TEMPLATE_IDS)[number];
+
+/**
+ * 把 .resume.json 文本解析成 `{ resume, lang }`，供"在线预览 / 更换模板"按钮统一复用。
+ * lang 取 JSON 顶层 `_lang` / `lang` 字段，缺省 `zh`；JSON 解析失败 / schema 不符返回 error。
+ */
+export function parseResumeJsonForPreview(
+  content: string,
+): { ok: true; resume: TemplateResumeData; lang: 'zh' | 'en' } | { ok: false; error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (err) {
+    return { ok: false, error: `JSON 解析失败：${err instanceof Error ? err.message : String(err)}` };
+  }
+  try {
+    assertTemplateResumeData(parsed);
+  } catch (err) {
+    return {
+      ok: false,
+      error: `不符合 TemplateResumeData schema：${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  const ext = parsed as { _lang?: unknown; lang?: unknown };
+  const rawLang = typeof ext._lang === 'string' ? ext._lang : ext.lang;
+  const lang: 'zh' | 'en' = rawLang === 'en' ? 'en' : 'zh';
+  return { ok: true, resume: parsed, lang };
+}
 
 /** 与 packages/website /r/render/[token]/templates/registry.ts 注册的 jsonTemplates 一一对应。 */
 export const TEMPLATE_LABELS: Record<JsonTemplateId, string> = {

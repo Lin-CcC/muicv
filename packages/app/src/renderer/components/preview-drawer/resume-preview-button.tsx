@@ -1,9 +1,7 @@
 import { GlobeIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
-import { assertTemplateResumeData, type TemplateResumeData } from '@muicv/shared';
-
-import type { JsonTemplateId } from './tools';
+import { type JsonTemplateId, parseResumeJsonForPreview } from './tools';
 
 /**
  * 把当前 `*.resume.json` 文件 POST 到 muicv 后端 /preview，
@@ -29,31 +27,12 @@ export function ResumeJsonPreviewButton({ content, template }: { content: string
     setPending(true);
     setMessage(null);
     try {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(content);
-      } catch (err) {
-        setMessage({ kind: 'err', text: `JSON 解析失败：${err instanceof Error ? err.message : String(err)}` });
+      const parsed = parseResumeJsonForPreview(content);
+      if (!parsed.ok) {
+        setMessage({ kind: 'err', text: parsed.error });
         return;
       }
-      let resume: TemplateResumeData;
-      try {
-        assertTemplateResumeData(parsed);
-        resume = parsed;
-      } catch (err) {
-        setMessage({
-          kind: 'err',
-          text: `不符合 TemplateResumeData schema：${err instanceof Error ? err.message : String(err)}`,
-        });
-        return;
-      }
-
-      // 模板由父组件传入；lang 仍按 JSON 顶层 `_lang` / `lang` 字段读，缺省 zh。
-      const ext = parsed as { _lang?: unknown; lang?: unknown };
-      const rawLang = typeof ext._lang === 'string' ? ext._lang : ext.lang;
-      const lang: 'zh' | 'en' = rawLang === 'en' ? 'en' : 'zh';
-
-      const res = await window.muicv.preview.create({ resumeJson: resume, template, lang });
+      const res = await window.muicv.preview.create({ resumeJson: parsed.resume, template, lang: parsed.lang });
       if (!res.ok) {
         setMessage({ kind: 'err', text: res.message });
         return;

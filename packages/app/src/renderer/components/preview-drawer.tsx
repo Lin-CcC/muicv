@@ -15,6 +15,7 @@ import {
   readPhotoUrlFromJson,
   readTemplateFromJson,
 } from './preview-drawer/tools';
+import { ChangeTemplateButton } from './preview-drawer/change-template-button';
 import { ResumeJsonPreviewButton } from './preview-drawer/resume-preview-button';
 import { TemplateSelect } from './preview-drawer/template-select';
 
@@ -196,6 +197,10 @@ function PreviewContent({ path, onClose }: { path: string; onClose: () => void }
             编辑
           </button>
         )}
+        {isResumeJson && content !== null && (
+          <ChangeTemplateButton kind="resume-json" content={content} template={jsonTemplate} />
+        )}
+        {isPdf && <ChangeTemplateButton kind="pdf" pdfPath={path} />}
         <button
           type="button"
           onClick={onClose}
