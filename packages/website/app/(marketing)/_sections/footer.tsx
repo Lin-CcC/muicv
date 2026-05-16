@@ -21,14 +21,23 @@ export function Footer() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 text-[14px] sm:grid-cols-3 lg:col-span-7">
+        <div className="grid grid-cols-2 gap-8 text-[14px] sm:grid-cols-4 lg:col-span-7">
           <FooterCol
             label="产品"
             links={[
               ['重点特性', '/#features'],
               ['定价', '/pricing'],
               ['桌面 app', '/download'],
+              ['Skill 目录', '/skills'],
               ['控制台', '/dashboard'],
+            ]}
+          />
+          <FooterCol
+            label="内容"
+            links={[
+              ['求职博文', '/posts/jobs'],
+              ['全部文章', '/posts'],
+              ['更新日志', '/changelog'],
             ]}
           />
           <FooterCol

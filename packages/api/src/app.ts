@@ -17,6 +17,13 @@ import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
 import { renderPdf, type RenderPdfInput } from './lib/render-pdf.ts';
 import { charge, ensureBalance } from './lib/wallet.ts';
 import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
+import {
+  handleChangelog,
+  handlePostDetail,
+  handlePostsList,
+  handleSkillDetail,
+  handleSkillsCatalog,
+} from './routes/content.ts';
 import { handleComment, handleRate } from './routes/feedback.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
@@ -101,6 +108,11 @@ app.get('/', (c) =>
       'POST /audio/transcribe（multipart/form-data，字段 file）',
       'POST /waitlist',
       'GET /me（拿当前登录用户信息）',
+      'GET /skills/catalog（公开 skill 目录，app 用）',
+      'GET /skills/:slug（公开 skill 详情）',
+      'GET /posts?section=jobs（公开文章列表）',
+      'GET /posts/:section/:slug（公开文章详情）',
+      'GET /changelog（公开更新日志）',
       'ALL /llm/v1/* (OpenAI 兼容代理 → muirouter)',
       'POST /feedback/rate（赞/踩 AI 消息，奖励 1000 token）',
       'POST /feedback/comment（意见建议 AI 消息，≥50 字奖励 50000 token）',
@@ -119,6 +131,16 @@ app.get('/', (c) =>
 );
 
 app.get('/health', (c) => c.text('ok'));
+
+/**
+ * 公开内容目录：给网站外部消费者 / Electron app 读取。
+ * 第三方 link-only skill 不返回可安装包，只返回官方来源和详情页。
+ */
+app.get('/skills/catalog', handleSkillsCatalog);
+app.get('/skills/:slug', handleSkillDetail);
+app.get('/posts', handlePostsList);
+app.get('/posts/:section/:slug', handlePostDetail);
+app.get('/changelog', handleChangelog);
 
 /**
  * GET /me —— 桌面 app / skill 用 mui_ key 拉取登录用户信息。

@@ -1,0 +1,39 @@
+{
+  "name": "@muicv/cms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mui简历内容后台：Payload CMS 管理 skill 目录、求职文章和更新日志。",
+  "scripts": {
+    "dev": "next dev -p 3072",
+    "build": "next build",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "payload": "payload",
+    "generate:importmap": "PAYLOAD_SECRET=local-importmap-secret NEXT_PHASE=phase-production-build payload generate:importmap && biome format --write \"app/(payload)/admin/importMap.js\"",
+    "migrate:create": "PAYLOAD_SECRET=local-migration-secret NEXT_PHASE=phase-production-build payload migrate:create",
+    "migrate": "node scripts/apply-migrations.ts",
+    "migrate:status": "node scripts/apply-migrations.ts --status",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@muicv/shared": "workspace:*",
+    "@opennextjs/cloudflare": "^1.19.4",
+    "@payloadcms/db-d1-sqlite": "^3.83.0",
+    "@payloadcms/next": "^3.83.0",
+    "@payloadcms/richtext-lexical": "^3.83.0",
+    "@payloadcms/storage-r2": "^3.83.0",
+    "next": "^16.2.4",
+    "payload": "^3.83.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.85.0"
+  }
+}

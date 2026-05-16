@@ -2,7 +2,12 @@
  * main 和 renderer 共用的类型。preload 把同形 API 暴露给 window.muicv。
  */
 
-import { DEFAULT_LLM_MODEL } from '@muicv/shared';
+import {
+  DEFAULT_LLM_MODEL,
+  type SkillAppAvailability,
+  type SkillDistributionMode,
+  type SkillPublisherType,
+} from '@muicv/shared';
 
 /**
  * 一份"简历"的元数据。每份 profile 对应硬盘上的一个独立资料夹，
@@ -99,6 +104,36 @@ export type MuirouterInfo = {
   /** balance 快照更新时间，Unix ms。 */
   balanceUpdatedAt: number | null;
 };
+
+export type AppSkillCatalogItem = {
+  slug: string;
+  title: string;
+  publisher: string;
+  publisherType: SkillPublisherType;
+  sourceUrl: string | null;
+  sourceLabel: string | null;
+  sourceNote: string | null;
+  distributionMode: SkillDistributionMode;
+  appAvailability: SkillAppAvailability;
+  summary: string;
+  useCases: string[];
+  tags: string[];
+  updatedAt: string;
+  detailUrl: string;
+  disclaimer: string | null;
+};
+
+export type SkillsCatalogResult =
+  | {
+      ok: true;
+      manifestVersion: number;
+      generatedAt: string;
+      skills: AppSkillCatalogItem[];
+    }
+  | {
+      ok: false;
+      message: string;
+    };
 
 /**
  * `muirouter:linked` 事件 payload —— main 进程把 deep-link 校验结果推给 renderer。
@@ -717,6 +752,10 @@ export type RendererApi = {
      * 第一次有人在预览页点「下载 PDF」时由 owner 扣 PDF_RENDER_COST 解锁公开下载。
      */
     create(input: CreatePreviewInput): Promise<CreatePreviewResult>;
+  };
+  skills: {
+    /** 公开 skill 目录：内置 skill、第三方官方来源、未来可安装扩展。 */
+    catalog(): Promise<SkillsCatalogResult>;
   };
   chatInput: {
     /**

@@ -2,9 +2,24 @@
 
 长期开发知识沉淀。记录决策依据、踩坑、框架/基建知识，避免日后重复。
 
-最后更新：2026-05-15
+最后更新：2026-05-16
 
 ---
+
+## 内容中心 / Skill 目录 / Payload CMS（Phase 17）
+
+- **内容消费先走共享 registry**：`packages/shared/src/content-registry.ts` 是 website、api、app 共同消费的内容契约。Payload 接上前先用 seed 数据跑通页面和 app 市场；后续只替换数据源，不改 UI/API 形状。
+- **第三方官方 skill 默认 link-only**：例如腾讯招聘官方校招 skill，Mui 只登记来源和使用建议，不复制 `SKILL.md`，不托管安装包，不显示“一键安装”。app 按 `appAvailability='link_only'` 打开官方来源。
+- **自有/明确可分发 skill 才能安装**：`distributionMode='hosted' | 'external_direct'` 之后才允许 app 做真正安装；`built_in` 只展示“已内置”。
+- **Payload 独立 Worker，复用存储**：`packages/cms` 单独跑 `cms.muicv.com`，不嵌进 `packages/website`；但 D1 复用现有 `muicv`，R2 media 复用现有 `muicv` bucket，OpenNext cache 复用 `site-cache`。原因是早期内容量小，单独建库建桶会增加运维成本。
+- **CMS 数据分层**：`posts` 管 `/posts/<section>/<slug>`，`skillExtensions` 管 `/skills/<slug>` 和 app catalog，`changelog` 管产品更新，`media` 走 R2；Payload 自己维护表和 migration，不混入现有手写业务表。
+- **CMS build 期不用真实 binding**：`payload.config.ts` 在 `NEXT_PHASE='phase-production-build'` 时使用 runtime-only 占位 binding，避免 Next build 的多个 route worker 同时启动 Miniflare D1 造成 SQLite lock；运行时仍由 `getCloudflareContext()` 读取真实 D1/R2。
+- **CMS admin 必须使用 Payload RootLayout**：`packages/cms/app/layout.tsx` 要包 `@payloadcms/next/layouts` 的 `RootLayout` 并传入 `handleServerFunctions` / `importMap`。普通 Next layout 会让 admin 的 `PageConfigProvider` 拿不到 `ConfigProvider`，`/admin/create-first-user` 会报 `Cannot destructure property 'config' ... as it is undefined`。
+- **CMS admin 必须导入官方 CSS**：同一个 layout 还要导入 `@payloadcms/next/css`。只依赖组件自身 bundle 会缺 `template-minimal`、主题变量、dashboard/login 基础布局，表现为 admin 能登录但像完全没加载 CSS。
+- **CMS importMap 要提交**：Payload 插件的客户端组件（例如 R2 的 `R2ClientUploadHandler`）必须在 `app/(payload)/admin/importMap.js` 里注册；空 importMap 会让 admin 页面 200 但前端空白。修改 Payload config / 插件 / 自定义 admin 组件后运行 `pnpm --filter @muicv/cms generate:importmap` 并提交生成文件。
+- **CMS 不启用 `sharp`**：Cloudflare Worker 不能可靠运行 native `sharp`，OpenNext 二次打包也会遇到 `sharp-<hash>` 虚拟 require 解析失败；当前 media collection 只做 R2 存储，不做服务端裁图。
+- **CMS migration 流程**：本地生成 migration 用 `pnpm --filter @muicv/cms migrate:create <name> --skip-empty`，脚本会注入一次性本地 `PAYLOAD_SECRET` 和 `NEXT_PHASE='phase-production-build'`；应用到生产 D1 用 `pnpm --filter @muicv/cms migrate`，内部会读取 `payload_migrations`，只把 pending migration 转成 SQL 并通过 `wrangler d1 execute muicv --remote --file` 执行。
+- **SEO 路径约定**：求职博文从 `/posts/jobs` 起步；更细分类先用 tags / keywords，不提前拆更多 route。
 
 ## 简历模板 + 在线预览（新）
 

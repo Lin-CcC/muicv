@@ -9,6 +9,7 @@ import { CustomLlmCard } from './settings/custom-llm-card';
 import { ModelCard } from './settings/model-card';
 import { MuirouterCard } from './settings/muirouter-card';
 import { PlanCard } from './settings/plan-card';
+import { SkillMarketCard } from './settings/skill-market-card';
 import { ThemeCard } from './settings/theme-card';
 import { WhisperEngineCard } from './settings/whisper-engine-card';
 
@@ -77,6 +78,8 @@ export function SettingsView() {
       <ModelCard isBYOK={isBYOK} currentModel={config.defaultModel} />
 
       <MuirouterCard hasBYOK={session.hasBYOK} muirouter={session.muirouter} onRefresh={refreshSession} />
+
+      <SkillMarketCard />
 
       <CustomLlmCard />
 

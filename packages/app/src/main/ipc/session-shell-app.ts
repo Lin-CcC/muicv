@@ -1,5 +1,6 @@
 import { app, ipcMain, shell } from 'electron';
 
+import { fetchSkillsCatalog } from '../content-catalog.ts';
 import { beginConnect, beginLinkMuirouter } from '../deep-link.ts';
 import { checkSession as runCheckSession, loginWithKey, logout as runLogout, verifyCandidateKey } from '../session.ts';
 import { getConfig } from '../store.ts';
@@ -27,4 +28,5 @@ export function registerSessionShellAppIpc(): void {
   });
 
   ipcMain.handle('app:getVersion', () => app.getVersion());
+  ipcMain.handle('skills:catalog', () => fetchSkillsCatalog());
 }

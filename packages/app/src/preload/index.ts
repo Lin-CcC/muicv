@@ -127,6 +127,9 @@ const api: RendererApi = {
     listPhotos: (limit?: number) => ipcRenderer.invoke('preview:listPhotos', limit) as Promise<PhotoHistoryResult>,
     create: (input: CreatePreviewInput) => ipcRenderer.invoke('preview:create', input) as Promise<CreatePreviewResult>,
   },
+  skills: {
+    catalog: () => ipcRenderer.invoke('skills:catalog') as ReturnType<RendererApi['skills']['catalog']>,
+  },
   chatInput: {
     showContextMenu: (opts) => ipcRenderer.send('chatInput:showContextMenu', opts ?? {}),
   },

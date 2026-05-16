@@ -1,0 +1,53 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "muicv-cms",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-12-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "account_id": "fdc63eeea83ae8f5234357308b9a638b",
+  "routes": [
+    {
+      "pattern": "cms.muicv.com",
+      "zone_name": "muicv.com",
+      "custom_domain": true
+    }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "MUICV_CMS_DB",
+      "database_name": "muicv",
+      "database_id": "db60cfbd-48e1-4220-9239-18c117f26ed0"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "placement": {
+    "mode": "smart"
+  },
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "site-cache",
+      "preview_bucket_name": "site-cache"
+    },
+    {
+      "binding": "MUICV_CMS_MEDIA",
+      "bucket_name": "muicv"
+    }
+  ],
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "muicv-cms"
+    }
+  ],
+  "vars": {
+    "PAYLOAD_PUBLIC_SITE_URL": "https://cms.muicv.com",
+    "PAYLOAD_PUBLIC_WEB_URL": "https://muicv.com"
+  }
+}

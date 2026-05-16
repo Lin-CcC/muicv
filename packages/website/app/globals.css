@@ -253,6 +253,49 @@ body {
   text-decoration-color: var(--color-yellow);
 }
 
+/* 文章正文：只服务 posts / skills / changelog 这些长文本页面。 */
+.prose-mui h2 {
+  margin-top: 2.1em;
+  margin-bottom: 0.65em;
+  color: var(--color-ink);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  font-weight: 900;
+}
+.prose-mui h2:first-child {
+  margin-top: 0;
+}
+.prose-mui p {
+  margin: 0 0 1.1em;
+}
+.prose-mui ul,
+.prose-mui ol {
+  margin: 0 0 1.2em;
+  padding-left: 1.35em;
+}
+.prose-mui li {
+  margin: 0.45em 0;
+}
+.prose-mui strong {
+  color: var(--color-ink);
+  font-weight: 800;
+}
+.prose-mui a {
+  color: var(--color-yellow-deep);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.prose-mui code {
+  border-radius: var(--radius-sm);
+  background: var(--color-paper);
+  padding: 2px 5px;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
 /* "press" 阴影工具类，可加到任意元素上 */
 .press {
   box-shadow: var(--shadow-press-yellow);

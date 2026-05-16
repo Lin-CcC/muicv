@@ -89,6 +89,7 @@ muicv/
 │   │   └── migrations/    # D1 schema
 │   ├── shared/            # 领域类型（ResumeJson、frontmatter schema 等）
 │   ├── ui/                # UI 组件
+│   ├── cms/               # Payload CMS 内容后台（skill 目录 / 求职博文 / changelog）
 │   ├── cron/              # 定时任务骨架
 │   └── app/               # （规划中）基于 OpenAI Agent SDK 的 electron 桌面端
 └── WIP.md                 # 当前开发计划
@@ -101,6 +102,7 @@ muicv/
 
 - **Skills**：Markdown + frontmatter，符合 [Claude Skill 规范](https://code.claude.com/docs/en/skills)
 - **Web (`packages/website`)**：Next.js 16 on OpenNext / Cloudflare Workers — landing + dashboard
+- **CMS (`packages/cms`)**：Payload CMS on Next.js / OpenNext / Cloudflare D1 + R2，管理求职博文、skill 目录、更新日志
 - **API (`packages/api`)**：Cloudflare Worker + Hono；PDF 渲染用 Cloudflare Browser Rendering（puppeteer.goto packages/website 的 SSR 模板路由）；JD 抓取走同一个 binding
 - **Electron app (`packages/app`)**：electron + React + OpenAI Agents SDK，
   可下载 .dmg 直接装。LLM 走 muirouter（OpenAI 兼容）；

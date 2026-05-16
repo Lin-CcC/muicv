@@ -168,6 +168,36 @@ test('GET /health 返回 ok', async () => {
   assert.equal(await res.text(), 'ok');
 });
 
+test('GET /skills/catalog 返回 link-only 第三方官方 skill', async () => {
+  const res = await app.request('/skills/catalog', undefined, mockEnv(), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as {
+    manifestVersion: number;
+    skills: Array<{ slug: string; distributionMode: string; installPackage?: unknown }>;
+  };
+  assert.equal(body.manifestVersion, 1);
+  const skill = body.skills.find((item) => item.slug === 'tencent-campus-recruiting');
+  assert.ok(skill);
+  assert.equal(skill.distributionMode, 'link_only');
+  assert.equal('installPackage' in skill, false);
+});
+
+test('GET /skills/:slug 详情不返回第三方安装包', async () => {
+  const res = await app.request('/skills/tencent-campus-recruiting', undefined, mockEnv(), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { slug: string; distributionMode: string; installPackage: unknown };
+  assert.equal(body.slug, 'tencent-campus-recruiting');
+  assert.equal(body.distributionMode, 'link_only');
+  assert.equal(body.installPackage, null);
+});
+
+test('GET /posts?section=jobs 返回求职文章', async () => {
+  const res = await app.request('/posts?section=jobs', undefined, mockEnv(), ctx);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { posts: Array<{ section: string; slug: string }> };
+  assert.ok(body.posts.some((post) => post.section === 'jobs' && post.slug === 'tencent-campus-recruiting-skill'));
+});
+
 test('POST /render content-type 不是 JSON → 400', async () => {
   const res = await app.request(
     '/render',

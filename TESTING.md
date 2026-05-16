@@ -24,6 +24,7 @@ pnpm install
 | `packages/shared` | pricing / format / resume-sync / hsm-client / muirouter-oauth + smoke（核心跨端工具） | format / hsm-client / muirouter-oauth / pricing / resume-sync / smoke |
 | `packages/api` | Hono `app.request()` 测路由、CORS 白名单、api-key middleware、wallet 扣账原子性、llm 用量统计、transcribe | llm-usage / routes / transcribe / wallet |
 | `packages/app` | 纯逻辑 helper（chat-utils / 附件解析 / 滑动窗口 history / slash-command / filler-count）；**不**测 React 组件和 IPC | attachments / chat-utils / filler-count / history / slash-command |
+| `packages/cms` | Payload admin / migrations 暂以 build + 手测为主 | 待补 |
 
 只跑某个包：
 
@@ -31,6 +32,7 @@ pnpm install
 pnpm --filter @muicv/shared test
 pnpm --filter @muicv/api test
 pnpm --filter @muicv/app test
+pnpm --filter @muicv/cms build
 ```
 
 类型检查（`packages/app`）：

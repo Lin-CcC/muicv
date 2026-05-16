@@ -1,8 +1,23 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-05-10
+最后更新：2026-05-15
 
 ## 当前进行中
+
+### 插队任务：Skill 目录 + 求职内容中心 + Payload CMS
+
+目标：把收集到的求职相关 skill 登记成可维护目录，同时让网站新增可收录页面、app 能列出 skill 并引导安装/查看官方来源。
+
+- [x] 抽出共享内容模型：求职博文、skill catalog、changelog。
+- [x] 建立第一批种子内容：腾讯招聘官方校招 skill（只链官方源）、Mui 内置面试/就业辅导 skill、求职博文。
+- [x] 网站新增 `/posts`、`/posts/jobs`、`/skills`、`/changelog` 及详情页。
+- [x] API 新增公开 catalog 端点，供 app 拉取。
+- [x] app 设置页新增 Skill 市场，区分“已内置”和“官方来源”。
+- [x] 新增 `packages/cms` Payload 脚手架和 collection 定义。
+- [x] 生成 / 更新 Payload 依赖 lockfile。
+- [x] CMS 改为复用现有 D1 `muicv`、R2 `muicv` / `site-cache`。
+- [ ] 把 website / API 数据源从 seed 切到 Payload REST 或 Local API。
+- [x] 跑 shared/api/app/website/cms 验证。
 
 ### 插队任务：连接授权页简化
 
