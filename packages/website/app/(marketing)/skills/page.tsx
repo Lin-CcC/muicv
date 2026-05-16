@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getPublishedSkills } from '@muicv/shared';
+import { getWebsitePublishedSkills } from '@/lib/cms-content';
 
 import { ContentCard } from '../_content/content-card';
 import { MarketingShell } from '../_content/marketing-shell';
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function SkillsPage() {
-  const skills = getPublishedSkills();
+  const skills = await getWebsitePublishedSkills();
 
   return (
     <MarketingShell>

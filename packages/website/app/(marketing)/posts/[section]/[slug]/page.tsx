@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getPublishedPosts, POST_SECTION_META, type PostSection } from '@muicv/shared';
+import { POST_SECTION_META, type PostSection } from '@muicv/shared';
+import { getWebsitePostBySlug, getWebsitePublishedPosts } from '@/lib/cms-content';
 
 import { MarketingShell } from '../../../_content/marketing-shell';
 import { MarkdownBody } from '../../../_content/markdown';
@@ -18,7 +19,7 @@ function isPostSection(value: string): value is PostSection {
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const resolvedParams = await params;
   if (!isPostSection(resolvedParams.section)) return {};
-  const post = getPostBySlug(resolvedParams.section, resolvedParams.slug);
+  const post = await getWebsitePostBySlug(resolvedParams.section, resolvedParams.slug);
   if (!post) return {};
   return {
     title: post.seoTitle,
@@ -35,14 +36,15 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   };
 }
 
-export function generateStaticParams() {
-  return getPublishedPosts().map((post) => ({ section: post.section, slug: post.slug }));
+export async function generateStaticParams() {
+  const posts = await getWebsitePublishedPosts();
+  return posts.map((post) => ({ section: post.section, slug: post.slug }));
 }
 
 export default async function PostDetailPage({ params }: { params: Promise<Params> }) {
   const resolvedParams = await params;
   if (!isPostSection(resolvedParams.section)) notFound();
-  const post = getPostBySlug(resolvedParams.section, resolvedParams.slug);
+  const post = await getWebsitePostBySlug(resolvedParams.section, resolvedParams.slug);
   if (!post) notFound();
 
   const sectionMeta = POST_SECTION_META[post.section];

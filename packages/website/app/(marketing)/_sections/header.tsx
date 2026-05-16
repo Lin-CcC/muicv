@@ -4,8 +4,6 @@ import { ThemeToggle } from '../../_theme/theme-toggle';
 import { ArrowUpRight } from '../_icons';
 
 const NAV_LINKS: { label: string; href: string }[] = [
-  { label: '怎么开始', href: '/#workflow' },
-  { label: '能做什么', href: '/#features' },
   { label: '文章', href: '/posts/jobs' },
   { label: 'Skill', href: '/skills' },
   { label: '价格', href: '/pricing' },

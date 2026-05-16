@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload';
 
+import { publishedOrAuthenticated } from './access';
+
 export const SkillExtensions: CollectionConfig = {
   slug: 'skillExtensions',
+  access: {
+    read: publishedOrAuthenticated,
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'publisher', 'distributionMode', 'status'],

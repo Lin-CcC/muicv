@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getPublishedSkills, getSkillBySlug } from '@muicv/shared';
+import { getWebsitePublishedSkills, getWebsiteSkillBySlug } from '@/lib/cms-content';
 
 import { MarketingShell } from '../../_content/marketing-shell';
 import { MarkdownBody } from '../../_content/markdown';
@@ -13,7 +13,7 @@ type Params = { slug: string };
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const resolvedParams = await params;
-  const skill = getSkillBySlug(resolvedParams.slug);
+  const skill = await getWebsiteSkillBySlug(resolvedParams.slug);
   if (!skill) return {};
   return {
     title: skill.seoTitle,
@@ -30,8 +30,9 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   };
 }
 
-export function generateStaticParams() {
-  return getPublishedSkills().map((skill) => ({ slug: skill.slug }));
+export async function generateStaticParams() {
+  const skills = await getWebsitePublishedSkills();
+  return skills.map((skill) => ({ slug: skill.slug }));
 }
 
 function actionLabel(distributionMode: string): string {
@@ -42,7 +43,7 @@ function actionLabel(distributionMode: string): string {
 
 export default async function SkillDetailPage({ params }: { params: Promise<Params> }) {
   const resolvedParams = await params;
-  const skill = getSkillBySlug(resolvedParams.slug);
+  const skill = await getWebsiteSkillBySlug(resolvedParams.slug);
   if (!skill) notFound();
 
   const primaryHref = skill.distributionMode === 'built_in' ? '/download' : (skill.sourceUrl ?? '/skills');

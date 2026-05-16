@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getPublishedPosts, POST_SECTION_META } from '@muicv/shared';
+import { POST_SECTION_META } from '@muicv/shared';
+import { getWebsitePublishedPosts } from '@/lib/cms-content';
 
 import { ContentCard } from '../_content/content-card';
 import { MarketingShell } from '../_content/marketing-shell';
@@ -14,8 +15,12 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function PostsIndexPage() {
-  const posts = getPublishedPosts();
-  const jobsPosts = getPublishedPosts('jobs');
+  const posts = await getWebsitePublishedPosts();
+  const sectionCounts = new Map<keyof typeof POST_SECTION_META, number>();
+  for (const post of posts) {
+    sectionCounts.set(post.section, (sectionCounts.get(post.section) ?? 0) + 1);
+  }
+  const jobsPosts = posts.filter((post) => post.section === 'jobs');
 
   return (
     <MarketingShell>
@@ -53,7 +58,7 @@ export default async function PostsIndexPage() {
         <div className="mx-auto grid max-w-6xl gap-4 px-5 py-12 md:grid-cols-3 md:px-8">
           {(Object.keys(POST_SECTION_META) as Array<keyof typeof POST_SECTION_META>).map((section) => {
             const meta = POST_SECTION_META[section];
-            const count = getPublishedPosts(section).length;
+            const count = sectionCounts.get(section) ?? 0;
             return (
               <Link
                 key={section}

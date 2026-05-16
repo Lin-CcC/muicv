@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPublishedPosts, POST_SECTION_META, type PostSection } from '@muicv/shared';
+import { POST_SECTION_META, type PostSection } from '@muicv/shared';
+import { getWebsitePublishedPosts } from '@/lib/cms-content';
 
 import { ContentCard } from '../../_content/content-card';
 import { MarketingShell } from '../../_content/marketing-shell';
@@ -30,7 +31,7 @@ export default async function PostSectionPage({ params }: { params: Promise<Para
   if (!isPostSection(resolvedParams.section)) notFound();
 
   const meta = POST_SECTION_META[resolvedParams.section];
-  const posts = getPublishedPosts(resolvedParams.section);
+  const posts = await getWebsitePublishedPosts(resolvedParams.section);
 
   return (
     <MarketingShell>

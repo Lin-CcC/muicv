@@ -1,7 +1,12 @@
 import type { CollectionConfig } from 'payload';
 
+import { publishedOrAuthenticated } from './access';
+
 export const Changelog: CollectionConfig = {
   slug: 'changelog',
+  access: {
+    read: publishedOrAuthenticated,
+  },
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'version', 'status', 'publishedAt'],

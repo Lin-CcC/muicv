@@ -16,7 +16,8 @@
 - [x] 新增 `packages/cms` Payload 脚手架和 collection 定义。
 - [x] 生成 / 更新 Payload 依赖 lockfile。
 - [x] CMS 改为复用现有 D1 `muicv`、R2 `muicv` / `site-cache`。
-- [ ] 把 website / API 数据源从 seed 切到 Payload REST 或 Local API。
+- [x] website posts / skills 数据源切到 Payload REST，seed 只做接口不可用时的 fallback。
+- [ ] API / app catalog 数据源从 seed 切到 Payload REST 或 Local API。
 - [x] 跑 shared/api/app/website/cms 验证。
 
 ### 插队任务：连接授权页简化

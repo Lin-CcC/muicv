@@ -1,49 +1,45 @@
 'use client';
 
-import { MoonIcon, SunIcon } from '@phosphor-icons/react';
+import { CaretDownIcon, MoonIcon, SunIcon } from '@phosphor-icons/react';
 
 import { type Theme, useTheme } from './use-theme';
 
-const OPTIONS: { value: Theme; label: string; ariaLabel: string }[] = [
-  { value: 'light', label: '浅', ariaLabel: '浅色模式' },
-  { value: 'auto', label: '自动', ariaLabel: '跟随系统' },
-  { value: 'dark', label: '暗', ariaLabel: '暗色模式' },
+const OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: '浅' },
+  { value: 'auto', label: '自动' },
+  { value: 'dark', label: '暗' },
 ];
+const DEFAULT_OPTION: { value: Theme; label: string } = { value: 'light', label: '浅' };
 
 /**
- * 三档主题切换。Header / Dashboard nav 都可以用。
- * 视觉：紧凑 pill 容器 + 当前档位走 yellow press 风。
+ * Header / Dashboard nav 共用的紧凑主题选择。
  */
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const { theme, setTheme } = useTheme();
+  const selectedOption = OPTIONS.find((option) => option.value === theme) ?? DEFAULT_OPTION;
+
   return (
-    <div
-      role="radiogroup"
-      aria-label="主题切换"
-      className={`inline-flex items-center gap-0.5 rounded-md border border-rule-strong bg-paper/60 p-0.5 ${className}`}
-    >
-      {OPTIONS.map((opt) => {
-        const active = theme === opt.value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={opt.ariaLabel}
-            onClick={() => setTheme(opt.value)}
-            className={
-              active
-                ? 'inline-flex items-center gap-1 rounded-sm bg-yellow px-2 py-0.5 font-mono text-[12px] font-bold text-ink shadow-[0_1px_0_0_var(--color-yellow-shadow)]'
-                : 'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 font-mono text-[12px] font-semibold text-mute transition-colors hover:text-ink'
-            }
-          >
-            {opt.value === 'light' && <SunIcon size={12} weight={active ? 'fill' : 'regular'} />}
-            {opt.value === 'dark' && <MoonIcon size={12} weight={active ? 'fill' : 'regular'} />}
-            <span>{opt.label}</span>
-          </button>
-        );
-      })}
+    <div className={`relative inline-flex h-8 w-[82px] items-center ${className}`}>
+      <span className="pointer-events-none absolute left-2.5 flex text-ink" aria-hidden>
+        {theme === 'dark' ? (
+          <MoonIcon size={14} />
+        ) : (
+          <SunIcon size={14} weight={theme === 'light' ? 'fill' : 'regular'} />
+        )}
+      </span>
+      <select
+        aria-label={`主题：${selectedOption.label}`}
+        value={theme}
+        onChange={(event) => setTheme(event.target.value as Theme)}
+        className="h-full w-full appearance-none rounded-md border border-rule-strong bg-paper/70 py-1 pr-6 pl-7 font-mono text-[12px] font-bold text-ink outline-none transition hover:bg-fluff focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-yellow/45"
+      >
+        {OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <CaretDownIcon size={12} weight="bold" className="pointer-events-none absolute right-2 text-mute" aria-hidden />
     </div>
   );
 }
