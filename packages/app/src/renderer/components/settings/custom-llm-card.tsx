@@ -84,10 +84,10 @@ export function CustomLlmCard() {
         />
         <Field
           label="默认模型"
-          hint="走 muicv 平台支持：gpt-5.5 / gpt-5.4 / mimo-v2.5-pro / mimo-v2.5（前两个国际，后两个国内便宜）。自带 endpoint 时按你的清单填。"
+          hint="走 muicv 平台支持：mimo-v2.5-pro / mimo-v2.5 / gpt-5.4（前两个国内便宜，后一个国际）。自带 endpoint 时按你的清单填。"
           value={defaultModel}
           onChange={setDefaultModel}
-          placeholder="gpt-5.4"
+          placeholder="mimo-v2.5-pro"
           mono
         />
 

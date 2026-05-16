@@ -76,7 +76,7 @@ export const FEEDBACK_COMMENT_MAX_CHARS = 2000;
  * 注意 OpenAI 约定下它**已计入** `prompt_tokens`，扣账时要减出新鲜部分单独算价。
  *
  * 数据来源（review 时核对）：
- *   - gpt-5.5 / gpt-5.4：https://developers.openai.com/api/docs/pricing
+ *   - gpt-5.4：https://developers.openai.com/api/docs/pricing
  *     （prompt caching 命中部分按 input 价 10%（90% off）计费，2026-05-10 校准；
  *     之前误配 50%，导致 cache 重的请求净加价 ~13.6% 高于设计 10%）
  *   - mimo-v2.5-pro / mimo-v2.5：Xiaomi Mimo 平台官方报价
@@ -85,19 +85,18 @@ export const FEEDBACK_COMMENT_MAX_CHARS = 2000;
  * 平台路径（余额 > 0）只接受表里的 model；表外 model 在 routes/llm.ts 拦截 400。
  * muirouter fallback 路径不受本表约束（model 列表由 muirouter 端管理）。
  */
+// 声明顺序 = ModelCard / 设置页的可视顺序：默认 mimo Pro 在前，
+// 推荐的"全模态 mimo（支持语音面试）"次之，最后才是 GPT 系列。
 export const LLM_PRICING: Record<string, { inputRate: number; cachedInputRate: number; outputRate: number }> = {
-  // 上游 input $5 / cached $0.5 / output $30 per 1M tokens
-  // 用户支付（×1.1） input $5.5 / cached $0.55 / output $33 per 1M tokens
-  'gpt-5.5': { inputRate: 0.5, cachedInputRate: 0.05, outputRate: 3.0 },
-  // 上游 input $2.5 / cached $0.25 / output $15 per 1M tokens
-  // 用户支付（×1.1） input $2.75 / cached $0.275 / output $16.5 per 1M tokens
-  'gpt-5.4': { inputRate: 0.25, cachedInputRate: 0.025, outputRate: 1.5 },
   // 上游 input ¥1.4 (≈$0.20) / output ¥21 (≈$3) per 1M tokens
   // 用户支付（×1.1） input ¥1.54 (≈$0.22) / output ¥23.1 (≈$3.30) per 1M tokens
   'mimo-v2.5-pro': { inputRate: 0.02, cachedInputRate: 0.02, outputRate: 0.3 },
   // 上游 input ¥0.56 (≈$0.08) / output ¥14 (≈$2) per 1M tokens
   // 用户支付（×1.1） input ¥0.616 (≈$0.088) / output ¥15.4 (≈$2.20) per 1M tokens
   'mimo-v2.5': { inputRate: 0.008, cachedInputRate: 0.008, outputRate: 0.2 },
+  // 上游 input $2.5 / cached $0.25 / output $15 per 1M tokens
+  // 用户支付（×1.1） input $2.75 / cached $0.275 / output $16.5 per 1M tokens
+  'gpt-5.4': { inputRate: 0.25, cachedInputRate: 0.025, outputRate: 1.5 },
 };
 
 /** markup：所有 model 统一 1.1×。等于「上游成本 + 10% 加价」。 */
@@ -111,7 +110,16 @@ export function isSupportedLlmModel(model: string): boolean {
 export const SUPPORTED_LLM_MODELS = Object.keys(LLM_PRICING);
 
 /** 全平台默认模型 id。新装 / 老 store 里没设过时回退到这个；UI 也按 isDefault 标识。 */
-export const DEFAULT_LLM_MODEL = 'gpt-5.4';
+export const DEFAULT_LLM_MODEL = 'mimo-v2.5-pro';
+
+/**
+ * 校验 / 回退用户保存的 model id。未知（含已下架的 gpt-5.5 等）静默回退到默认，不弹窗。
+ * 桌面 app settings 读盘后、发起 LLM 请求前都该过一遍这个函数，避免老用户被旧 id 卡住。
+ */
+export function normalizeModel(model: string | null | undefined): string {
+  if (!model || !Object.hasOwn(LLM_PRICING, model)) return DEFAULT_LLM_MODEL;
+  return model;
+}
 
 /**
  * UI 展示元数据：人类可读名 / 上游 vendor / 输入输出价（保留原币种以便用户判断）/ 简短亮点。
@@ -144,33 +152,23 @@ export const LLM_DISPLAY_META: Record<
      * 简单单轮 chat 不调 tool 时其实还能用，只是 agent 工作流不行。
      */
     supportsToolCalls: boolean;
+    /**
+     * 是否原生支持音频 input（Xiaomi MiMo OpenAI 兼容规范的 `input_audio` content part，
+     * 文档：https://platform.xiaomimimo.com/static/docs/usage-guide/multimodal-understanding/audio-understanding.md）。
+     * 为 true 时桌面 app 录音不再先做 Whisper STT，wav 以 `data:audio/wav;base64,...` 形式
+     * 直接塞进 messages，让模型自己听音频——做模拟语音面试时省 STT 一次往返。
+     * 目前只有 mimo-v2.5（全模态版）勾上；未知 / false 维持现状走 STT 老路径。
+     */
+    supportsAudioInput?: boolean;
   }
 > = {
-  'gpt-5.5': {
-    label: 'GPT-5.5',
-    vendor: 'openai',
-    inputPrice: '$5 / 1M',
-    outputPrice: '$30 / 1M',
-    hint: '最强，最贵',
-    supportsVision: true,
-    supportsToolCalls: true,
-  },
-  'gpt-5.4': {
-    label: 'GPT-5.4',
-    vendor: 'openai',
-    inputPrice: '$2.5 / 1M',
-    outputPrice: '$15 / 1M',
-    hint: '通用首选',
-    isDefault: true,
-    supportsVision: true,
-    supportsToolCalls: true,
-  },
   'mimo-v2.5-pro': {
     label: 'MiMo v2.5 Pro',
     vendor: 'xiaomi',
     inputPrice: '¥1.4 / 1M',
     outputPrice: '¥21 / 1M',
-    hint: '中文友好',
+    hint: '中文友好 · 综合质量最佳',
+    isDefault: true,
     supportsVision: false,
     supportsToolCalls: true,
   },
@@ -179,8 +177,18 @@ export const LLM_DISPLAY_META: Record<
     vendor: 'xiaomi',
     inputPrice: '¥0.56 / 1M',
     outputPrice: '¥14 / 1M',
-    hint: '最便宜',
+    hint: '推荐 · 全模态 · 支持语音 · 可做模拟语音面试',
     supportsVision: false,
+    supportsToolCalls: true,
+    supportsAudioInput: true,
+  },
+  'gpt-5.4': {
+    label: 'GPT-5.4',
+    vendor: 'openai',
+    inputPrice: '$2.5 / 1M',
+    outputPrice: '$15 / 1M',
+    hint: '通用首选',
+    supportsVision: true,
     supportsToolCalls: true,
   },
 };
@@ -193,6 +201,14 @@ export function modelSupportsToolCalls(modelId: string): boolean {
 /** 平台路径下当前 model id 是否能接受图像 input。未知 id 默认按"不支持"算，避免再炸 404。 */
 export function modelSupportsVision(modelId: string): boolean {
   return LLM_DISPLAY_META[modelId]?.supportsVision ?? false;
+}
+
+/**
+ * 当前 model 是否原生吃音频 input（跳过 STT 直传 input_audio）。
+ * 未知 id 默认 false——稳妥地走 STT 老路径，避免误把音频喂给纯文本模型炸 400。
+ */
+export function modelSupportsAudioInput(modelId: string): boolean {
+  return LLM_DISPLAY_META[modelId]?.supportsAudioInput ?? false;
 }
 
 /**

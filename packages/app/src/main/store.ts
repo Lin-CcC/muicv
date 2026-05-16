@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { app, safeStorage } from 'electron';
 import Store from 'electron-store';
 
+import { normalizeModel } from '@muicv/shared';
+
 import { type AppConfig, DEFAULT_CONFIG, type Profile } from '../shared/types.ts';
 
 /**
@@ -139,14 +141,19 @@ function normalizeProfile(p: Profile): Profile {
 export function getConfig(): AppConfig {
   const profiles = (store.get('profiles') as Profile[]).map(normalizeProfile);
   const activeProfileId = store.get('activeProfileId');
+  // 自带 endpoint 时模型 id 由用户控制（任何字符串都合法），不强制白名单；
+  // 走 muicv 平台时把已下架的旧 id（如 gpt-5.5）静默回退到默认，不打扰用户。
+  const customLlmBase = store.get('customLlmBase');
+  const storedModel = store.get('defaultModel');
+  const defaultModel = customLlmBase ? storedModel : normalizeModel(storedModel);
   return {
     profiles,
     activeProfileId,
     workspaceDir: activeWorkspaceDir(profiles, activeProfileId),
     muicvApiKey: decrypt(store.get('muicvApiKeyCipher')),
     muicvApiBase: store.get('muicvApiBase'),
-    defaultModel: store.get('defaultModel'),
-    customLlmBase: store.get('customLlmBase'),
+    defaultModel,
+    customLlmBase,
     customLlmKey: decrypt(store.get('customLlmKeyCipher')),
     onboardingCompleted: store.get('onboardingCompleted'),
   };

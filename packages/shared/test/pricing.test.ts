@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import {
   computeLlmCharge,
+  DEFAULT_LLM_MODEL,
   displayToMicro,
   getPlanLabel,
   insufficientBalanceError,
@@ -10,6 +11,7 @@ import {
   LLM_PRICING,
   LLM_RATIO,
   microToDisplay,
+  normalizeModel,
   SUPPORTED_LLM_MODELS,
   TOKEN_PRECISION,
 } from '../src/pricing.ts';
@@ -35,8 +37,8 @@ describe('Pricing', () => {
   });
 
   describe('LLM_PRICING table', () => {
-    it('包含 4 个支持的 model', () => {
-      assert.deepEqual(new Set(SUPPORTED_LLM_MODELS), new Set(['gpt-5.5', 'gpt-5.4', 'mimo-v2.5-pro', 'mimo-v2.5']));
+    it('包含 3 个支持的 model', () => {
+      assert.deepEqual(new Set(SUPPORTED_LLM_MODELS), new Set(['gpt-5.4', 'mimo-v2.5-pro', 'mimo-v2.5']));
     });
 
     it('每个 model 都有 inputRate + cachedInputRate + outputRate（正数）', () => {
@@ -56,6 +58,24 @@ describe('Pricing', () => {
       assert.equal(isSupportedLlmModel('gpt-4o-mini'), false);
       assert.equal(isSupportedLlmModel(''), false);
     });
+
+    it('DEFAULT_LLM_MODEL 必须落在 SUPPORTED_LLM_MODELS 里', () => {
+      assert.ok(SUPPORTED_LLM_MODELS.includes(DEFAULT_LLM_MODEL), `DEFAULT_LLM_MODEL=${DEFAULT_LLM_MODEL} 未注册`);
+    });
+
+    it('normalizeModel：已下架的旧 id（如 gpt-5.5）静默回退到 DEFAULT_LLM_MODEL', () => {
+      assert.equal(normalizeModel('gpt-5.5'), DEFAULT_LLM_MODEL);
+      assert.equal(normalizeModel('foo'), DEFAULT_LLM_MODEL);
+      assert.equal(normalizeModel(null), DEFAULT_LLM_MODEL);
+      assert.equal(normalizeModel(undefined), DEFAULT_LLM_MODEL);
+      assert.equal(normalizeModel(''), DEFAULT_LLM_MODEL);
+    });
+
+    it('normalizeModel：白名单内 id 原样返回', () => {
+      for (const id of SUPPORTED_LLM_MODELS) {
+        assert.equal(normalizeModel(id), id);
+      }
+    });
   });
 
   describe('computeLlmCharge', () => {
@@ -65,10 +85,10 @@ describe('Pricing', () => {
       assert.equal(cost, Math.ceil(1750 * LLM_RATIO * TOKEN_PRECISION));
     });
 
-    it('gpt-5.5：纯 input', () => {
-      // 1000 × 0.5 × 1.1 × 10_000 = 5_500_000
-      const cost = computeLlmCharge('gpt-5.5', 1000, 0);
-      assert.equal(cost, Math.ceil(500 * LLM_RATIO * TOKEN_PRECISION));
+    it('gpt-5.4：纯 input', () => {
+      // 1000 × 0.25 × 1.1 × 10_000 = 2_750_000
+      const cost = computeLlmCharge('gpt-5.4', 1000, 0);
+      assert.equal(cost, Math.ceil(250 * LLM_RATIO * TOKEN_PRECISION));
     });
 
     it('mimo-v2.5-pro：input + output 不对称', () => {

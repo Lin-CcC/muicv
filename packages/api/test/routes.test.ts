@@ -655,13 +655,13 @@ test('POST /llm/v1/chat/completions model=mimo-v2.5 但缺 MIMO_API_KEY → 500 
   assert.equal(body.error, 'mimo-key-missing');
 });
 
-test('POST /llm/v1/chat/completions model=gpt-5.5 但缺 OPENAI_API_KEY → 500 openai-key-missing', async () => {
+test('POST /llm/v1/chat/completions model=gpt-5.4 但缺 OPENAI_API_KEY → 500 openai-key-missing', async () => {
   const res = await app.request(
     '/llm/v1/chat/completions',
     {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...AUTH },
-      body: JSON.stringify({ model: 'gpt-5.5', messages: [{ role: 'user', content: 'hi' }] }),
+      body: JSON.stringify({ model: 'gpt-5.4', messages: [{ role: 'user', content: 'hi' }] }),
     },
     mockEnv({ authenticated: true, walletMicro: 100_000_000, openaiKey: null }),
     ctx,
@@ -703,16 +703,16 @@ function makeResponsesJsonResponse(model: string): Response {
   );
 }
 
-test('POST /llm/v1/responses model=gpt-5.5 → 上游 OpenAI /v1/responses', async () => {
+test('POST /llm/v1/responses model=gpt-5.4 → 上游 OpenAI /v1/responses', async () => {
   const captures: FetchCapture[] = [];
-  const restore = withMockedFetch(captures, makeResponsesJsonResponse('gpt-5.5'));
+  const restore = withMockedFetch(captures, makeResponsesJsonResponse('gpt-5.4'));
   try {
     const res = await app.request(
       '/llm/v1/responses',
       {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...AUTH },
-        body: JSON.stringify({ model: 'gpt-5.5', input: 'hi' }),
+        body: JSON.stringify({ model: 'gpt-5.4', input: 'hi' }),
       },
       mockEnv({ authenticated: true, walletMicro: 100_000_000, openaiKey: 'sk-openai-test' }),
       ctx,
