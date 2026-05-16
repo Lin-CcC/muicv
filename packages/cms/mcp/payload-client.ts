@@ -1,6 +1,13 @@
 import type { CmsPostPayload } from './post-input.ts';
+import type { CmsSkillPayload } from './skill-input.ts';
 
 export type CmsPostDocument = CmsPostPayload & {
+  id: number | string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CmsSkillDocument = CmsSkillPayload & {
   id: number | string;
   createdAt?: string;
   updatedAt?: string;
@@ -67,6 +74,32 @@ export class CmsClient {
 
   async updatePost(id: number | string, payload: CmsPostPayload): Promise<CmsPostDocument> {
     return this.request<CmsPostDocument>(`/api/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async findSkillBySlug(slug: string): Promise<CmsSkillDocument | null> {
+    const params = new URLSearchParams({
+      depth: '0',
+      limit: '1',
+      'where[slug][equals]': slug,
+    });
+    const result = await this.request<PayloadListResponse<CmsSkillDocument>>(
+      `/api/skillExtensions?${params.toString()}`,
+    );
+    return result.docs?.[0] ?? null;
+  }
+
+  async createSkill(payload: CmsSkillPayload): Promise<CmsSkillDocument> {
+    return this.request<CmsSkillDocument>('/api/skillExtensions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateSkill(id: number | string, payload: CmsSkillPayload): Promise<CmsSkillDocument> {
+    return this.request<CmsSkillDocument>(`/api/skillExtensions/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });

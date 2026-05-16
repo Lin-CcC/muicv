@@ -168,34 +168,64 @@ test('GET /health 返回 ok', async () => {
   assert.equal(await res.text(), 'ok');
 });
 
-test('GET /skills/catalog 返回 link-only 第三方官方 skill', async () => {
-  const res = await app.request('/skills/catalog', undefined, mockEnv(), ctx);
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as {
-    manifestVersion: number;
-    skills: Array<{ slug: string; distributionMode: string; installPackage?: unknown }>;
-  };
-  assert.equal(body.manifestVersion, 1);
-  const skill = body.skills.find((item) => item.slug === 'tencent-campus-recruiting');
-  assert.ok(skill);
-  assert.equal(skill.distributionMode, 'link_only');
-  assert.equal('installPackage' in skill, false);
+test('GET /skills/catalog 从 Payload 返回可接入 skill，app 目录不暴露外站安装链接', async () => {
+  const captures: FetchCapture[] = [];
+  const restore = withMockedFetch(captures, cmsListResponse([cmsSkillDoc()]));
+  try {
+    const res = await app.request('/skills/catalog', undefined, mockEnv(), ctx);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as {
+      manifestVersion: number;
+      skills: Array<{
+        slug: string;
+        title: string;
+        summary: string;
+        sourceUrl: string | null;
+        distributionMode: string;
+        appAvailability: string;
+        installPackage?: unknown;
+      }>;
+    };
+    assert.equal(body.manifestVersion, 1);
+    const skill = body.skills.find((item) => item.slug === 'tencent-campus-recruiting');
+    assert.ok(skill);
+    assert.equal(skill.title, '腾讯校园招聘 Skill');
+    assert.match(skill.summary, /岗位匹配/);
+    assert.equal(skill.sourceUrl, null);
+    assert.equal(skill.distributionMode, 'hosted');
+    assert.equal(skill.appAvailability, 'installable');
+    assert.equal('installPackage' in skill, false);
+  } finally {
+    restore();
+  }
 });
 
 test('GET /skills/:slug 详情不返回第三方安装包', async () => {
-  const res = await app.request('/skills/tencent-campus-recruiting', undefined, mockEnv(), ctx);
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as { slug: string; distributionMode: string; installPackage: unknown };
-  assert.equal(body.slug, 'tencent-campus-recruiting');
-  assert.equal(body.distributionMode, 'link_only');
-  assert.equal(body.installPackage, null);
+  const captures: FetchCapture[] = [];
+  const restore = withMockedFetch(captures, cmsListResponse([cmsSkillDoc()]));
+  try {
+    const res = await app.request('/skills/tencent-campus-recruiting', undefined, mockEnv(), ctx);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as { slug: string; distributionMode: string; installPackage: unknown };
+    assert.equal(body.slug, 'tencent-campus-recruiting');
+    assert.equal(body.distributionMode, 'hosted');
+    assert.equal(body.installPackage, null);
+  } finally {
+    restore();
+  }
 });
 
 test('GET /posts?section=jobs 返回求职文章', async () => {
-  const res = await app.request('/posts?section=jobs', undefined, mockEnv(), ctx);
-  assert.equal(res.status, 200);
-  const body = (await res.json()) as { posts: Array<{ section: string; slug: string }> };
-  assert.ok(body.posts.some((post) => post.section === 'jobs' && post.slug === 'tencent-campus-recruiting-skill'));
+  const captures: FetchCapture[] = [];
+  const restore = withMockedFetch(captures, cmsListResponse([cmsPostDoc()]));
+  try {
+    const res = await app.request('/posts?section=jobs', undefined, mockEnv(), ctx);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as { posts: Array<{ section: string; slug: string }> };
+    assert.ok(body.posts.some((post) => post.section === 'jobs' && post.slug === 'tencent-campus-recruiting-skill'));
+  } finally {
+    restore();
+  }
 });
 
 test('POST /render content-type 不是 JSON → 400', async () => {
@@ -558,6 +588,49 @@ function withMockedFetch(captureInto: FetchCapture[], response: Response): () =>
   }) as typeof fetch;
   return () => {
     globalThis.fetch = original;
+  };
+}
+
+function cmsListResponse(docs: unknown[]): Response {
+  return Response.json({ docs });
+}
+
+function cmsSkillDoc() {
+  return {
+    slug: 'tencent-campus-recruiting',
+    status: 'published',
+    title: '腾讯校园招聘 Skill',
+    publisher: '腾讯招聘',
+    publisherType: 'official',
+    sourceUrl: 'https://join.qq.com/post.html?query=p_2&activity=1251899672503271424',
+    sourceLabel: '腾讯招聘官方岗位页',
+    distributionMode: 'hosted',
+    appAvailability: 'installable',
+    summary: '围绕腾讯校招做岗位匹配、简历修改和模拟面试。',
+    bodyMarkdown: '## 这是什么\n\n由 Payload 管理的 skill。',
+    useCases: [{ value: '腾讯校招岗位匹配' }],
+    tags: [{ value: '腾讯招聘' }],
+    keywords: [{ value: '腾讯校园招聘 Skill' }],
+    publishedAt: '2026-05-16',
+    seoTitle: '腾讯校园招聘 Skill',
+    seoDescription: '腾讯校园招聘 Skill 的 MuiCV 接入方式。',
+  };
+}
+
+function cmsPostDoc() {
+  return {
+    slug: 'tencent-campus-recruiting-skill',
+    section: 'jobs',
+    status: 'published',
+    title: 'MuiCV 现在可以接入第三方 Skill',
+    summary: '介绍 MuiCV 的第三方 skill 接入能力。',
+    bodyMarkdown: '## 正文\n\n由 Payload 管理的文章。',
+    tags: [{ value: '第三方 skill' }],
+    keywords: [{ value: '腾讯校园招聘 Skill' }],
+    author: 'Mui简历',
+    publishedAt: '2026-05-16',
+    seoTitle: 'MuiCV 现在可以接入第三方 Skill',
+    seoDescription: '介绍 MuiCV 的第三方 skill 接入能力。',
   };
 }
 

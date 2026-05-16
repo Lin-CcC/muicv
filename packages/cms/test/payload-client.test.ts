@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import { CmsClient } from '../mcp/payload-client.ts';
 import type { CmsPostPayload } from '../mcp/post-input.ts';
+import type { CmsSkillPayload } from '../mcp/skill-input.ts';
 
 const payload: CmsPostPayload = {
   title: '测试文章',
@@ -17,6 +18,25 @@ const payload: CmsPostPayload = {
   author: 'Mui简历',
   publishedAt: '2026-05-16',
   seoTitle: '测试文章',
+  seoDescription: '测试摘要',
+};
+
+const skillPayload: CmsSkillPayload = {
+  title: '腾讯校园招聘 Skill',
+  slug: 'tencent-campus-recruiting',
+  status: 'draft',
+  _status: 'draft',
+  publisher: '腾讯招聘',
+  publisherType: 'official',
+  distributionMode: 'hosted',
+  appAvailability: 'installable',
+  summary: '测试摘要',
+  bodyMarkdown: '# Skill',
+  useCases: [],
+  tags: [],
+  keywords: [],
+  publishedAt: '2026-05-16',
+  seoTitle: '腾讯校园招聘 Skill',
   seoDescription: '测试摘要',
 };
 
@@ -40,6 +60,33 @@ test('CmsClient 使用 bearer token 调 Payload API', async () => {
     requests[0]?.url,
     'https://cms.example.com/api/posts?depth=0&limit=1&where%5Bslug%5D%5Bequals%5D=test-post',
   );
+});
+
+test('CmsClient 可读写 skillExtensions collection', async () => {
+  const requests: Request[] = [];
+  const client = new CmsClient({
+    baseUrl: 'https://cms.example.com',
+    token: 'token-123',
+    fetchImpl: async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      if (request.method === 'PATCH') {
+        return Response.json({ id: 3, ...skillPayload, title: '更新后的 Skill' });
+      }
+      return Response.json({ docs: [{ id: 3, ...skillPayload }] });
+    },
+  });
+
+  const skill = await client.findSkillBySlug('tencent-campus-recruiting');
+  const updated = await client.updateSkill(3, { ...skillPayload, title: '更新后的 Skill' });
+
+  assert.equal(skill?.id, 3);
+  assert.equal(updated.title, '更新后的 Skill');
+  assert.equal(
+    requests[0]?.url,
+    'https://cms.example.com/api/skillExtensions?depth=0&limit=1&where%5Bslug%5D%5Bequals%5D=tencent-campus-recruiting',
+  );
+  assert.equal(requests[1]?.url, 'https://cms.example.com/api/skillExtensions/3');
 });
 
 test('CmsClient 可用邮箱密码登录并复用返回 token', async () => {

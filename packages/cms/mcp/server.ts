@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-import { CmsAuthError, CmsClient, type CmsPostDocument } from './payload-client.ts';
+import { CmsAuthError, CmsClient, type CmsPostDocument, type CmsSkillDocument } from './payload-client.ts';
 import {
   createPostInputSchema,
   getPostInputSchema,
@@ -10,6 +10,14 @@ import {
   normalizeUpsertPostInput,
   upsertPostInputSchema,
 } from './post-input.ts';
+import {
+  createSkillInputSchema,
+  getSkillInputSchema,
+  normalizeCreateSkillInput,
+  normalizeGetSkillInput,
+  normalizeUpsertSkillInput,
+  upsertSkillInputSchema,
+} from './skill-input.ts';
 
 const server = new McpServer({
   name: 'muicv-cms',
@@ -106,6 +114,88 @@ server.registerTool(
   },
 );
 
+server.registerTool(
+  'create_skill',
+  {
+    title: '创建 Mui 简历 CMS Skill',
+    description:
+      '在 Payload CMS 的 skillExtensions collection 里创建 skill 详情页。默认 status=draft；只有明确传 status=published 才发布。',
+    inputSchema: createSkillInputSchema,
+  },
+  async (args) => {
+    return withToolErrors(async () => {
+      const input = normalizeCreateSkillInput(args);
+      if (input.dryRun) {
+        return jsonResult({ ok: true, dryRun: true, payload: input.payload });
+      }
+
+      const client = new CmsClient();
+      const existing = await client.findSkillBySlug(input.payload.slug);
+      if (existing) {
+        return errorResult(`slug "${input.payload.slug}" 已存在。请换 slug，或改用 upsert_skill 更新已有 skill。`);
+      }
+
+      const skill = await client.createSkill(input.payload);
+      return jsonResult({ ok: true, action: 'created', skill: toSkillResult(skill) });
+    });
+  },
+);
+
+server.registerTool(
+  'upsert_skill',
+  {
+    title: '创建或更新 Mui 简历 CMS Skill',
+    description:
+      '按 slug 查找 skill；不存在则创建，存在且 onConflict=update 时更新。默认创建/更新草稿，除非明确传 status=published。',
+    inputSchema: upsertSkillInputSchema,
+  },
+  async (args) => {
+    return withToolErrors(async () => {
+      const input = normalizeUpsertSkillInput(args);
+      if (input.dryRun) {
+        return jsonResult({ ok: true, dryRun: true, onConflict: input.onConflict, payload: input.payload });
+      }
+
+      const client = new CmsClient();
+      const existing = await client.findSkillBySlug(input.payload.slug);
+
+      if (!existing) {
+        const skill = await client.createSkill(input.payload);
+        return jsonResult({ ok: true, action: 'created', skill: toSkillResult(skill) });
+      }
+
+      if (input.onConflict === 'error') {
+        return errorResult(`slug "${input.payload.slug}" 已存在。设置 onConflict=update 才会覆盖更新。`);
+      }
+
+      const skill = await client.updateSkill(existing.id, input.payload);
+      return jsonResult({ ok: true, action: 'updated', skill: toSkillResult(skill) });
+    });
+  },
+);
+
+server.registerTool(
+  'get_skill',
+  {
+    title: '读取 Mui 简历 CMS Skill',
+    description: '按 slug 读取 Payload CMS 里的 skillExtensions 文档，用于写作前查重或更新前确认。',
+    inputSchema: getSkillInputSchema,
+  },
+  async (args) => {
+    return withToolErrors(async () => {
+      const { slug } = normalizeGetSkillInput(args);
+      const client = new CmsClient();
+      const skill = await client.findSkillBySlug(slug);
+
+      if (!skill) {
+        return jsonResult({ ok: true, found: false, slug });
+      }
+
+      return jsonResult({ ok: true, found: true, skill: toSkillResult(skill) });
+    });
+  },
+);
+
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -173,5 +263,18 @@ function toPostResult(post: CmsPostDocument) {
     url: `https://muicv.com/posts/${post.section}/${post.slug}`,
     cmsUrl: `${process.env.MUICV_CMS_URL ?? 'https://cms.muicv.com'}/admin/collections/posts/${post.id}`,
     updatedAt: post.updatedAt,
+  };
+}
+
+function toSkillResult(skill: CmsSkillDocument) {
+  return {
+    id: skill.id,
+    slug: skill.slug,
+    status: skill.status,
+    title: skill.title,
+    publisher: skill.publisher,
+    url: `https://muicv.com/skills/${skill.slug}`,
+    cmsUrl: `${process.env.MUICV_CMS_URL ?? 'https://cms.muicv.com'}/admin/collections/skillExtensions/${skill.id}`,
+    updatedAt: skill.updatedAt,
   };
 }

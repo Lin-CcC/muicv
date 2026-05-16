@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { getPublishedChangelog } from '@muicv/shared';
+import { getWebsitePublishedChangelog } from '@/lib/cms-content';
 
 import { MarketingShell } from '../_content/marketing-shell';
 import { MarkdownBody } from '../_content/markdown';
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function ChangelogPage() {
-  const items = getPublishedChangelog();
+  const items = await getWebsitePublishedChangelog();
 
   return (
     <MarketingShell>

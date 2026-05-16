@@ -1,5 +1,6 @@
 import {
   fetchCmsPostBySlug,
+  fetchCmsPublishedChangelog,
   fetchCmsPublishedPosts,
   fetchCmsPublishedSkills,
   fetchCmsSkillBySlug,
@@ -25,4 +26,8 @@ export function getWebsitePublishedSkills() {
 
 export function getWebsiteSkillBySlug(slug: string) {
   return fetchCmsSkillBySlug(slug, getCmsOptions());
+}
+
+export function getWebsitePublishedChangelog() {
+  return fetchCmsPublishedChangelog(getCmsOptions());
 }

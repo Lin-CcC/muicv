@@ -134,7 +134,7 @@ app.get('/health', (c) => c.text('ok'));
 
 /**
  * 公开内容目录：给网站外部消费者 / Electron app 读取。
- * 第三方 link-only skill 不返回可安装包，只返回官方来源和详情页。
+ * App catalog 只返回 MuiCV 详情 / 接入页，不把用户直接导向第三方平台。
  */
 app.get('/skills/catalog', handleSkillsCatalog);
 app.get('/skills/:slug', handleSkillDetail);

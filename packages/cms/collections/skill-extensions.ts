@@ -49,7 +49,7 @@ export const SkillExtensions: CollectionConfig = {
       defaultValue: 'link_only',
       options: [
         { label: '已内置', value: 'built_in' },
-        { label: '只链官方源', value: 'link_only' },
+        { label: '来源索引', value: 'link_only' },
         { label: 'Mui 托管', value: 'hosted' },
         { label: '官方直装', value: 'external_direct' },
       ],
@@ -61,7 +61,7 @@ export const SkillExtensions: CollectionConfig = {
       defaultValue: 'link_only',
       options: [
         { label: '已内置', value: 'built_in' },
-        { label: '只打开官方来源', value: 'link_only' },
+        { label: '查看接入方式', value: 'link_only' },
         { label: '可安装', value: 'installable' },
         { label: '整理中', value: 'coming_soon' },
       ],

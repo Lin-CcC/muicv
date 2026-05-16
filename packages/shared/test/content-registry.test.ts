@@ -1,35 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { fetchCmsPublishedPosts, fetchCmsPublishedSkills } from '../src/cms-content.ts';
 import {
-  getPostBySlug,
-  getPublishedChangelog,
-  getPublishedPosts,
-  getPublishedSkills,
-  getSkillBySlug,
-} from '../src/content-registry.ts';
+  fetchCmsPostBySlug,
+  fetchCmsPublishedChangelog,
+  fetchCmsPublishedPosts,
+  fetchCmsPublishedSkills,
+} from '../src/cms-content.ts';
+import { getPublishedPosts, getPublishedSkills } from '../src/content-registry.ts';
 
-test('content registry exposes published jobs posts', () => {
-  const posts = getPublishedPosts('jobs');
-  assert.ok(posts.length >= 2);
-  assert.ok(posts.every((post) => post.status === 'published'));
-  assert.equal(getPostBySlug('jobs', 'tencent-campus-recruiting-skill')?.section, 'jobs');
-});
-
-test('third-party official skill stays link-only', () => {
-  const skill = getSkillBySlug('tencent-campus-recruiting');
-  assert.ok(skill);
-  assert.equal(skill.publisherType, 'official');
-  assert.equal(skill.distributionMode, 'link_only');
-  assert.equal(skill.appAvailability, 'link_only');
-  assert.ok(skill.sourceUrl?.startsWith('https://mp.weixin.qq.com/'));
-});
-
-test('catalog includes built-in Mui skills and changelog', () => {
-  const skills = getPublishedSkills();
-  assert.ok(skills.some((skill) => skill.slug === 'muicv-interview' && skill.appAvailability === 'built_in'));
-  assert.ok(getPublishedChangelog().some((item) => item.slug === 'skill-directory-start'));
+test('content registry 不再内置发布内容', () => {
+  assert.deepEqual(getPublishedPosts('jobs'), []);
+  assert.deepEqual(getPublishedSkills(), []);
 });
 
 test('cms content fetch maps Payload posts into registry shape', async () => {
@@ -57,16 +39,82 @@ test('cms content fetch maps Payload posts into registry shape', async () => {
       }),
   });
 
-  assert.equal(posts.length, 1);
-  assert.equal(posts[0]?.slug, 'cms-post');
-  assert.deepEqual(posts[0]?.tags, ['校招']);
+  const cmsPost = posts.find((post) => post.slug === 'cms-post');
+  assert.ok(cmsPost);
+  assert.deepEqual(cmsPost.tags, ['校招']);
 });
 
-test('cms content fetch falls back to seed when Payload is unavailable', async () => {
+test('cms content fetch maps Payload skills into registry shape', async () => {
+  const skills = await fetchCmsPublishedSkills({
+    baseUrl: 'https://cms.example.com',
+    fetchImpl: async () =>
+      Response.json({
+        docs: [
+          {
+            slug: 'tencent-campus-recruiting',
+            status: 'published',
+            title: '腾讯校园招聘 Skill',
+            publisher: '腾讯招聘',
+            publisherType: 'official',
+            sourceUrl: 'https://join.qq.com/post.html?query=p_2&activity=1251899672503271424',
+            sourceLabel: '腾讯招聘官方岗位页',
+            distributionMode: 'hosted',
+            appAvailability: 'installable',
+            summary: '围绕腾讯校招做岗位匹配、简历修改和模拟面试。',
+            bodyMarkdown: '## 这是什么\n\n由 Payload 管理的 skill。',
+            useCases: [{ value: '腾讯校招岗位匹配' }],
+            tags: [{ value: '腾讯招聘' }],
+            keywords: [{ value: '腾讯校园招聘 Skill' }],
+            publishedAt: '2026-05-16',
+            seoTitle: '腾讯校园招聘 Skill',
+            seoDescription: '腾讯校园招聘 Skill 的 MuiCV 接入方式。',
+          },
+        ],
+      }),
+  });
+
+  assert.equal(skills[0]?.slug, 'tencent-campus-recruiting');
+  assert.equal(skills[0]?.appAvailability, 'installable');
+  assert.deepEqual(skills[0]?.useCases, ['腾讯校招岗位匹配']);
+});
+
+test('cms content fetch returns empty when Payload is unavailable', async () => {
   const skills = await fetchCmsPublishedSkills({
     baseUrl: 'https://cms.example.com',
     fetchImpl: async () => Response.json({ errors: [{ message: 'forbidden' }] }, { status: 403 }),
   });
 
-  assert.ok(skills.some((skill) => skill.slug === 'tencent-campus-recruiting'));
+  assert.deepEqual(skills, []);
+});
+
+test('cms content detail returns null when Payload has no matching slug', async () => {
+  const post = await fetchCmsPostBySlug('jobs', 'tencent-campus-recruiting-skill', {
+    baseUrl: 'https://cms.example.com',
+    fetchImpl: async () => Response.json({ docs: [] }),
+  });
+
+  assert.equal(post, null);
+});
+
+test('cms content fetch maps Payload changelog into registry shape', async () => {
+  const items = await fetchCmsPublishedChangelog({
+    baseUrl: 'https://cms.example.com',
+    fetchImpl: async () =>
+      Response.json({
+        docs: [
+          {
+            slug: 'skill-directory-start',
+            status: 'published',
+            title: '新增 Skill 目录',
+            version: '0.5.0',
+            summary: '通过 Payload 管理 Skill 目录。',
+            bodyMarkdown: '## 更新\n\n现在由 CMS 发布。',
+            publishedAt: '2026-05-16',
+          },
+        ],
+      }),
+  });
+
+  assert.equal(items[0]?.slug, 'skill-directory-start');
+  assert.equal(items[0]?.version, '0.5.0');
 });

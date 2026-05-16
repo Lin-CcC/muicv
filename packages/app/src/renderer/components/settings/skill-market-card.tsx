@@ -18,13 +18,12 @@ function availabilityLabel(skill: AppSkillCatalogItem): string {
 
 function actionLabel(skill: AppSkillCatalogItem): string {
   if (skill.appAvailability === 'built_in') return '查看详情';
-  if (skill.appAvailability === 'link_only') return '打开官方来源';
-  if (skill.appAvailability === 'installable') return '安装';
+  if (skill.appAvailability === 'link_only') return '查看接入方式';
+  if (skill.appAvailability === 'installable') return '接入';
   return '查看说明';
 }
 
 function actionHref(skill: AppSkillCatalogItem): string {
-  if (skill.appAvailability === 'link_only' && skill.sourceUrl) return skill.sourceUrl;
   return skill.detailUrl;
 }
 
@@ -57,7 +56,7 @@ export function SkillMarketCard() {
           <div>
             <h3 className="text-[16px] font-extrabold text-ink">Skill 市场</h3>
             <p className="mt-1 text-[12px] leading-[1.6] text-ink-soft">
-              收集 Mui 内置能力和第三方官方来源。第三方 skill 只打开官方安装页，不复制内容。
+              收集 Mui 内置能力和第三方官方 skill。外部能力统一走 MuiCV 的接入页，不给第三方平台导流。
             </p>
           </div>
         </div>
@@ -107,6 +106,7 @@ function SkillRow({ skill }: { skill: AppSkillCatalogItem }) {
             </span>
           </div>
           <p className="mt-1 text-[12px] leading-[1.55] text-ink-soft">{skill.summary}</p>
+          {skill.sourceNote ? <p className="mt-2 text-[12px] leading-[1.5] text-ink-soft">{skill.sourceNote}</p> : null}
           {skill.disclaimer ? <p className="mt-2 text-[12px] leading-[1.5] text-mute">{skill.disclaimer}</p> : null}
         </div>
         <button

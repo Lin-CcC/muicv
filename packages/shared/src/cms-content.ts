@@ -1,8 +1,5 @@
 import {
-  getPostBySlug,
-  getPublishedPosts,
-  getPublishedSkills,
-  getSkillBySlug,
+  type ChangelogItem,
   type ContentPost,
   type ContentStatus,
   type PostSection,
@@ -41,7 +38,7 @@ export async function fetchCmsPublishedPosts(
 
   const docs = await fetchPayloadDocs('posts', params, options);
   if (!docs) {
-    return getPublishedPosts(section);
+    return [];
   }
 
   return byPublishedAtDesc(docs.map(parsePost).filter(isContentPost));
@@ -61,7 +58,7 @@ export async function fetchCmsPostBySlug(
   });
   const docs = await fetchPayloadDocs('posts', params, options);
   if (!docs) {
-    return getPostBySlug(section, slug);
+    return null;
   }
 
   return parsePost(docs[0]) ?? null;
@@ -76,7 +73,7 @@ export async function fetchCmsPublishedSkills(options: CmsContentOptions = {}): 
   });
   const docs = await fetchPayloadDocs('skillExtensions', params, options);
   if (!docs) {
-    return getPublishedSkills();
+    return [];
   }
 
   return byPublishedAtDesc(docs.map(parseSkill).filter(isSkillCatalogItem));
@@ -94,14 +91,29 @@ export async function fetchCmsSkillBySlug(
   });
   const docs = await fetchPayloadDocs('skillExtensions', params, options);
   if (!docs) {
-    return getSkillBySlug(slug);
+    return null;
   }
 
   return parseSkill(docs[0]) ?? null;
 }
 
+export async function fetchCmsPublishedChangelog(options: CmsContentOptions = {}): Promise<ChangelogItem[]> {
+  const params = new URLSearchParams({
+    depth: '0',
+    limit: FETCH_LIMIT,
+    sort: '-publishedAt',
+    'where[status][equals]': 'published',
+  });
+  const docs = await fetchPayloadDocs('changelog', params, options);
+  if (!docs) {
+    return [];
+  }
+
+  return byPublishedAtDesc(docs.map(parseChangelog).filter(isChangelogItem));
+}
+
 async function fetchPayloadDocs(
-  collection: 'posts' | 'skillExtensions',
+  collection: 'posts' | 'skillExtensions' | 'changelog',
   params: URLSearchParams,
   options: CmsContentOptions,
 ): Promise<unknown[] | null> {
@@ -169,6 +181,34 @@ function parsePost(value: unknown): ContentPost | null {
     updatedAt: readString(value.updatedAt) ?? publishedAt,
     seoTitle,
     seoDescription,
+  };
+}
+
+function parseChangelog(value: unknown): ChangelogItem | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const slug = readString(value.slug);
+  const status = parseContentStatus(value.status);
+  const title = readString(value.title);
+  const summary = readString(value.summary);
+  const bodyMarkdown = readString(value.bodyMarkdown);
+  const publishedAt = readString(value.publishedAt);
+
+  if (!slug || !status || !title || !summary || !bodyMarkdown || !publishedAt) {
+    return null;
+  }
+
+  return {
+    slug,
+    status,
+    title,
+    summary,
+    bodyMarkdown,
+    ...optionalString('version', value.version),
+    publishedAt,
+    updatedAt: readString(value.updatedAt) ?? publishedAt,
   };
 }
 
@@ -246,7 +286,7 @@ function readString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
-function optionalString<Key extends 'sourceUrl' | 'sourceLabel' | 'sourceNote' | 'disclaimer'>(
+function optionalString<Key extends 'sourceUrl' | 'sourceLabel' | 'sourceNote' | 'disclaimer' | 'version'>(
   key: Key,
   value: unknown,
 ): Partial<Record<Key, string>> {
@@ -287,6 +327,10 @@ function isContentPost(value: ContentPost | null): value is ContentPost {
 }
 
 function isSkillCatalogItem(value: SkillCatalogItem | null): value is SkillCatalogItem {
+  return value !== null;
+}
+
+function isChangelogItem(value: ChangelogItem | null): value is ChangelogItem {
   return value !== null;
 }
 

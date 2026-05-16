@@ -9,15 +9,25 @@
 目标：把收集到的求职相关 skill 登记成可维护目录，同时让网站新增可收录页面、app 能列出 skill 并引导安装/查看官方来源。
 
 - [x] 抽出共享内容模型：求职博文、skill catalog、changelog。
-- [x] 建立第一批种子内容：腾讯招聘官方校招 skill（只链官方源）、Mui 内置面试/就业辅导 skill、求职博文。
+- [x] 建立共享内容模型；真实内容改由 Payload CMS 发布，不再写入 seed 基线。
 - [x] 网站新增 `/posts`、`/posts/jobs`、`/skills`、`/changelog` 及详情页。
 - [x] API 新增公开 catalog 端点，供 app 拉取。
 - [x] app 设置页新增 Skill 市场，区分“已内置”和“官方来源”。
 - [x] 新增 `packages/cms` Payload 脚手架和 collection 定义。
 - [x] 生成 / 更新 Payload 依赖 lockfile。
 - [x] CMS 改为复用现有 D1 `muicv`、R2 `muicv` / `site-cache`。
-- [x] website posts / skills 数据源切到 Payload REST，seed 只做接口不可用时的 fallback。
-- [ ] API / app catalog 数据源从 seed 切到 Payload REST 或 Local API。
+- [x] website posts / skills 数据源切到 Payload REST；CMS 不可用时返回空内容。
+- [x] API / app catalog 数据源从 seed 切到 Payload REST。
+- [x] 跑 shared/api/app/website/cms 验证。
+
+### 插队任务：腾讯校园招聘 Skill 内容落地
+
+目标：用腾讯校园招聘 Skill 做第一个第三方官方 skill 示例，但内容必须走 Payload CMS，而不是继续写 seed。
+
+- [x] 移除腾讯校园招聘 Skill / 博客的 seed 内容，避免绕过 Payload。
+- [x] website / API 内容目录统一读取 Payload；CMS 不可用时返回空内容，不再用 seed 冒充发布内容。
+- [x] CMS MCP 补齐 skillExtensions 创建 / 更新工具，让 Agent 可以把 skill 单页写进 Payload。
+- [x] app Skill 市场入口只打开 MuiCV 自有详情 / 接入流程，不把用户导向 WorkBuddy。
 - [x] 跑 shared/api/app/website/cms 验证。
 
 ### 插队任务：连接授权页简化

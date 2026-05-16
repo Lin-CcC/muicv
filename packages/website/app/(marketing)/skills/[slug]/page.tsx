@@ -37,8 +37,15 @@ export async function generateStaticParams() {
 
 function actionLabel(distributionMode: string): string {
   if (distributionMode === 'built_in') return '下载 Mui app 使用';
-  if (distributionMode === 'link_only') return '查看官方来源';
-  return '查看安装方式';
+  return '在 MuiCV 接入';
+}
+
+function distributionLabel(distributionMode: string): string {
+  if (distributionMode === 'built_in') return 'MuiCV 内置';
+  if (distributionMode === 'hosted') return 'MuiCV 接入';
+  if (distributionMode === 'external_direct') return '官方直连';
+  if (distributionMode === 'link_only') return '来源索引';
+  return distributionMode;
 }
 
 export default async function SkillDetailPage({ params }: { params: Promise<Params> }) {
@@ -46,7 +53,9 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
   const skill = await getWebsiteSkillBySlug(resolvedParams.slug);
   if (!skill) notFound();
 
-  const primaryHref = skill.distributionMode === 'built_in' ? '/download' : (skill.sourceUrl ?? '/skills');
+  const primaryHref =
+    skill.distributionMode === 'built_in' ? '/download' : `/download?skill=${encodeURIComponent(skill.slug)}`;
+  const guideHref = skill.slug === 'tencent-campus-recruiting' ? '/posts/jobs/tencent-campus-recruiting-skill' : null;
 
   return (
     <MarketingShell>
@@ -65,7 +74,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
               <h1 className="mt-3 max-w-3xl text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
                 {skill.title.includes('腾讯') ? (
                   <>
-                    腾讯校招，放进你的 <Highlight>AI agent</Highlight>。
+                    腾讯校园招聘 Skill，接进 <Highlight>MuiCV</Highlight> 求职流。
                   </>
                 ) : (
                   skill.title
@@ -82,13 +91,15 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
                   {actionLabel(skill.distributionMode)}
                   <ArrowUpRight />
                 </a>
-                <Link
-                  href="/posts/jobs/tencent-campus-recruiting-skill"
-                  className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
-                >
-                  看使用建议
-                  <ArrowUpRight />
-                </Link>
+                {guideHref ? (
+                  <Link
+                    href={guideHref}
+                    className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
+                  >
+                    看使用建议
+                    <ArrowUpRight />
+                  </Link>
+                ) : null}
               </div>
             </div>
 
@@ -101,13 +112,11 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
                 </div>
                 <div>
                   <dt className="font-bold text-ink">分发方式</dt>
-                  <dd className="mt-1 text-ink-soft">
-                    {skill.distributionMode === 'link_only' ? '只链官方源' : skill.distributionMode}
-                  </dd>
+                  <dd className="mt-1 text-ink-soft">{distributionLabel(skill.distributionMode)}</dd>
                 </div>
                 {skill.sourceUrl ? (
                   <div>
-                    <dt className="font-bold text-ink">官方来源</dt>
+                    <dt className="font-bold text-ink">来源依据</dt>
                     <dd className="mt-1">
                       <a
                         href={skill.sourceUrl}
@@ -121,6 +130,9 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
                   </div>
                 ) : null}
               </dl>
+              {skill.sourceNote ? (
+                <p className="mt-4 text-[12px] leading-[1.6] text-ink-soft">{skill.sourceNote}</p>
+              ) : null}
               {skill.disclaimer ? (
                 <p className="mt-5 rounded-lg border border-rule bg-paper p-3 text-[12px] leading-[1.6] text-ink-soft">
                   {skill.disclaimer}

@@ -1,9 +1,9 @@
 import {
-  getPostBySlug,
-  getPublishedChangelog,
-  getPublishedPosts,
-  getPublishedSkills,
-  getSkillBySlug,
+  fetchCmsPostBySlug,
+  fetchCmsPublishedChangelog,
+  fetchCmsPublishedPosts,
+  fetchCmsPublishedSkills,
+  fetchCmsSkillBySlug,
   type PostSection,
 } from '@muicv/shared';
 import type { Context } from 'hono';
@@ -12,13 +12,18 @@ function isPostSection(value: string): value is PostSection {
   return value === 'jobs' || value === 'product' || value === 'guide';
 }
 
-export function handleSkillsCatalog(c: Context) {
-  const skills = getPublishedSkills().map((skill) => ({
+function getCmsOptions(c: Context) {
+  const env = c.env as { MUICV_CMS_URL?: unknown };
+  return typeof env.MUICV_CMS_URL === 'string' && env.MUICV_CMS_URL.trim() ? { baseUrl: env.MUICV_CMS_URL.trim() } : {};
+}
+
+export async function handleSkillsCatalog(c: Context) {
+  const skills = (await fetchCmsPublishedSkills(getCmsOptions(c))).map((skill) => ({
     slug: skill.slug,
     title: skill.title,
     publisher: skill.publisher,
     publisherType: skill.publisherType,
-    sourceUrl: skill.sourceUrl ?? null,
+    sourceUrl: null,
     sourceLabel: skill.sourceLabel ?? null,
     sourceNote: skill.sourceNote ?? null,
     distributionMode: skill.distributionMode,
@@ -38,9 +43,9 @@ export function handleSkillsCatalog(c: Context) {
   });
 }
 
-export function handleSkillDetail(c: Context) {
+export async function handleSkillDetail(c: Context) {
   const slug = c.req.param('slug');
-  const skill = getSkillBySlug(slug);
+  const skill = await fetchCmsSkillBySlug(slug, getCmsOptions(c));
   if (!skill) return c.json({ error: 'skill-not-found' }, 404);
 
   return c.json({
@@ -50,12 +55,12 @@ export function handleSkillDetail(c: Context) {
   });
 }
 
-export function handlePostsList(c: Context) {
+export async function handlePostsList(c: Context) {
   const sectionRaw = c.req.query('section');
   if (sectionRaw && !isPostSection(sectionRaw)) {
     return c.json({ error: 'invalid-section' }, 400);
   }
-  const posts = getPublishedPosts(sectionRaw).map((post) => ({
+  const posts = (await fetchCmsPublishedPosts(sectionRaw, getCmsOptions(c))).map((post) => ({
     slug: post.slug,
     section: post.section,
     title: post.title,
@@ -68,16 +73,16 @@ export function handlePostsList(c: Context) {
   return c.json({ posts });
 }
 
-export function handlePostDetail(c: Context) {
+export async function handlePostDetail(c: Context) {
   const section = c.req.param('section');
   const slug = c.req.param('slug');
   if (!isPostSection(section)) return c.json({ error: 'invalid-section' }, 400);
 
-  const post = getPostBySlug(section, slug);
+  const post = await fetchCmsPostBySlug(section, slug, getCmsOptions(c));
   if (!post) return c.json({ error: 'post-not-found' }, 404);
   return c.json({ ...post, url: `https://muicv.com/posts/${post.section}/${post.slug}` });
 }
 
-export function handleChangelog(c: Context) {
-  return c.json({ items: getPublishedChangelog() });
+export async function handleChangelog(c: Context) {
+  return c.json({ items: await fetchCmsPublishedChangelog(getCmsOptions(c)) });
 }

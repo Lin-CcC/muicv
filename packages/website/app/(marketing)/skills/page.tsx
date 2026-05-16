@@ -27,7 +27,8 @@ export default async function SkillsPage() {
             把求职相关 skill 收进一个 <Highlight>目录</Highlight>。
           </h1>
           <p className="mt-6 max-w-2xl text-[16px] leading-[1.7] text-ink-soft">
-            这里既有 Mui app 内置 skill，也有第三方官方来源。第三方内容默认只链官方源，不复制、不托管。
+            这里既有 Mui app 内置 skill，也有经过 Payload 管理的第三方官方能力。接入入口统一留在
+            MuiCV，不给外部平台导流。
           </p>
         </div>
       </section>
