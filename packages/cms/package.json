@@ -10,7 +10,9 @@
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "mcp": "node mcp/server.ts",
     "payload": "payload",
+    "test": "node --test test/**/*.test.ts",
     "generate:importmap": "PAYLOAD_SECRET=local-importmap-secret NEXT_PHASE=phase-production-build payload generate:importmap && biome format --write \"app/(payload)/admin/importMap.js\"",
     "migrate:create": "PAYLOAD_SECRET=local-migration-secret NEXT_PHASE=phase-production-build payload migrate:create",
     "migrate": "node scripts/apply-migrations.ts",
@@ -30,10 +32,12 @@
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/node": "^22.19.17",
     "@types/react": "19.2.7",
     "@types/react-dom": "^19.2.3",
     "typescript": "^5.9.3",
-    "wrangler": "^4.85.0"
+    "wrangler": "^4.85.0",
+    "zod": "^4.3.6"
   }
 }

@@ -1,6 +1,6 @@
 # DEPLOYMENT
 
-最后更新：2026-05-07
+最后更新：2026-05-16
 
 Mui简历的**运行时代码**（service deploy 的部分）只有这几个独立部署单元：
 
@@ -405,6 +405,45 @@ pnpm --filter @muicv/cms deploy
 
 当前 website / api / app 已先通过 `@muicv/shared` 的 seed registry 消费同一份内容形状。
 等 CMS 上线后，把 registry 数据源切到 Payload API 即可，不需要改公开路由和 app IPC。
+
+### 本地 MCP 写作入口
+
+`packages/cms` 还提供一个本地 stdio MCP server，给 Codex / Claude Desktop / Cursor
+这类 AI Agent 写文章用。它**不是新的 Worker**，不会新增部署单元；Agent 在本机启动
+`pnpm --filter @muicv/cms mcp`，再通过现有的 `https://cms.muicv.com/api/*` 写入 Payload。
+
+MCP tools：
+
+| Tool | 作用 |
+|---|---|
+| `create_post` | 创建 posts 文档；slug 已存在会报错 |
+| `upsert_post` | 按 slug 创建或更新 posts 文档；默认更新已有文章 |
+| `get_post` | 按 slug 查询文章，用于写作前查重 |
+
+所有写入默认都是 `status: "draft"`；只有调用方明确传 `status: "published"` 才会发布。
+`section` 默认是 `jobs`，对应公开路径 `/posts/jobs/<slug>`。
+
+Agent 配置示例：
+
+```json
+{
+  "mcpServers": {
+    "muicv-cms": {
+      "command": "pnpm",
+      "args": ["--filter", "@muicv/cms", "mcp"],
+      "cwd": "/Users/meathill/Documents/GitHub/muicv",
+      "env": {
+        "MUICV_CMS_URL": "https://cms.muicv.com",
+        "MUICV_CMS_EMAIL": "<CMS 登录邮箱>",
+        "MUICV_CMS_PASSWORD": "<CMS 登录密码>"
+      }
+    }
+  }
+}
+```
+
+如果 Agent 支持短期 token，也可以只传 `MUICV_CMS_TOKEN`。不要把这些值写进仓库文件；
+放在本机 MCP client 的私有配置或系统密码管理器里。
 
 ---
 

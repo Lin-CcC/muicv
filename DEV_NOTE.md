@@ -19,6 +19,7 @@
 - **CMS importMap 要提交**：Payload 插件的客户端组件（例如 R2 的 `R2ClientUploadHandler`）必须在 `app/(payload)/admin/importMap.js` 里注册；空 importMap 会让 admin 页面 200 但前端空白。修改 Payload config / 插件 / 自定义 admin 组件后运行 `pnpm --filter @muicv/cms generate:importmap` 并提交生成文件。
 - **CMS 不启用 `sharp`**：Cloudflare Worker 不能可靠运行 native `sharp`，OpenNext 二次打包也会遇到 `sharp-<hash>` 虚拟 require 解析失败；当前 media collection 只做 R2 存储，不做服务端裁图。
 - **CMS migration 流程**：本地生成 migration 用 `pnpm --filter @muicv/cms migrate:create <name> --skip-empty`，脚本会注入一次性本地 `PAYLOAD_SECRET` 和 `NEXT_PHASE='phase-production-build'`；应用到生产 D1 用 `pnpm --filter @muicv/cms migrate`，内部会读取 `payload_migrations`，只把 pending migration 转成 SQL 并通过 `wrangler d1 execute muicv --remote --file` 执行。
+- **CMS MCP 只做本地 stdio 入口**：`packages/cms/mcp/server.ts` 通过现有 `cms.muicv.com/api/*` 写 posts，不新增 Worker，也不要求新的 D1/R2。鉴权先用 `MUICV_CMS_TOKEN` 或 `MUICV_CMS_EMAIL` / `MUICV_CMS_PASSWORD`；暂不启用 Payload `useAPIKey`，避免为了本地写作入口引入新的 users schema migration。
 - **SEO 路径约定**：求职博文从 `/posts/jobs` 起步；更细分类先用 tags / keywords，不提前拆更多 route。
 
 ## 简历模板 + 在线预览（新）
