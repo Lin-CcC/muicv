@@ -5,7 +5,7 @@ import { getWebsitePublishedSkills, getWebsiteSkillBySlug } from '@/lib/cms-cont
 
 import { MarketingShell } from '../../_content/marketing-shell';
 import { MarkdownBody } from '../../_content/markdown';
-import { ArrowUpRight, Highlight } from '../../_icons';
+import { ArrowUpRight } from '../../_icons';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     openGraph: {
       title: skill.seoTitle,
       description: skill.seoDescription,
+      url: `/skills/${skill.slug}`,
       type: 'article',
       publishedTime: skill.publishedAt,
       modifiedTime: skill.updatedAt,
@@ -37,12 +38,15 @@ export async function generateStaticParams() {
 
 function actionLabel(distributionMode: string): string {
   if (distributionMode === 'built_in') return '下载 Mui app 使用';
-  return '在 MuiCV 接入';
+  if (distributionMode === 'link_only') return '查看官方来源';
+  if (distributionMode === 'hosted') return '查看接入说明';
+  if (distributionMode === 'external_direct') return '查看官方方式';
+  return '查看说明';
 }
 
 function distributionLabel(distributionMode: string): string {
   if (distributionMode === 'built_in') return 'MuiCV 内置';
-  if (distributionMode === 'hosted') return 'MuiCV 接入';
+  if (distributionMode === 'hosted') return 'MuiCV 托管';
   if (distributionMode === 'external_direct') return '官方直连';
   if (distributionMode === 'link_only') return '来源索引';
   return distributionMode;
@@ -53,9 +57,9 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
   const skill = await getWebsiteSkillBySlug(resolvedParams.slug);
   if (!skill) notFound();
 
-  const primaryHref =
-    skill.distributionMode === 'built_in' ? '/download' : `/download?skill=${encodeURIComponent(skill.slug)}`;
-  const guideHref = skill.slug === 'tencent-campus-recruiting' ? '/posts/jobs/tencent-campus-recruiting-skill' : null;
+  const primaryHref = skill.distributionMode === 'built_in' ? '/download' : (skill.sourceUrl ?? '/skills');
+  const guideHref =
+    skill.slug === 'tencent-campus-recruiting' ? '/posts/jobs/third-party-skills-tencent-campus-recruiting' : null;
 
   return (
     <MarketingShell>
@@ -72,13 +76,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
                 {skill.publisher} · {skill.appAvailability.replace('_', ' ')}
               </p>
               <h1 className="mt-3 max-w-3xl text-[clamp(2.25rem,5vw,3.75rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
-                {skill.title.includes('腾讯') ? (
-                  <>
-                    腾讯校园招聘 Skill，接进 <Highlight>MuiCV</Highlight> 求职流。
-                  </>
-                ) : (
-                  skill.title
-                )}
+                {skill.title.includes('腾讯') ? '腾讯校园招聘 Skill：官方来源索引' : skill.title}
               </h1>
               <p className="mt-6 max-w-2xl text-[16px] leading-[1.75] text-ink-soft">{skill.summary}</p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -96,7 +94,7 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
                     href={guideHref}
                     className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[15px] font-bold text-ink"
                   >
-                    看使用建议
+                    了解收录背景
                     <ArrowUpRight />
                   </Link>
                 ) : null}

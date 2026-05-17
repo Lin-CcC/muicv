@@ -1,4 +1,5 @@
 import { DownloadSimple } from '@phosphor-icons/react/dist/ssr';
+import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -11,6 +12,10 @@ import { SignOutButton } from './sign-out-button';
 
 // 整个 dashboard 段是 per-user 的，强制 SSR
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * Dashboard 受保护 layout —— Server Component 内验证 session（Workers 环境下

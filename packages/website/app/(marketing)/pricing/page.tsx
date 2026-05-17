@@ -13,6 +13,7 @@ import { BuyButton } from './_buy-button';
 export const metadata: Metadata = {
   title: '定价',
   description: '按 token 计费，永不过期。注册即送 10K tokens；月付 / 年付 / 一次性补充包随你选。',
+  alternates: { canonical: '/pricing' },
 };
 
 export const dynamic = 'force-dynamic';

@@ -7,7 +7,7 @@ import { Highlight } from '../_icons';
 
 export const metadata: Metadata = {
   title: 'Skill 目录',
-  description: 'Mui 简历收集的求职相关 skill：自有内置能力、第三方官方来源和后续可安装扩展。',
+  description: 'Mui 简历收集的求职相关 skill：自有内置能力、第三方官方来源索引和后续可安装扩展。',
   alternates: { canonical: '/skills' },
 };
 
@@ -27,8 +27,8 @@ export default async function SkillsPage() {
             把求职相关 skill 收进一个 <Highlight>目录</Highlight>。
           </h1>
           <p className="mt-6 max-w-2xl text-[16px] leading-[1.7] text-ink-soft">
-            这里既有 Mui app 内置 skill，也有经过 Payload 管理的第三方官方能力。接入入口统一留在
-            MuiCV，不给外部平台导流。
+            这里既有 Mui app 内置 skill，也有经过 Payload
+            管理的第三方官方来源索引。能否安装、如何使用会明确标注，不把索引写成已经可接入。
           </p>
         </div>
       </section>

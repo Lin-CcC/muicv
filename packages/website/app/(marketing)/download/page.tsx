@@ -10,6 +10,7 @@ import { Header } from '../_sections/header';
 export const metadata: Metadata = {
   title: '下载桌面 app',
   description: '下载 Mui简历桌面 app：导入简历或记录经历，先整理职业素材，再针对岗位生成简历。',
+  alternates: { canonical: '/download' },
 };
 
 // 与其它营销页对齐：Header 需要 session，必须 dynamic。GitHub fetch 自带 5 分钟数据缓存，rate-limit 压力不变。

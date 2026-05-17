@@ -29,6 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     openGraph: {
       title: post.seoTitle,
       description: post.seoDescription,
+      url: `/posts/${post.section}/${post.slug}`,
       type: 'article',
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,

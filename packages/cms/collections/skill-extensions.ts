@@ -61,7 +61,7 @@ export const SkillExtensions: CollectionConfig = {
       defaultValue: 'link_only',
       options: [
         { label: '已内置', value: 'built_in' },
-        { label: '查看接入方式', value: 'link_only' },
+        { label: '查看来源', value: 'link_only' },
         { label: '可安装', value: 'installable' },
         { label: '整理中', value: 'coming_soon' },
       ],

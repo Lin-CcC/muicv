@@ -10,6 +10,7 @@ import { ArrowUpRight, Highlight } from '../_icons';
 export const metadata: Metadata = {
   title: '求职内容中心',
   description: '围绕简历、校招、面试、offer 和 AI agent 的求职文章。',
+  alternates: { canonical: '/posts' },
 };
 
 export const dynamic = 'force-dynamic';

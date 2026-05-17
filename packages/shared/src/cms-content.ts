@@ -123,6 +123,7 @@ async function fetchPayloadDocs(
   try {
     const response = await fetchImpl(`${baseUrl}/api/${collection}?${params.toString()}`, {
       headers: { Accept: 'application/json' },
+      cache: 'no-store',
     });
 
     if (!response.ok) {

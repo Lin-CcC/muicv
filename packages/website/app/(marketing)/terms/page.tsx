@@ -10,6 +10,7 @@ import { Header } from '../_sections/header';
 export const metadata: Metadata = {
   title: '服务条款',
   description: 'Mui简历服务条款——使用本服务前请仔细阅读。',
+  alternates: { canonical: '/terms' },
 };
 
 export const dynamic = 'force-dynamic';

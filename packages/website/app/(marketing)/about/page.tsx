@@ -11,6 +11,7 @@ import { ArrowUpRight, Highlight, PawIcon } from '../_icons';
 export const metadata: Metadata = {
   title: '关于我们',
   description: '我们想做一个真正帮你拿到 offer 的工具，而不是又一个简历模板生成器。',
+  alternates: { canonical: '/about' },
 };
 
 export const dynamic = 'force-dynamic';

@@ -10,6 +10,7 @@ import { Header } from '../_sections/header';
 export const metadata: Metadata = {
   title: '隐私政策',
   description: 'Mui简历隐私政策——我们收集什么、怎么用、你有什么权利。',
+  alternates: { canonical: '/privacy' },
 };
 
 export const dynamic = 'force-dynamic';

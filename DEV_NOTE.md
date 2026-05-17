@@ -9,7 +9,7 @@
 ## 内容中心 / Skill 目录 / Payload CMS（Phase 17）
 
 - **内容消费统一走 Payload**：`packages/shared/src/content-registry.ts` 只保留内容契约和 section metadata，不再放 seed 基线。website、api、app 通过 `@muicv/shared` 的 CMS helpers 读取 Payload；CMS 不可用时返回空内容，避免假装已发布。
-- **第三方官方 skill 默认留在 MuiCV 闭环内**：例如腾讯招聘官方校招 skill，Mui 只登记来源和使用建议，不复制 `SKILL.md`，不托管安装包，不给竞品导流。app catalog 打开 MuiCV 自有详情 / 接入流程，不直接跳第三方来源。
+- **第三方官方 skill 默认先做来源索引**：例如腾讯招聘官方校招 skill，Mui 只登记公开来源和边界说明，不复制 `SKILL.md`，不托管安装包，不给竞品导流。无法确认能稳定接入前，不写“在 MuiCV 使用 / 安装 / 接入”的文案；app catalog 打开 MuiCV 自有详情页，由详情页说明当前是否仅为来源索引。
 - **自有/明确可分发 skill 才能安装**：`distributionMode='hosted' | 'external_direct'` 之后才允许 app 做真正安装；`built_in` 只展示“已内置”。
 - **Payload 独立 Worker，复用存储**：`packages/cms` 单独跑 `cms.muicv.com`，不嵌进 `packages/website`；但 D1 复用现有 `muicv`，R2 media 复用现有 `muicv` bucket，OpenNext cache 复用 `site-cache`。原因是早期内容量小，单独建库建桶会增加运维成本。
 - **CMS 数据分层**：`posts` 管 `/posts/<section>/<slug>`，`skillExtensions` 管 `/skills/<slug>` 和 app catalog，`changelog` 管产品更新，`media` 走 R2；Payload 自己维护表和 migration，不混入现有手写业务表。

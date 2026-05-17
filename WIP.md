@@ -14,6 +14,15 @@
 - [x] Skill 分组保留现有 Skill 市场入口、刷新、错误态和外链行为。
 - [x] 跑 app typecheck / test / build 验证。
 
+### 插队任务：腾讯校招内容降级为来源索引 + SEO 检查
+
+目标：腾讯校园招聘 Skill 当前不能轻易装进 MuiCV，所以公开内容改成“存在性 / 官方来源索引”；同时修复 sitemap 未收录 CMS 内容，并检查基础 SEO 配置。
+
+- [x] 用 CMS MCP 更新腾讯校招 Skill / 博客文案，移除 MuiCV 使用 / 安装暗示。
+- [x] 修复 sitemap 对 CMS posts / skills / changelog 的动态收录。
+- [x] 检查 robots、canonical、metadata、公开 API 与线上 sitemap 输出。
+- [x] 跑验证并 commit + push，交给自动部署。
+
 ### 插队任务：恢复 changelog 内容 + 修正文列表 marker
 
 目标：把历史 changelog 通过 CMS MCP 写回 Payload，并修复内容详情页 Markdown 列表没有圆点 / 序号的问题。

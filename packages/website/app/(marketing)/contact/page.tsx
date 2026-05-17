@@ -10,6 +10,7 @@ import { ArrowUpRight, Highlight } from '../_icons';
 export const metadata: Metadata = {
   title: '联系我们',
   description: '产品反馈、商务合作、媒体询问——找对邮箱，回复更快。',
+  alternates: { canonical: '/contact' },
 };
 
 export const dynamic = 'force-dynamic';

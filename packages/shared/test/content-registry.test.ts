@@ -58,8 +58,8 @@ test('cms content fetch maps Payload skills into registry shape', async () => {
             publisherType: 'official',
             sourceUrl: 'https://join.qq.com/post.html?query=p_2&activity=1251899672503271424',
             sourceLabel: '腾讯招聘官方岗位页',
-            distributionMode: 'hosted',
-            appAvailability: 'installable',
+            distributionMode: 'link_only',
+            appAvailability: 'link_only',
             summary: '围绕腾讯校招做岗位匹配、简历修改和模拟面试。',
             bodyMarkdown: '## 这是什么\n\n由 Payload 管理的 skill。',
             useCases: [{ value: '腾讯校招岗位匹配' }],
@@ -67,14 +67,14 @@ test('cms content fetch maps Payload skills into registry shape', async () => {
             keywords: [{ value: '腾讯校园招聘 Skill' }],
             publishedAt: '2026-05-16',
             seoTitle: '腾讯校园招聘 Skill',
-            seoDescription: '腾讯校园招聘 Skill 的 MuiCV 接入方式。',
+            seoDescription: '腾讯校园招聘 Skill 的官方来源索引。',
           },
         ],
       }),
   });
 
   assert.equal(skills[0]?.slug, 'tencent-campus-recruiting');
-  assert.equal(skills[0]?.appAvailability, 'installable');
+  assert.equal(skills[0]?.appAvailability, 'link_only');
   assert.deepEqual(skills[0]?.useCases, ['腾讯校招岗位匹配']);
 });
 
@@ -88,7 +88,7 @@ test('cms content fetch returns empty when Payload is unavailable', async () => 
 });
 
 test('cms content detail returns null when Payload has no matching slug', async () => {
-  const post = await fetchCmsPostBySlug('jobs', 'tencent-campus-recruiting-skill', {
+  const post = await fetchCmsPostBySlug('jobs', 'third-party-skills-tencent-campus-recruiting', {
     baseUrl: 'https://cms.example.com',
     fetchImpl: async () => Response.json({ docs: [] }),
   });
