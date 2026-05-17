@@ -21,6 +21,13 @@ type PayloadLoginResponse = {
   token?: string;
 };
 
+type PayloadMutationResponse<T> =
+  | T
+  | {
+      doc?: T;
+      message?: string;
+    };
+
 type PayloadErrorResponse = {
   message?: string;
   errors?: Array<{ message?: string }>;
@@ -71,17 +78,21 @@ export class CmsClient {
   }
 
   async createPost(payload: CmsPostPayload): Promise<CmsPostDocument> {
-    return this.request<CmsPostDocument>('/api/posts', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    return unwrapMutationDocument(
+      await this.request<PayloadMutationResponse<CmsPostDocument>>('/api/posts', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    );
   }
 
   async updatePost(id: number | string, payload: CmsPostPayload): Promise<CmsPostDocument> {
-    return this.request<CmsPostDocument>(`/api/posts/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
+    return unwrapMutationDocument(
+      await this.request<PayloadMutationResponse<CmsPostDocument>>(`/api/posts/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    );
   }
 
   async findSkillBySlug(slug: string): Promise<CmsSkillDocument | null> {
@@ -97,17 +108,21 @@ export class CmsClient {
   }
 
   async createSkill(payload: CmsSkillPayload): Promise<CmsSkillDocument> {
-    return this.request<CmsSkillDocument>('/api/skillExtensions', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    return unwrapMutationDocument(
+      await this.request<PayloadMutationResponse<CmsSkillDocument>>('/api/skillExtensions', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    );
   }
 
   async updateSkill(id: number | string, payload: CmsSkillPayload): Promise<CmsSkillDocument> {
-    return this.request<CmsSkillDocument>(`/api/skillExtensions/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    });
+    return unwrapMutationDocument(
+      await this.request<PayloadMutationResponse<CmsSkillDocument>>(`/api/skillExtensions/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    );
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -193,6 +208,14 @@ function parseJson(value: string): unknown {
   }
 }
 
+function unwrapMutationDocument<T>(value: PayloadMutationResponse<T>): T {
+  if (isRecord(value) && isRecord(value.doc)) {
+    return value.doc as T;
+  }
+
+  return value as T;
+}
+
 function extractErrorMessage(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -205,4 +228,8 @@ function extractErrorMessage(value: unknown): string {
   const error = value as PayloadErrorResponse;
   const firstMessage = error.errors?.find((item) => typeof item.message === 'string')?.message;
   return firstMessage ?? error.message ?? JSON.stringify(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }

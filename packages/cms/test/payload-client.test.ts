@@ -89,7 +89,7 @@ test('CmsClient 可读写 skillExtensions collection', async () => {
       const request = new Request(input, init);
       requests.push(request);
       if (request.method === 'PATCH') {
-        return Response.json({ id: 3, ...skillPayload, title: '更新后的 Skill' });
+        return Response.json({ doc: { id: 3, ...skillPayload, title: '更新后的 Skill' } });
       }
       return Response.json({ docs: [{ id: 3, ...skillPayload }] });
     },
@@ -122,7 +122,7 @@ test('CmsClient 可用邮箱密码登录并复用返回 token', async () => {
         return Response.json({ token: 'login-token' });
       }
 
-      return Response.json({ id: 2, ...payload });
+      return Response.json({ doc: { id: 2, ...payload } });
     },
   });
 
