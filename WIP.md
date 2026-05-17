@@ -4,6 +4,16 @@
 
 ## 当前进行中
 
+### 插队任务：设置页三分组重构
+
+目标：把 app 设置页从单列长滚动改成“通用 / 模型 / Skill”三分组导航，降低选项密度和滚动长度。
+
+- [x] 新增设置页左侧分组导航，右侧只渲染当前分组内容。
+- [x] 通用分组放账号、会员/余额、主题、版本更新和安全提示。
+- [x] 模型分组放默认 LLM、muirouter、BYOK endpoint 和本地 whisper.cpp 转写。
+- [x] Skill 分组保留现有 Skill 市场入口、刷新、错误态和外链行为。
+- [x] 跑 app typecheck / test / build 验证。
+
 ### 插队任务：恢复 changelog 内容 + 修正文列表 marker
 
 目标：把历史 changelog 通过 CMS MCP 写回 Payload，并修复内容详情页 Markdown 列表没有圆点 / 序号的问题。

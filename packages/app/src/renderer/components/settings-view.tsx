@@ -1,4 +1,11 @@
-import { ArrowLeftIcon, ArrowsClockwiseIcon, WarningIcon } from '@phosphor-icons/react';
+import {
+  ArrowLeftIcon,
+  ArrowsClockwiseIcon,
+  CpuIcon,
+  GearSixIcon,
+  PuzzlePieceIcon,
+  WarningIcon,
+} from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 
 import type { UpdaterStatus } from '../../shared/types.ts';
@@ -15,15 +22,21 @@ import { WhisperEngineCard } from './settings/whisper-engine-card';
 
 const LATEST_FEEDBACK_MS = 5_000;
 
+type SettingsSectionId = 'general' | 'models' | 'skills';
+
+const SETTINGS_SECTIONS: Array<{
+  id: SettingsSectionId;
+  title: string;
+  hint: string;
+  Icon: typeof GearSixIcon;
+}> = [
+  { id: 'general', title: '通用', hint: '账号、主题、版本', Icon: GearSixIcon },
+  { id: 'models', title: '模型', hint: 'LLM、BYOK、本地转写', Icon: CpuIcon },
+  { id: 'skills', title: 'Skill', hint: '内置能力与外部来源', Icon: PuzzlePieceIcon },
+];
+
 /**
- * 登录后的"账号控制台"。简历管理在顶栏 dropdown 完成，这里只放：
- *
- *   1. 账号头部（含返回按钮 + 退出登录）
- *   2. 会员档位 + token 余额（[PlanCard](settings/plan-card.tsx)）
- *   3. 模型选择卡（[ModelCard](settings/model-card.tsx)）
- *   4. muirouter 介绍卡（[MuirouterCard](settings/muirouter-card.tsx)）
- *   5. "用我自己的模型和额度"（[CustomLlmCard](settings/custom-llm-card.tsx)）
- *   6. footer 显示客户端版本号方便排查
+ * 登录后的设置页。壳层只负责三分组信息架构，业务配置仍落在各 settings/* card 里。
  */
 export function SettingsView() {
   const session = useAppStore((s) => s.session);
@@ -34,6 +47,7 @@ export function SettingsView() {
   const updaterStatus = useAppStore((s) => s.updaterStatus);
   const setUpdaterStatus = useAppStore((s) => s.setUpdaterStatus);
   const [version, setVersion] = useState<string>('');
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>('general');
 
   useEffect(() => {
     void window.muicv.app.getVersion().then(setVersion);
@@ -44,58 +58,172 @@ export function SettingsView() {
   const isBYOK = !!(config.customLlmBase && config.customLlmKey);
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-2xl flex-col gap-4 overflow-y-auto px-6 py-10">
-      <button
-        type="button"
-        onClick={() => setView('chat')}
-        title="返回对话"
-        className="-mb-2 inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-ink-soft hover:bg-fluff hover:text-ink"
-      >
-        <ArrowLeftIcon size={13} weight="bold" />
-        <span>返回</span>
-      </button>
+    <div className="h-full overflow-hidden bg-cream">
+      <div className="mx-auto flex h-full w-full max-w-4xl flex-col gap-4 px-5 py-6 lg:px-6 lg:py-8">
+        <button
+          type="button"
+          onClick={() => setView('chat')}
+          title="返回对话"
+          className="inline-flex w-fit items-center gap-1.5 rounded-lg px-2 py-1 text-[12px] font-medium text-ink-soft hover:bg-fluff hover:text-ink"
+        >
+          <ArrowLeftIcon size={13} weight="bold" />
+          <span>返回</span>
+        </button>
 
-      <header className="flex items-center justify-between gap-3 rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
-        <div className="flex items-center gap-3">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
+          <SettingsNav activeSection={activeSection} onChange={setActiveSection} />
+          <main className="min-h-0 overflow-y-auto pr-1">
+            <div className="flex flex-col gap-4 pb-2">
+              {activeSection === 'general' && (
+                <GeneralSettings
+                  session={session}
+                  version={version}
+                  updaterStatus={updaterStatus}
+                  setUpdaterStatus={setUpdaterStatus}
+                  onLogout={logout}
+                  onRefreshSession={refreshSession}
+                />
+              )}
+
+              {activeSection === 'models' && (
+                <ModelSettings
+                  isBYOK={isBYOK}
+                  currentModel={config.defaultModel}
+                  hasMuirouterBYOK={session.hasBYOK}
+                  muirouter={session.muirouter}
+                  onRefreshSession={refreshSession}
+                />
+              )}
+
+              {activeSection === 'skills' && <SkillMarketCard />}
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsNav({
+  activeSection,
+  onChange,
+}: {
+  activeSection: SettingsSectionId;
+  onChange: (section: SettingsSectionId) => void;
+}) {
+  return (
+    <nav aria-label="设置分类" className="min-w-0">
+      <div className="flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+        {SETTINGS_SECTIONS.map(({ id, title, hint, Icon }) => {
+          const active = activeSection === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onChange(id)}
+              aria-current={active ? 'page' : undefined}
+              className={`flex min-w-[156px] items-start gap-2 rounded-lg border-2 px-3 py-2 text-left transition lg:min-w-0 ${
+                active
+                  ? 'border-ink bg-fluff shadow-[0_2px_0_0_var(--color-ink)]'
+                  : 'border-rule bg-paper hover:border-rule-strong hover:bg-fluff/70'
+              }`}
+            >
+              <Icon size={16} weight={active ? 'bold' : 'duotone'} className="mt-0.5 shrink-0 text-yellow-deep" />
+              <span className="min-w-0">
+                <span className="block text-[14px] font-extrabold text-ink">{title}</span>
+                <span className="mt-0.5 block text-[12px] leading-[1.35] text-mute">{hint}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
+function GeneralSettings({
+  session,
+  version,
+  updaterStatus,
+  setUpdaterStatus,
+  onLogout,
+  onRefreshSession,
+}: {
+  session: NonNullable<ReturnType<typeof useAppStore.getState>['session']>;
+  version: string;
+  updaterStatus: UpdaterStatus;
+  setUpdaterStatus: (status: UpdaterStatus) => void;
+  onLogout: () => Promise<void>;
+  onRefreshSession: () => Promise<void>;
+}) {
+  return (
+    <>
+      <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
+        <div className="flex min-w-0 items-center gap-3">
           <Avatar session={session} />
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">已登录</p>
-            <p className="text-[16px] font-extrabold text-ink">{session.name}</p>
-            <p className="text-[12px] text-mute">{session.email}</p>
+            <p className="truncate text-[16px] font-extrabold text-ink">{session.name}</p>
+            <p className="truncate text-[12px] text-mute">{session.email}</p>
           </div>
         </div>
         <button
           type="button"
-          onClick={() => void logout()}
+          onClick={() => void onLogout()}
           className="rounded-lg border-2 border-rule-strong bg-cream px-3 py-1 text-[12px] font-medium text-tongue hover:bg-tongue/10"
         >
           退出登录
         </button>
       </header>
 
-      <PlanCard plan={session.plan} balance={session.balance} onRefresh={refreshSession} />
-
-      <ModelCard isBYOK={isBYOK} currentModel={config.defaultModel} />
-
-      <MuirouterCard hasBYOK={session.hasBYOK} muirouter={session.muirouter} onRefresh={refreshSession} />
-
-      <SkillMarketCard />
-
-      <CustomLlmCard />
-
-      <WhisperEngineCard />
-
+      <PlanCard plan={session.plan} balance={session.balance} onRefresh={onRefreshSession} />
       <ThemeCard />
+      <SettingsFooter version={version} updaterStatus={updaterStatus} setUpdaterStatus={setUpdaterStatus} />
+    </>
+  );
+}
 
-      <footer className="flex items-center gap-2 text-[12px] text-mute">
-        <CorgiMascot className="h-5 w-5" />
-        <span className="min-w-0 flex-1">所有设置只存本地（macOS Keychain 加密），不上传服务器。</span>
-        <div className="flex shrink-0 items-center gap-2">
-          {version && <span className="font-mono text-[12px] tabular-nums text-mute">v{version}</span>}
-          <SettingsUpdateButton status={updaterStatus} setStatus={setUpdaterStatus} />
-        </div>
-      </footer>
-    </div>
+function ModelSettings({
+  isBYOK,
+  currentModel,
+  hasMuirouterBYOK,
+  muirouter,
+  onRefreshSession,
+}: {
+  isBYOK: boolean;
+  currentModel: string;
+  hasMuirouterBYOK: boolean;
+  muirouter: NonNullable<ReturnType<typeof useAppStore.getState>['session']>['muirouter'];
+  onRefreshSession: () => Promise<void>;
+}) {
+  return (
+    <>
+      <ModelCard isBYOK={isBYOK} currentModel={currentModel} />
+      <MuirouterCard hasBYOK={hasMuirouterBYOK} muirouter={muirouter} onRefresh={onRefreshSession} />
+      <CustomLlmCard />
+      <WhisperEngineCard />
+    </>
+  );
+}
+
+function SettingsFooter({
+  version,
+  updaterStatus,
+  setUpdaterStatus,
+}: {
+  version: string;
+  updaterStatus: UpdaterStatus;
+  setUpdaterStatus: (status: UpdaterStatus) => void;
+}) {
+  return (
+    <footer className="flex flex-wrap items-center gap-2 rounded-lg border border-rule bg-paper px-3 py-2 text-[12px] text-mute">
+      <CorgiMascot className="h-5 w-5 shrink-0" />
+      <span className="min-w-[180px] flex-1">所有设置只存本地（macOS Keychain 加密），不上传服务器。</span>
+      <div className="flex shrink-0 items-center gap-2">
+        {version && <span className="font-mono text-[12px] tabular-nums text-mute">v{version}</span>}
+        <SettingsUpdateButton status={updaterStatus} setStatus={setUpdaterStatus} />
+      </div>
+    </footer>
   );
 }
 

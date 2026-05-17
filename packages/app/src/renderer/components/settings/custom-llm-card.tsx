@@ -44,7 +44,7 @@ export function CustomLlmCard() {
     <details className="rounded-xl border-2 border-rule bg-paper" open={customConfigured}>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-3.5">
         <div>
-          <p className="text-[14px] font-bold text-ink-soft">用我自己的模型和额度</p>
+          <p className="text-[14px] font-bold text-ink-soft">自带 endpoint / API key</p>
           <p className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-mute">
             {customConfigured ? (
               <>
@@ -52,7 +52,7 @@ export function CustomLlmCard() {
                 <span>当前直连 {shortHost(cfg.customLlmBase ?? '')}（不走 muicv 平台）</span>
               </>
             ) : (
-              <span>您也可以使用其它平台的模型，减少 MuiCV token 消耗。</span>
+              <span>你也可以使用其它平台的 OpenAI 兼容 endpoint，减少 MuiCV token 消耗。</span>
             )}
           </p>
         </div>
@@ -61,8 +61,8 @@ export function CustomLlmCard() {
 
       <div className="space-y-4 border-t border-rule px-5 py-4">
         <p className="text-[12px] leading-[1.65] text-mute">
-          有自己的 OpenAI 兼容 endpoint 和 API key？填在下面，AI 调用会直接打你配的端点，不再经过 muicv 平台。 支持任何
-          OpenAI 兼容服务：OpenAI、muirouter、自部署的 ollama / vllm 等。
+          有自己的 OpenAI 兼容 endpoint 和 API key？填在下面，AI 调用会直接打你配的端点，不再经过 muicv 平台。支持
+          OpenAI、muirouter、自部署的 ollama / vllm 等。
         </p>
 
         <Field
