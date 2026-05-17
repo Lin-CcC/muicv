@@ -419,9 +419,17 @@ MCP tools：
 | `create_post` | 创建 posts 文档；slug 已存在会报错 |
 | `upsert_post` | 按 slug 创建或更新 posts 文档；默认更新已有文章 |
 | `get_post` | 按 slug 查询文章，用于写作前查重 |
+| `create_skill` | 创建 skillExtensions 文档；slug 已存在会报错 |
+| `upsert_skill` | 按 slug 创建或更新 skillExtensions 文档；默认更新已有 skill |
+| `get_skill` | 按 slug 查询 skill，用于写作前查重 |
 
 所有写入默认都是 `status: "draft"`；只有调用方明确传 `status: "published"` 才会发布。
-`section` 默认是 `jobs`，对应公开路径 `/posts/jobs/<slug>`。
+文章的 `section` 默认是 `jobs`，对应公开路径 `/posts/jobs/<slug>`；skill 对应公开路径
+`/skills/<slug>`。
+
+推荐在 Payload Admin 的 Users 里给专用用户生成 API Key，然后传给 MCP。Payload API Key
+的请求头格式是 `Authorization: users API-Key <key>`，MCP client 会根据
+`MUICV_CMS_API_KEY` 自动拼好这个 header。
 
 Agent 配置示例：
 
@@ -434,15 +442,15 @@ Agent 配置示例：
       "cwd": "/Users/meathill/Documents/GitHub/muicv",
       "env": {
         "MUICV_CMS_URL": "https://cms.muicv.com",
-        "MUICV_CMS_EMAIL": "<CMS 登录邮箱>",
-        "MUICV_CMS_PASSWORD": "<CMS 登录密码>"
+        "MUICV_CMS_API_KEY": "<Payload Users 里生成的 API Key>"
       }
     }
   }
 }
 ```
 
-如果 Agent 支持短期 token，也可以只传 `MUICV_CMS_TOKEN`。不要把这些值写进仓库文件；
+也可以用 `MUICV_CMS_TOKEN` 传短期 Bearer token，或用 `MUICV_CMS_EMAIL` /
+`MUICV_CMS_PASSWORD` 登录后换 token；这两种只作为兜底。不要把这些值写进仓库文件，
 放在本机 MCP client 的私有配置或系统密码管理器里。
 
 ---

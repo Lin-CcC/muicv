@@ -1,8 +1,19 @@
 # WIP：Mui简历开发计划
 
-最后更新：2026-05-16
+最后更新：2026-05-17
 
 ## 当前进行中
+
+### 插队任务：Payload CMS 用户 API Key
+
+目标：让 CMS 管理员可以在 Users 里为 MCP / Agent 工作流生成 Payload API Key，不再依赖邮箱密码登录。
+
+- [x] 确认 Payload API Key 需要 `auth.useAPIKey`，不是额外插件。
+- [x] 给 `users` collection 开启 API Key。
+- [x] 生成对应 D1 migration。
+- [x] 更新 Payload 类型。
+- [x] 跑 CMS 验证并应用远端 D1 migration。
+- [x] MCP client 改为优先使用 Payload 用户 API Key。
 
 ### 插队任务：Skill 目录 + 求职内容中心 + Payload CMS
 

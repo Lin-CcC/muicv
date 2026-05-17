@@ -1,9 +1,15 @@
 import * as migration_20260516_031843_initial_cms_schema from './20260516_031843_initial_cms_schema';
+import * as migration_20260517_024642_enable_user_api_key from './20260517_024642_enable_user_api_key';
 
 export const migrations = [
   {
     up: migration_20260516_031843_initial_cms_schema.up,
     down: migration_20260516_031843_initial_cms_schema.down,
     name: '20260516_031843_initial_cms_schema',
+  },
+  {
+    up: migration_20260517_024642_enable_user_api_key.up,
+    down: migration_20260517_024642_enable_user_api_key.down,
+    name: '20260517_024642_enable_user_api_key',
   },
 ];

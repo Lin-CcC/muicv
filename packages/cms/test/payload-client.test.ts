@@ -62,6 +62,24 @@ test('CmsClient 使用 bearer token 调 Payload API', async () => {
   );
 });
 
+test('CmsClient 使用 Payload 用户 API Key 调 Payload API', async () => {
+  const requests: Request[] = [];
+  const client = new CmsClient({
+    baseUrl: 'https://cms.example.com',
+    apiKey: 'payload-api-key',
+    fetchImpl: async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      return Response.json({ docs: [{ id: 1, ...payload }] });
+    },
+  });
+
+  const post = await client.findPostBySlug('test-post');
+
+  assert.equal(post?.id, 1);
+  assert.equal(requests[0]?.headers.get('Authorization'), 'users API-Key payload-api-key');
+});
+
 test('CmsClient 可读写 skillExtensions collection', async () => {
   const requests: Request[] = [];
   const client = new CmsClient({

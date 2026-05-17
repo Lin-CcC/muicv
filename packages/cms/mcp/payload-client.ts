@@ -28,6 +28,7 @@ type PayloadErrorResponse = {
 
 type CmsClientOptions = {
   baseUrl?: string;
+  apiKey?: string;
   token?: string;
   email?: string;
   password?: string;
@@ -36,12 +37,15 @@ type CmsClientOptions = {
 
 export class CmsAuthError extends Error {
   constructor() {
-    super('缺少 CMS 鉴权。请设置 MUICV_CMS_TOKEN，或设置 MUICV_CMS_EMAIL / MUICV_CMS_PASSWORD。');
+    super(
+      '缺少 CMS 鉴权。请设置 MUICV_CMS_API_KEY，或设置 MUICV_CMS_TOKEN，或设置 MUICV_CMS_EMAIL / MUICV_CMS_PASSWORD。',
+    );
   }
 }
 
 export class CmsClient {
   private readonly baseUrl: string;
+  private readonly apiKey: string | undefined;
   private readonly email: string | undefined;
   private readonly password: string | undefined;
   private readonly fetchImpl: typeof fetch;
@@ -49,6 +53,7 @@ export class CmsClient {
 
   constructor(options: CmsClientOptions = {}) {
     this.baseUrl = trimTrailingSlash(options.baseUrl ?? process.env.MUICV_CMS_URL ?? 'https://cms.muicv.com');
+    this.apiKey = options.apiKey ?? process.env.MUICV_CMS_API_KEY ?? process.env.PAYLOAD_API_KEY;
     this.token = options.token ?? process.env.MUICV_CMS_TOKEN ?? process.env.PAYLOAD_TOKEN;
     this.email = options.email ?? process.env.MUICV_CMS_EMAIL;
     this.password = options.password ?? process.env.MUICV_CMS_PASSWORD;
@@ -131,6 +136,10 @@ export class CmsClient {
   }
 
   private async getAuthorizationHeader(): Promise<string> {
+    if (this.apiKey) {
+      return `users API-Key ${this.apiKey}`;
+    }
+
     if (this.token) {
       return `Bearer ${this.token}`;
     }
