@@ -271,10 +271,21 @@ body {
 .prose-mui ul,
 .prose-mui ol {
   margin: 0 0 1.2em;
-  padding-left: 1.35em;
+  padding-left: 1.45em;
+}
+.prose-mui ul {
+  list-style: disc outside;
+}
+.prose-mui ol {
+  list-style: decimal outside;
 }
 .prose-mui li {
   margin: 0.45em 0;
+  padding-left: 0.15em;
+}
+.prose-mui li::marker {
+  color: var(--color-ink);
+  font-weight: 800;
 }
 .prose-mui strong {
   color: var(--color-ink);

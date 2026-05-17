@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { CmsClient } from '../mcp/payload-client.ts';
+import type { CmsChangelogPayload } from '../mcp/changelog-input.ts';
 import type { CmsPostPayload } from '../mcp/post-input.ts';
 import type { CmsSkillPayload } from '../mcp/skill-input.ts';
 
@@ -38,6 +39,17 @@ const skillPayload: CmsSkillPayload = {
   publishedAt: '2026-05-16',
   seoTitle: '腾讯校园招聘 Skill',
   seoDescription: '测试摘要',
+};
+
+const changelogPayload: CmsChangelogPayload = {
+  title: '新增 Skill 目录和求职内容中心',
+  slug: 'skill-directory-start',
+  status: 'published',
+  _status: 'published',
+  version: '0.5.0',
+  summary: '测试摘要',
+  bodyMarkdown: '# Changelog',
+  publishedAt: '2026-05-16',
 };
 
 test('CmsClient 使用 bearer token 调 Payload API', async () => {
@@ -105,6 +117,33 @@ test('CmsClient 可读写 skillExtensions collection', async () => {
     'https://cms.example.com/api/skillExtensions?depth=0&limit=1&where%5Bslug%5D%5Bequals%5D=tencent-campus-recruiting',
   );
   assert.equal(requests[1]?.url, 'https://cms.example.com/api/skillExtensions/3');
+});
+
+test('CmsClient 可读写 changelog collection', async () => {
+  const requests: Request[] = [];
+  const client = new CmsClient({
+    baseUrl: 'https://cms.example.com',
+    token: 'token-123',
+    fetchImpl: async (input, init) => {
+      const request = new Request(input, init);
+      requests.push(request);
+      if (request.method === 'PATCH') {
+        return Response.json({ doc: { id: 4, ...changelogPayload, title: '更新后的日志' } });
+      }
+      return Response.json({ docs: [{ id: 4, ...changelogPayload }] });
+    },
+  });
+
+  const item = await client.findChangelogBySlug('skill-directory-start');
+  const updated = await client.updateChangelog(4, { ...changelogPayload, title: '更新后的日志' });
+
+  assert.equal(item?.id, 4);
+  assert.equal(updated.title, '更新后的日志');
+  assert.equal(
+    requests[0]?.url,
+    'https://cms.example.com/api/changelog?depth=0&limit=1&where%5Bslug%5D%5Bequals%5D=skill-directory-start',
+  );
+  assert.equal(requests[1]?.url, 'https://cms.example.com/api/changelog/4');
 });
 
 test('CmsClient 可用邮箱密码登录并复用返回 token', async () => {

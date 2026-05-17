@@ -1,3 +1,4 @@
+import type { CmsChangelogPayload } from './changelog-input.ts';
 import type { CmsPostPayload } from './post-input.ts';
 import type { CmsSkillPayload } from './skill-input.ts';
 
@@ -8,6 +9,12 @@ export type CmsPostDocument = CmsPostPayload & {
 };
 
 export type CmsSkillDocument = CmsSkillPayload & {
+  id: number | string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CmsChangelogDocument = CmsChangelogPayload & {
   id: number | string;
   createdAt?: string;
   updatedAt?: string;
@@ -119,6 +126,34 @@ export class CmsClient {
   async updateSkill(id: number | string, payload: CmsSkillPayload): Promise<CmsSkillDocument> {
     return unwrapMutationDocument(
       await this.request<PayloadMutationResponse<CmsSkillDocument>>(`/api/skillExtensions/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      }),
+    );
+  }
+
+  async findChangelogBySlug(slug: string): Promise<CmsChangelogDocument | null> {
+    const params = new URLSearchParams({
+      depth: '0',
+      limit: '1',
+      'where[slug][equals]': slug,
+    });
+    const result = await this.request<PayloadListResponse<CmsChangelogDocument>>(`/api/changelog?${params.toString()}`);
+    return result.docs?.[0] ?? null;
+  }
+
+  async createChangelog(payload: CmsChangelogPayload): Promise<CmsChangelogDocument> {
+    return unwrapMutationDocument(
+      await this.request<PayloadMutationResponse<CmsChangelogDocument>>('/api/changelog', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    );
+  }
+
+  async updateChangelog(id: number | string, payload: CmsChangelogPayload): Promise<CmsChangelogDocument> {
+    return unwrapMutationDocument(
+      await this.request<PayloadMutationResponse<CmsChangelogDocument>>(`/api/changelog/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(payload),
       }),

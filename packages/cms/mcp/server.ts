@@ -1,7 +1,21 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
-import { CmsAuthError, CmsClient, type CmsPostDocument, type CmsSkillDocument } from './payload-client.ts';
+import {
+  CmsAuthError,
+  CmsClient,
+  type CmsChangelogDocument,
+  type CmsPostDocument,
+  type CmsSkillDocument,
+} from './payload-client.ts';
+import {
+  createChangelogInputSchema,
+  getChangelogInputSchema,
+  normalizeCreateChangelogInput,
+  normalizeGetChangelogInput,
+  normalizeUpsertChangelogInput,
+  upsertChangelogInputSchema,
+} from './changelog-input.ts';
 import {
   createPostInputSchema,
   getPostInputSchema,
@@ -196,6 +210,90 @@ server.registerTool(
   },
 );
 
+server.registerTool(
+  'create_changelog',
+  {
+    title: '创建 Mui 简历 CMS 更新日志',
+    description:
+      '在 Payload CMS 的 changelog collection 里创建更新日志。默认 status=draft；只有明确传 status=published 才发布。',
+    inputSchema: createChangelogInputSchema,
+  },
+  async (args) => {
+    return withToolErrors(async () => {
+      const input = normalizeCreateChangelogInput(args);
+      if (input.dryRun) {
+        return jsonResult({ ok: true, dryRun: true, payload: input.payload });
+      }
+
+      const client = new CmsClient();
+      const existing = await client.findChangelogBySlug(input.payload.slug);
+      if (existing) {
+        return errorResult(
+          `slug "${input.payload.slug}" 已存在。请换 slug，或改用 upsert_changelog 更新已有更新日志。`,
+        );
+      }
+
+      const item = await client.createChangelog(input.payload);
+      return jsonResult({ ok: true, action: 'created', changelog: toChangelogResult(item) });
+    });
+  },
+);
+
+server.registerTool(
+  'upsert_changelog',
+  {
+    title: '创建或更新 Mui 简历 CMS 更新日志',
+    description:
+      '按 slug 查找更新日志；不存在则创建，存在且 onConflict=update 时更新。默认创建/更新草稿，除非明确传 status=published。',
+    inputSchema: upsertChangelogInputSchema,
+  },
+  async (args) => {
+    return withToolErrors(async () => {
+      const input = normalizeUpsertChangelogInput(args);
+      if (input.dryRun) {
+        return jsonResult({ ok: true, dryRun: true, onConflict: input.onConflict, payload: input.payload });
+      }
+
+      const client = new CmsClient();
+      const existing = await client.findChangelogBySlug(input.payload.slug);
+
+      if (!existing) {
+        const item = await client.createChangelog(input.payload);
+        return jsonResult({ ok: true, action: 'created', changelog: toChangelogResult(item) });
+      }
+
+      if (input.onConflict === 'error') {
+        return errorResult(`slug "${input.payload.slug}" 已存在。设置 onConflict=update 才会覆盖更新。`);
+      }
+
+      const item = await client.updateChangelog(existing.id, input.payload);
+      return jsonResult({ ok: true, action: 'updated', changelog: toChangelogResult(item) });
+    });
+  },
+);
+
+server.registerTool(
+  'get_changelog',
+  {
+    title: '读取 Mui 简历 CMS 更新日志',
+    description: '按 slug 读取 Payload CMS 里的 changelog 文档，用于写作前查重或更新前确认。',
+    inputSchema: getChangelogInputSchema,
+  },
+  async (args) => {
+    return withToolErrors(async () => {
+      const { slug } = normalizeGetChangelogInput(args);
+      const client = new CmsClient();
+      const item = await client.findChangelogBySlug(slug);
+
+      if (!item) {
+        return jsonResult({ ok: true, found: false, slug });
+      }
+
+      return jsonResult({ ok: true, found: true, changelog: toChangelogResult(item) });
+    });
+  },
+);
+
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -276,5 +374,18 @@ function toSkillResult(skill: CmsSkillDocument) {
     url: `https://muicv.com/skills/${skill.slug}`,
     cmsUrl: `${process.env.MUICV_CMS_URL ?? 'https://cms.muicv.com'}/admin/collections/skillExtensions/${skill.id}`,
     updatedAt: skill.updatedAt,
+  };
+}
+
+function toChangelogResult(item: CmsChangelogDocument) {
+  return {
+    id: item.id,
+    slug: item.slug,
+    status: item.status,
+    title: item.title,
+    version: item.version,
+    url: 'https://muicv.com/changelog',
+    cmsUrl: `${process.env.MUICV_CMS_URL ?? 'https://cms.muicv.com'}/admin/collections/changelog/${item.id}`,
+    updatedAt: item.updatedAt,
   };
 }

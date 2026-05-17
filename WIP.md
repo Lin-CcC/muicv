@@ -4,6 +4,15 @@
 
 ## 当前进行中
 
+### 插队任务：恢复 changelog 内容 + 修正文列表 marker
+
+目标：把历史 changelog 通过 CMS MCP 写回 Payload，并修复内容详情页 Markdown 列表没有圆点 / 序号的问题。
+
+- [x] 给 CMS MCP 补齐 changelog 创建 / 更新 / 查询工具。
+- [x] 用 MCP 把历史 changelog 写入 Payload CMS。
+- [x] 修复 `.prose-mui` 下 `ul` / `ol` 的 marker 样式。
+- [x] 跑 CMS / website 验证并提交推送。
+
 ### 插队任务：Payload CMS 用户 API Key
 
 目标：让 CMS 管理员可以在 Users 里为 MCP / Agent 工作流生成 Payload API Key，不再依赖邮箱密码登录。
