@@ -10,13 +10,6 @@ declare namespace Cloudflare {
     ASSETS: Fetcher;
     BETTER_AUTH_URL: 'https://muicv.com';
     GITHUB_CLIENT_ID: '3dbc98e657fc50a08577';
-    STRIPE_PRICE_PRO_MONTHLY: 'price_1TUjjpEpkXm2vxXT7PRayf4m';
-    STRIPE_PRICE_PRO_YEARLY: 'price_1TUjkFEpkXm2vxXTqDLQ6kon';
-    STRIPE_PRICE_MAX_MONTHLY: 'price_1TRwcYEpkXm2vxXTolTABRBM';
-    STRIPE_PRICE_MAX_YEARLY: 'price_1TRwczEpkXm2vxXTxoxuOYjq';
-    STRIPE_PRICE_TOPUP_SMALL: 'price_1TUjkrEpkXm2vxXTOgEMjxDE';
-    STRIPE_PRICE_TOPUP_MEDIUM: 'price_1TUjlcEpkXm2vxXTgr6Od5el';
-    STRIPE_PRICE_TOPUP_LARGE: 'price_1TUjm2EpkXm2vxXTy8UHK9qo';
     ADMIN_EMAILS: 'meathill@gmail.com';
     WORKER_SELF_REFERENCE: Fetcher /* muicv-web */;
   }
@@ -27,21 +20,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 };
 declare namespace NodeJS {
   interface ProcessEnv
-    extends StringifyValues<
-      Pick<
-        Cloudflare.Env,
-        | 'BETTER_AUTH_URL'
-        | 'GITHUB_CLIENT_ID'
-        | 'STRIPE_PRICE_PRO_MONTHLY'
-        | 'STRIPE_PRICE_PRO_YEARLY'
-        | 'STRIPE_PRICE_MAX_MONTHLY'
-        | 'STRIPE_PRICE_MAX_YEARLY'
-        | 'STRIPE_PRICE_TOPUP_SMALL'
-        | 'STRIPE_PRICE_TOPUP_MEDIUM'
-        | 'STRIPE_PRICE_TOPUP_LARGE'
-        | 'ADMIN_EMAILS'
-      >
-    > {}
+    extends StringifyValues<Pick<Cloudflare.Env, 'BETTER_AUTH_URL' | 'GITHUB_CLIENT_ID' | 'ADMIN_EMAILS'>> {}
 }
 
 // Begin runtime types

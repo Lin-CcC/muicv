@@ -212,16 +212,22 @@ export function modelSupportsAudioInput(modelId: string): boolean {
 }
 
 /**
+ * 支持的展示币种。**结算币种 = Stripe Price 的 currency**（每个 price 一个 currency），
+ * 本枚举只控制 UI 文案 + 选哪个 priceId 进 Checkout，不直接进 Stripe 调用。
+ */
+export type Currency = 'usd' | 'cny';
+
+/**
  * 订阅档位：每个 cycle（月付每月 / 年付每年）自动续 tokens。
  * 年付 = Stripe 一年 invoice 一次，invoice.paid 时一次性发 yearly.tokens（标准 SaaS 做法）。
  *
- * tokens 字段单位：**显示 token**（webhook 入账时 displayToMicro 转 μ 后调 credit）。
+ * tokens 字段单位：**显示 token**（webhook 入账时 displayToMicro 转 μ 后调 credit）。同档 USD / CNY token 数相同。
  *
  * 数据来源 / 维护：
- *   - tokens / priceCnyDisplay：本文件硬编码，调价时改这里 + Stripe Dashboard 同步
- *   - Stripe price ID：在 packages/website/wrangler.jsonc 的 vars 里给
- *     （STRIPE_PRICE_<PLAN>_<INTERVAL>，详见 lib/stripe.ts 的 priceIdToCycleTokens）
- *   - savingsLabel：年付的折扣展示文案，纯 UI 用
+ *   - tokens / display：本文件硬编码，调价时改这里 + Stripe Dashboard 同步
+ *   - Stripe price ID：在 packages/website/lib/stripe-prices.ts 的常量表里给
+ *     （结构 plan × interval × currency，详见 lib/stripe.ts 的 priceIdToCycleTokens）
+ *   - savingsLabel：年付的折扣展示文案，纯 UI 用，按币种分别给
  *
  * **设计原则（issue #4 重定价，2026-05-08）**：订阅基本贴成本（月付微利、年付微亏），
  * 利润中心放在 TOPUP_PACKS。年付亏的部分等于「为留客户付的市场费」。
@@ -230,6 +236,7 @@ export function modelSupportsAudioInput(modelId: string): boolean {
  * 锚点 1 显示 token = $1e-5；token 价格 = 上游 × 1.1；
  * 余额面值 = tokens × $1e-5；上游成本 = 面值 / 1.1；毛利 = 售价 - 上游成本。
  *
+ * USD 档：
  *   | 档位        | 售价     | tokens | 面值     | 上游成本 | 满载毛利   | 毛利率   |
  *   | ---------- | -------- | ------ | -------- | -------- | --------- | -------- |
  *   | Pro 月付   | $4.88    | 500k   | $5.00    | $4.55    | +$0.33    | +6.8%    |
@@ -237,19 +244,41 @@ export function modelSupportsAudioInput(modelId: string): boolean {
  *   | Max 月付   | $15.88   | 1.7M   | $17.00   | $15.45   | +$0.43    | +2.7%    |
  *   | Max 年付   | $158.88  | 20M    | $200.00  | $181.82  | -$22.94   | -14.4%   |
  *
+ * CNY 档（售价 = USD × 6.8 → 整数 + .88；结算 FX 仍按 ¥7/$，等于让利 ~2.9%）：
+ *   | 档位        | 售价 ¥    | 售价 $   | 上游 $   | 满载毛利 $ | 毛利率   |
+ *   | ---------- | -------- | -------- | -------- | --------- | -------- |
+ *   | Pro 月付   | ¥33.88   | $4.84    | $4.55    | +$0.30    | +6.1%    |
+ *   | Pro 年付   | ¥332.88  | $47.55   | $54.55   | -$6.99    | -14.7%   |
+ *   | Max 月付   | ¥107.88  | $15.41   | $15.45   | -$0.04    | -0.3%（贴成本）|
+ *   | Max 年付   | ¥1080.88 | $154.41  | $181.82  | -$27.41   | -17.8%   |
+ *
  * 年付 = 月付 × 10 价 ≈ 月付 × 12 token：「10 个月的钱买 12 个月的量」，单价省 ≈ 17%。
  * Max 年付 token 砍到 20M（严格 12 倍是 20.4M）让数字 round + 少亏 2%。
  */
 export const SUBSCRIPTION_PLANS = {
   pro: {
     label: 'Pro',
-    monthly: { tokens: 500_000, priceCnyDisplay: '$4.88 / 月' },
-    yearly: { tokens: 6_000_000, priceCnyDisplay: '$48.88 / 年', savingsLabel: '相当于 $4.07 / 月，省 17%' },
+    monthly: {
+      tokens: 500_000,
+      display: { usd: '$4.88 / 月', cny: '¥33.88 / 月' },
+    },
+    yearly: {
+      tokens: 6_000_000,
+      display: { usd: '$48.88 / 年', cny: '¥332.88 / 年' },
+      savingsLabel: { usd: '相当于 $4.07 / 月，省 17%', cny: '相当于 ¥27.74 / 月，省 17%' },
+    },
   },
   max: {
     label: 'Max',
-    monthly: { tokens: 1_700_000, priceCnyDisplay: '$15.88 / 月' },
-    yearly: { tokens: 20_000_000, priceCnyDisplay: '$158.88 / 年', savingsLabel: '相当于 $13.24 / 月，省 17%' },
+    monthly: {
+      tokens: 1_700_000,
+      display: { usd: '$15.88 / 月', cny: '¥107.88 / 月' },
+    },
+    yearly: {
+      tokens: 20_000_000,
+      display: { usd: '$158.88 / 年', cny: '¥1080.88 / 年' },
+      savingsLabel: { usd: '相当于 $13.24 / 月，省 17%', cny: '相当于 ¥90.07 / 月，省 17%' },
+    },
   },
 } as const;
 
@@ -275,25 +304,33 @@ export function getPlanLabel(plan: string | null | undefined): string {
 
 /**
  * 一次性补充包：付完款 webhook 立刻 +tokens（显示 token，credit 时转 μ）。
- * priceCnyDisplay 仅展示用，真实价格在 Stripe price 上。
+ * display 仅展示用，真实价格在 Stripe price 上。同档 USD / CNY token 数相同。
  *
  * **设计原则（issue #4 重定价，2026-05-08）**：本档承担主要利润，毛利率梯度 32% / 26% / 20%。
  * 故意做成"买得越多单价越低，但永远比订阅贵"，引导高频用户走订阅。
  *
  * **满载毛利率**（同 SUBSCRIPTION_PLANS 口径）：
  *
+ * USD 档：
  *   | 档位     | 售价     | tokens | 面值     | 上游成本 | 满载毛利 | 毛利率  | tokens 单价 |
  *   | ------- | -------- | ------ | -------- | -------- | -------- | ------- | ----------- |
  *   | small   | $1.88    | 140k   | $1.40    | $1.27    | +$0.61   | +32.4%  | $13.43/M    |
  *   | medium  | $5.88    | 480k   | $4.80    | $4.36    | +$1.52   | +25.8%  | $12.25/M    |
  *   | large   | $19.88   | 1.75M  | $17.50   | $15.91   | +$3.97   | +20.0%  | $11.36/M    |
  *
+ * CNY 档（USD × 6.8 → 整数 + .88；结算 FX ¥7/$）：
+ *   | 档位     | 售价 ¥   | 售价 $   | 上游 $   | 满载毛利 $ | 毛利率   |
+ *   | ------- | -------- | -------- | -------- | --------- | -------- |
+ *   | small   | ¥12.88   | $1.84    | $1.27    | +$0.57    | +30.9%   |
+ *   | medium  | ¥39.88   | $5.70    | $4.36    | +$1.33    | +23.4%   |
+ *   | large   | ¥135.88  | $19.41   | $15.91   | +$3.50    | +18.0%   |
+ *
  * 阶梯参考：Pro 月付 $9.76/M，Max 月付 $9.34/M（topup 永远贵于订阅）。
  */
 export const TOPUP_PACKS = {
-  small: { tokens: 140_000, priceCnyDisplay: '$1.88' },
-  medium: { tokens: 480_000, priceCnyDisplay: '$5.88' },
-  large: { tokens: 1_750_000, priceCnyDisplay: '$19.88' },
+  small: { tokens: 140_000, display: { usd: '$1.88', cny: '¥12.88' } },
+  medium: { tokens: 480_000, display: { usd: '$5.88', cny: '¥39.88' } },
+  large: { tokens: 1_750_000, display: { usd: '$19.88', cny: '¥135.88' } },
 } as const;
 
 export type TopupPackKey = keyof typeof TOPUP_PACKS;

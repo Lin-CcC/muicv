@@ -2,12 +2,15 @@
 
 import {
   type BillingInterval,
+  type Currency,
   type SubscriptionPlanKey,
   type TopupPackKey,
   SUBSCRIPTION_PLANS,
   TOPUP_PACKS,
 } from '@muicv/shared';
 import { useState } from 'react';
+
+import { CurrencyToggle } from '@/components/currency-toggle';
 
 /**
  * Stripe 跳转按钮的 client component。
@@ -18,8 +21,17 @@ import { useState } from 'react';
  *   - 管理订阅：POST /api/billing/portal → Stripe Portal
  *
  * 都返回 hosted URL；无前端 Stripe SDK 依赖（省 80KB bundle）。
+ *
+ * `currency` 由父级 server component（plans-section）注入，决定订阅卡 / topup 卡上
+ * 显示哪一套文案。币种切换 UI 在右上 CurrencyToggle，切换后写 cookie + router.refresh()。
  */
-export function BillingActions({ hasActiveSubscription }: { hasActiveSubscription: boolean }) {
+export function BillingActions({
+  hasActiveSubscription,
+  currency,
+}: {
+  hasActiveSubscription: boolean;
+  currency: Currency;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [interval, setInterval] = useState<BillingInterval>('monthly');
@@ -48,6 +60,10 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <CurrencyToggle currency={currency} />
+      </div>
+
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="text-[16px] font-extrabold text-ink">订阅（自动续 Token）</h3>
@@ -104,7 +120,7 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
                   </span>
                 </span>
                 <span className="font-mono text-[14px] font-bold tabular-nums text-yellow-deep">
-                  {cycle.priceCnyDisplay}
+                  {cycle.display[currency]}
                 </span>
               </button>
             );
@@ -128,7 +144,7 @@ export function BillingActions({ hasActiveSubscription }: { hasActiveSubscriptio
               >
                 <span className="font-mono text-[12px] uppercase tracking-wider text-mute">{key}</span>
                 <span className="text-[16px] font-extrabold text-ink">{pack.tokens.toLocaleString()} tokens</span>
-                <span className="font-mono text-[12px] tabular-nums text-yellow-deep">{pack.priceCnyDisplay}</span>
+                <span className="font-mono text-[12px] tabular-nums text-yellow-deep">{pack.display[currency]}</span>
               </button>
             );
           })}

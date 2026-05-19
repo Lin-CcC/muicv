@@ -1,5 +1,6 @@
 import {
   type BillingInterval,
+  type Currency,
   type SubscriptionPlanKey,
   type TopupPackKey,
   SUBSCRIPTION_PLANS,
@@ -10,6 +11,12 @@ import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
 import { getDb, schema } from './db';
+import {
+  STRIPE_SUBSCRIPTION_PRICES,
+  STRIPE_TOPUP_PRICES,
+  SUBSCRIPTION_PRICE_META,
+  TOPUP_PRICE_META,
+} from './stripe-prices';
 
 /**
  * Stripe SDK 在 Cloudflare Workers 的关键约束：
@@ -34,64 +41,45 @@ export async function getStripe(): Promise<Stripe> {
 }
 
 /**
- * 订阅 plan + interval → Stripe price id（从 wrangler vars 读）。
- * 切 live mode 时换 wrangler.jsonc vars 即可。
+ * 订阅 plan + interval + currency → Stripe price id（读 lib/stripe-prices.ts 常量）。
+ * 同 plan 同 interval 的 USD / CNY 在 Stripe 里是两个独立 price 对象，token 数相同。
  */
-export async function planKeyToPriceId(plan: SubscriptionPlanKey, interval: BillingInterval): Promise<string> {
-  const { env } = await getCloudflareContext({ async: true });
-  const map: Record<SubscriptionPlanKey, Record<BillingInterval, string>> = {
-    pro: { monthly: env.STRIPE_PRICE_PRO_MONTHLY, yearly: env.STRIPE_PRICE_PRO_YEARLY },
-    max: { monthly: env.STRIPE_PRICE_MAX_MONTHLY, yearly: env.STRIPE_PRICE_MAX_YEARLY },
-  };
-  return map[plan][interval];
+export function planKeyToPriceId(plan: SubscriptionPlanKey, interval: BillingInterval, currency: Currency): string {
+  return STRIPE_SUBSCRIPTION_PRICES[plan][interval][currency];
 }
 
-export async function topupPackToPriceId(pack: TopupPackKey): Promise<string> {
-  const { env } = await getCloudflareContext({ async: true });
-  const map: Record<TopupPackKey, string> = {
-    small: env.STRIPE_PRICE_TOPUP_SMALL,
-    medium: env.STRIPE_PRICE_TOPUP_MEDIUM,
-    large: env.STRIPE_PRICE_TOPUP_LARGE,
-  };
-  return map[pack];
+export function topupPackToPriceId(pack: TopupPackKey, currency: Currency): string {
+  return STRIPE_TOPUP_PRICES[pack][currency];
 }
 
 /**
  * Stripe price id → 一个 cycle 上账的 token 数（月付每月，年付每年一次性）。
- * webhook 处理 invoice.paid 时按这个上账。
+ * webhook 处理 invoice.paid 时按这个上账。USD 与 CNY 同档返同 token。
  * priceId 不在表里就返 null（可能是被人在 Stripe 后台手动绑了未知 price，需告警）。
  */
-export async function priceIdToCycleTokens(priceId: string): Promise<number | null> {
-  const { env } = await getCloudflareContext({ async: true });
-  if (priceId === env.STRIPE_PRICE_PRO_MONTHLY) return SUBSCRIPTION_PLANS.pro.monthly.tokens;
-  if (priceId === env.STRIPE_PRICE_PRO_YEARLY) return SUBSCRIPTION_PLANS.pro.yearly.tokens;
-  if (priceId === env.STRIPE_PRICE_MAX_MONTHLY) return SUBSCRIPTION_PLANS.max.monthly.tokens;
-  if (priceId === env.STRIPE_PRICE_MAX_YEARLY) return SUBSCRIPTION_PLANS.max.yearly.tokens;
-  return null;
+export function priceIdToCycleTokens(priceId: string): number | null {
+  const meta = SUBSCRIPTION_PRICE_META.get(priceId);
+  if (!meta) return null;
+  return SUBSCRIPTION_PLANS[meta.plan][meta.interval].tokens;
 }
 
-/** Stripe price id → ('pro'|'max', 'monthly'|'yearly')。订阅状态卡显示"年付/月付"用。 */
-export async function priceIdToPlanInterval(
+/** Stripe price id → ('pro'|'max', 'monthly'|'yearly')。订阅状态卡显示"年付/月付"用，币种不区分。 */
+export function priceIdToPlanInterval(
   priceId: string,
-): Promise<{ plan: SubscriptionPlanKey; interval: BillingInterval } | null> {
-  const { env } = await getCloudflareContext({ async: true });
-  if (priceId === env.STRIPE_PRICE_PRO_MONTHLY) return { plan: 'pro', interval: 'monthly' };
-  if (priceId === env.STRIPE_PRICE_PRO_YEARLY) return { plan: 'pro', interval: 'yearly' };
-  if (priceId === env.STRIPE_PRICE_MAX_MONTHLY) return { plan: 'max', interval: 'monthly' };
-  if (priceId === env.STRIPE_PRICE_MAX_YEARLY) return { plan: 'max', interval: 'yearly' };
-  return null;
+): { plan: SubscriptionPlanKey; interval: BillingInterval } | null {
+  const meta = SUBSCRIPTION_PRICE_META.get(priceId);
+  if (!meta) return null;
+  return { plan: meta.plan, interval: meta.interval };
 }
 
 /**
  * Stripe price id → 一次性补充包 token 数。webhook 处理 checkout.session.completed
- * (mode=payment) 时按这个上账。
+ * (mode=payment) 时按这个上账。USD 与 CNY 同档返同 token。
  */
-export async function priceIdToTopupTokens(priceId: string): Promise<number | null> {
-  const { env } = await getCloudflareContext({ async: true });
-  if (priceId === env.STRIPE_PRICE_TOPUP_SMALL) return TOPUP_PACKS.small.tokens;
-  if (priceId === env.STRIPE_PRICE_TOPUP_MEDIUM) return TOPUP_PACKS.medium.tokens;
-  if (priceId === env.STRIPE_PRICE_TOPUP_LARGE) return TOPUP_PACKS.large.tokens;
-  return null;
+export function priceIdToTopupTokens(priceId: string): number | null {
+  const meta = TOPUP_PRICE_META.get(priceId);
+  if (!meta) return null;
+  return TOPUP_PACKS[meta.pack].tokens;
 }
 
 /**

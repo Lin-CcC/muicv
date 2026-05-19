@@ -113,7 +113,7 @@ export async function GET(request: Request) {
   // 推 plan：必须 status 在活跃集合 + stripePriceId 能映射到已知档位，否则免费。
   let plan: 'free' | 'pro' | 'max' = 'free';
   if (sub && ACTIVE_SUB_STATUSES.has(sub.status) && sub.stripePriceId) {
-    const meta = await priceIdToPlanInterval(sub.stripePriceId);
+    const meta = priceIdToPlanInterval(sub.stripePriceId);
     if (meta) plan = meta.plan;
   }
 

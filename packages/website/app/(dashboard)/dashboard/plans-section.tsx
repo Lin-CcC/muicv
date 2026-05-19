@@ -1,7 +1,9 @@
 import { microToDisplay } from '@muicv/shared';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 
 import { getDb, schema } from '@/lib/db';
+import { getRequestCurrency } from '@/lib/region';
 import { getCurrentSession } from '@/lib/session';
 import { priceIdToPlanInterval } from '@/lib/stripe';
 import { ensureBalance, listLedger } from '@/lib/wallet';
@@ -71,10 +73,11 @@ export async function PlansSection() {
     !!sub?.stripeSubscriptionId && (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due');
 
   // 反查月付 / 年付，给状态卡显示正确的 cycle 单位
-  const subMeta = sub?.stripePriceId ? await priceIdToPlanInterval(sub.stripePriceId) : null;
+  const subMeta = sub?.stripePriceId ? priceIdToPlanInterval(sub.stripePriceId) : null;
   const cycleLabel = subMeta?.interval === 'yearly' ? '年' : '月';
 
   const ledger = await listLedger(userId, { limit: 15 });
+  const currency = getRequestCurrency({ headers: await headers() });
 
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
@@ -113,7 +116,7 @@ export async function PlansSection() {
       )}
 
       <div className="mt-6">
-        <BillingActions hasActiveSubscription={hasActive} />
+        <BillingActions hasActiveSubscription={hasActive} currency={currency} />
       </div>
 
       <div className="mt-8 border-t border-rule pt-6">

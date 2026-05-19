@@ -114,7 +114,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const detailed = await stripe.checkout.sessions.retrieve(session.id, { expand: ['line_items'] });
   const item = detailed.line_items?.data?.[0];
   const priceId = typeof item?.price === 'object' && item.price ? item.price.id : null;
-  let tokens = priceId ? await priceIdToTopupTokens(priceId) : null;
+  let tokens = priceId ? priceIdToTopupTokens(priceId) : null;
   if (tokens == null) {
     // 兜底：metadata 里如果有合法 tokens 数也接受
     const meta = Number.parseInt(session.metadata?.tokens ?? '', 10);
@@ -141,7 +141,7 @@ async function handleSubscriptionUpsert(sub: Stripe.Subscription) {
 
   const item = sub.items.data[0];
   const priceId = item?.price?.id ?? null;
-  const cycleTokens = priceId ? await priceIdToCycleTokens(priceId) : null;
+  const cycleTokens = priceId ? priceIdToCycleTokens(priceId) : null;
 
   // Stripe period 字段在 Subscription.items.data[0] 上（API 2026-04-22）
   const periodStart = item?.current_period_start ?? null;
@@ -199,7 +199,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   // 从 invoice line items 反查 priceId → cycleTokens
   const line = invoice.lines.data[0];
   const priceId = typeof line?.pricing?.price_details?.price === 'string' ? line.pricing.price_details.price : null;
-  const tokens = priceId ? await priceIdToCycleTokens(priceId) : null;
+  const tokens = priceId ? priceIdToCycleTokens(priceId) : null;
   if (tokens == null) {
     throw new Error(`invoice.paid price ${priceId} not in subscription map (invoice=${invoice.id})`);
   }

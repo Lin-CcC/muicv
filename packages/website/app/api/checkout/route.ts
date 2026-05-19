@@ -1,6 +1,8 @@
 import { type BillingInterval, type SubscriptionPlanKey, SUBSCRIPTION_PLANS } from '@muicv/shared';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import type Stripe from 'stripe';
 
+import { getRequestCurrency } from '@/lib/region';
 import { getCurrentSession } from '@/lib/session';
 import { getOrCreateStripeCustomer, getStripe, planKeyToPriceId } from '@/lib/stripe';
 
@@ -38,12 +40,13 @@ export async function POST(request: Request) {
     return Response.json({ error: 'interval 必须是 monthly | yearly' }, { status: 400 });
   }
 
+  const currency = getRequestCurrency(request);
   const customerId = await getOrCreateStripeCustomer({
     userId: session.user.id,
     email: session.user.email,
     name: session.user.name,
   });
-  const priceId = await planKeyToPriceId(plan as SubscriptionPlanKey, interval as BillingInterval);
+  const priceId = planKeyToPriceId(plan as SubscriptionPlanKey, interval as BillingInterval, currency);
   const stripe = await getStripe();
   const { env } = await getCloudflareContext({ async: true });
   const baseUrl = env.BETTER_AUTH_URL || 'https://muicv.com';
@@ -53,6 +56,16 @@ export async function POST(request: Request) {
       ? SUBSCRIPTION_PLANS[plan as SubscriptionPlanKey].monthly.tokens
       : SUBSCRIPTION_PLANS[plan as SubscriptionPlanKey].yearly.tokens;
 
+  // CN 用户：Alipay 支持 subscription（部分账户限制，见 plan 风险预案），WeChat Pay 不支持 recurring。
+  // USD 用户：不显式设 payment_method_types，让 Stripe Dashboard 配置接管（默认卡）。
+  const cnyOverrides: Partial<Stripe.Checkout.SessionCreateParams> =
+    currency === 'cny'
+      ? {
+          payment_method_types: ['alipay', 'card'],
+          locale: 'zh',
+        }
+      : {};
+
   const checkout = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
@@ -61,12 +74,14 @@ export async function POST(request: Request) {
     cancel_url: `${baseUrl}/dashboard?checkout=cancel`,
     allow_promotion_codes: true,
     billing_address_collection: 'auto',
+    ...cnyOverrides,
     metadata: {
       kind: 'subscription',
       userId: session.user.id,
       plan,
       interval,
       cycleTokens: String(cycleTokens),
+      currency,
     },
   });
 

@@ -1,8 +1,10 @@
-import { type BillingInterval, SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
+import { type BillingInterval, type Currency, SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
+import { CurrencyToggle } from '@/components/currency-toggle';
 import { getAuth } from '@/lib/auth';
+import { getRequestCurrency } from '@/lib/region';
 import { getActiveSubscription } from '@/lib/subscription';
 
 import { ArrowUpRight, Highlight, Sparkle } from '../_icons';
@@ -95,14 +97,16 @@ const PRICING_FAQ: { q: string; a: string }[] = [
 ];
 
 export default async function PricingPage(props: { searchParams: Promise<{ interval?: string }> }) {
+  const requestHeaders = await headers();
   const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await auth.api.getSession({ headers: requestHeaders });
   const isLoggedIn = !!session?.user;
   const activeSub = await getActiveSubscription(session?.user?.id);
   const hasActiveSub = !!activeSub;
 
   const params = await props.searchParams;
   const interval: BillingInterval = params.interval === 'yearly' ? 'yearly' : 'monthly';
+  const currency = getRequestCurrency({ headers: requestHeaders });
 
   return (
     <div className="relative">
@@ -124,6 +128,9 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
               始终可用。
             </p>
             <IntervalToggle current={interval} />
+            <div className="mt-4 flex justify-center">
+              <CurrencyToggle currency={currency} />
+            </div>
           </div>
         </div>
       </section>
@@ -137,6 +144,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                 key={tier.key}
                 tier={tier}
                 interval={interval}
+                currency={currency}
                 isLoggedIn={isLoggedIn}
                 hasActiveSub={hasActiveSub}
               />
@@ -155,7 +163,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                     <p className="mt-2 text-[20px] font-extrabold text-ink tabular-nums">
                       {pack.tokens.toLocaleString()} tokens
                     </p>
-                    <p className="mt-1 font-mono text-[12px] tabular-nums text-yellow-deep">{pack.priceCnyDisplay}</p>
+                    <p className="mt-1 font-mono text-[12px] tabular-nums text-yellow-deep">{pack.display[currency]}</p>
                     {isLoggedIn ? (
                       <BuyButton kind="topup" pack={key} label="立即购买" />
                     ) : (
@@ -279,11 +287,13 @@ function FreeCard({ isLoggedIn }: { isLoggedIn: boolean }) {
 function SubscriptionCard({
   tier,
   interval,
+  currency,
   isLoggedIn,
   hasActiveSub,
 }: {
   tier: SubTier;
   interval: BillingInterval;
+  currency: Currency;
   isLoggedIn: boolean;
   hasActiveSub: boolean;
 }) {
@@ -308,13 +318,15 @@ function SubscriptionCard({
       <p className="mt-1 text-[14px] leading-[1.6] text-ink-soft">{tier.tagline}</p>
       <div className="mt-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-ink tabular-nums">{cycle.priceCnyDisplay}</span>
+          <span className="text-3xl font-extrabold text-ink tabular-nums">{cycle.display[currency]}</span>
         </div>
         <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-mute">
           {interval === 'yearly' ? '每年' : '每月'} {cycle.tokens.toLocaleString()} tokens
         </p>
         {interval === 'yearly' && 'savingsLabel' in cycle && (
-          <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-yellow-deep">{cycle.savingsLabel}</p>
+          <p className="mt-1 font-mono text-[12px] uppercase tracking-wider text-yellow-deep">
+            {cycle.savingsLabel[currency]}
+          </p>
         )}
       </div>
       <ul className="mt-6 flex-1 space-y-2.5 text-[14px] leading-[1.6]">
