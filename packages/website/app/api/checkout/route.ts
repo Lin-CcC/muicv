@@ -56,12 +56,14 @@ export async function POST(request: Request) {
       ? SUBSCRIPTION_PLANS[plan as SubscriptionPlanKey].monthly.tokens
       : SUBSCRIPTION_PLANS[plan as SubscriptionPlanKey].yearly.tokens;
 
-  // CN 用户：Alipay 支持 subscription（部分账户限制，见 plan 风险预案），WeChat Pay 不支持 recurring。
-  // USD 用户：不显式设 payment_method_types，让 Stripe Dashboard 配置接管（默认卡）。
+  // CN 用户订阅暂只能走 card —— Stripe 在我们这个账户硬拒绝 Alipay 进 subscription mode
+  // （WeChat Pay 全平台都不支持 recurring）。这意味着 CN 用户当前实际无法走通订阅
+  // （这正是本 PR 起因：CN 用户卡被拒）。下一步：做月包/年包一次性 SKU 走 topup 路径（mode=payment）
+  // 才能让 CN 用户真正用上 WeChat/Alipay 续 Pro/Max 级别 token。详见 commit 内 TODO。
   const cnyOverrides: Partial<Stripe.Checkout.SessionCreateParams> =
     currency === 'cny'
       ? {
-          payment_method_types: ['alipay', 'card'],
+          payment_method_types: ['card'],
           locale: 'zh',
         }
       : {};
