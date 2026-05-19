@@ -11,6 +11,7 @@ import {
 import type { Context } from 'hono';
 
 import { toErrorMessage } from '../lib/error-message.ts';
+import { readJsonBody } from '../lib/json-body.ts';
 import { renderPdf } from '../lib/render-pdf.ts';
 import {
   createPreview,
@@ -59,17 +60,9 @@ function publicPreviewUrl(env: CloudflareBindings, token: string): string {
  *      之后访客复用同一份缓存的 D1 记录免扣（防 token 公开后被刷爆余额）。
  */
 export async function handlePreviewCreate(c: Context<AppEnv>): Promise<Response> {
-  const contentType = c.req.header('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-
-  let payload: Record<string, unknown>;
-  try {
-    payload = (await c.req.json()) as Record<string, unknown>;
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
+  const parsed = await readJsonBody<Record<string, unknown>>(c);
+  if (!parsed.ok) return parsed.response;
+  const payload = parsed.body;
 
   if (typeof payload.template !== 'string' || !isJsonTemplateId(payload.template)) {
     return c.json(
@@ -276,16 +269,9 @@ export async function handlePreviewList(c: Context<AppEnv>): Promise<Response> {
 export async function handlePreviewTemplate(c: Context<AppEnv>): Promise<Response> {
   const token = c.req.param('token');
   if (!token || !TOKEN_RE.test(token)) return c.json({ error: 'token 不合法' }, 400);
-  const contentType = c.req.header('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-  let payload: { template?: unknown; lang?: unknown; accent?: unknown };
-  try {
-    payload = (await c.req.json()) as { template?: unknown; lang?: unknown; accent?: unknown };
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
+  const parsed = await readJsonBody<{ template?: unknown; lang?: unknown; accent?: unknown }>(c);
+  if (!parsed.ok) return parsed.response;
+  const payload = parsed.body;
   if (typeof payload.template !== 'string' || !isJsonTemplateId(payload.template)) {
     return c.json(
       {
@@ -319,16 +305,9 @@ export async function handlePreviewTemplate(c: Context<AppEnv>): Promise<Respons
 export async function handlePreviewShareMode(c: Context<AppEnv>): Promise<Response> {
   const token = c.req.param('token');
   if (!token || !TOKEN_RE.test(token)) return c.json({ error: 'token 不合法' }, 400);
-  const contentType = c.req.header('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-  let payload: { shareMode?: unknown };
-  try {
-    payload = (await c.req.json()) as { shareMode?: unknown };
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
+  const parsed = await readJsonBody<{ shareMode?: unknown }>(c);
+  if (!parsed.ok) return parsed.response;
+  const payload = parsed.body;
   if (!isPreviewShareMode(payload.shareMode)) {
     return c.json({ error: 'shareMode 必须是 "link" 或 "public"' }, 400);
   }

@@ -88,7 +88,7 @@
 
 ## 设计语言
 
-- 视觉规范以 `skills/meathill-studio-design/` 为单一真相源（柯基黄 + 奶油白 + 暖深棕的 Meathill Studio Design System）。
+- 视觉规范走 Meathill Studio Design System（柯基黄 + 奶油白 + 暖深棕）。token 已经全部下沉到本仓库的 `@theme` 块，外部 design skill 不入仓。
 - token 入口：`packages/website/app/globals.css` 与 `packages/app/src/renderer/styles/globals.css` 的 `@theme` 块，UI 包通过 `packages/ui/src/styles.css` 映射到品牌 token。
 - 硬约束（owner 设的，不要单方面放宽）：
   - **暖色单线**。不出现冷蓝紫，底色用 `--color-cream`，字色用 `--color-ink`，禁用纯白 / 纯黑。
@@ -96,7 +96,7 @@
   - **信息密度优先**。4px 基准，section 内最大 32px。
   - **字号只走偶数**：12 / 14 / 16 / 18 / 20 / 24 / 30 / 36 / 48。不上奇数、不上小数。
 - 招牌效果：`.press` / `.press-ink` 卡通厚阴影、`.highlight` 荧光笔标记、`.eyebrow` mono uppercase 小标签、`.bg-sun` 暖光晕。
-- 想了解细节或扩充新组件之前，先看 `skills/meathill-studio-design/README.md` 与 `preview/` 目录的参考卡片。
+- 扩充新组件前先翻 `packages/website/app/globals.css` 与 `packages/app/src/renderer/styles/globals.css` 的 token 与既有 utility，按硬约束沿用。
 
 ## 代码规范
 

@@ -8,9 +8,13 @@ import {
   getPlanLabel,
   insufficientBalanceError,
   isSupportedLlmModel,
+  LLM_DISPLAY_META,
   LLM_PRICING,
   LLM_RATIO,
   microToDisplay,
+  modelSupportsAudioInput,
+  modelSupportsToolCalls,
+  modelSupportsVision,
   normalizeModel,
   SUPPORTED_LLM_MODELS,
   TOKEN_PRECISION,
@@ -75,6 +79,29 @@ describe('Pricing', () => {
       for (const id of SUPPORTED_LLM_MODELS) {
         assert.equal(normalizeModel(id), id);
       }
+    });
+  });
+
+  describe('capability flags', () => {
+    it('modelSupportsAudioInput 只对显式标记 supportsAudioInput=true 的 model 返回 true', () => {
+      assert.equal(modelSupportsAudioInput('mimo-v2.5'), true);
+      assert.equal(modelSupportsAudioInput('mimo-v2.5-pro'), false);
+      assert.equal(modelSupportsAudioInput('gpt-5.4'), false);
+      assert.equal(modelSupportsAudioInput('unknown-model'), false);
+    });
+
+    it('modelSupportsVision 未知 id 默认 false（避免误发图被上游 404）', () => {
+      assert.equal(modelSupportsVision('gpt-5.4'), true);
+      assert.equal(modelSupportsVision('mimo-v2.5-pro'), false);
+      assert.equal(modelSupportsVision('mimo-v2.5'), false);
+      assert.equal(modelSupportsVision('unknown-model'), false);
+    });
+
+    it('modelSupportsToolCalls 未知 id 默认 true（多数模型都支持，保守开放）', () => {
+      for (const id of SUPPORTED_LLM_MODELS) {
+        assert.equal(modelSupportsToolCalls(id), LLM_DISPLAY_META[id]?.supportsToolCalls ?? true);
+      }
+      assert.equal(modelSupportsToolCalls('brand-new-model'), true);
     });
   });
 

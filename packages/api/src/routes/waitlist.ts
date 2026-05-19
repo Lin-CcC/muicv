@@ -1,6 +1,7 @@
 import type { Context } from 'hono';
 
 import { toErrorMessage } from '../lib/error-message.ts';
+import { readJsonBody } from '../lib/json-body.ts';
 
 type AppEnv = { Bindings: CloudflareBindings };
 
@@ -34,17 +35,9 @@ async function sha256Hex(input: string): Promise<string> {
  * 速率限制由 Cloudflare WAF 层做（每 IP 每分钟 N 次）。
  */
 export async function handleWaitlist(c: Context<AppEnv>): Promise<Response> {
-  const contentType = c.req.header('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-
-  let payload: { email?: unknown; source?: unknown };
-  try {
-    payload = await c.req.json();
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
+  const parsed = await readJsonBody<{ email?: unknown; source?: unknown }>(c);
+  if (!parsed.ok) return parsed.response;
+  const payload = parsed.body;
 
   if (!looksLikeEmail(payload.email)) {
     return c.json({ error: '字段 `email` 必须是合法邮箱' }, 400);

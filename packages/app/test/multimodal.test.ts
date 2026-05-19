@@ -35,6 +35,24 @@ function imageRef(overrides: Partial<AttachmentRef> = {}): AttachmentRef {
   };
 }
 
+function audioRef(overrides: Partial<AttachmentRef> = {}): AttachmentRef {
+  return {
+    path: 'inbox/voice-1.wav',
+    name: 'voice-1.wav',
+    kind: 'audio',
+    mimeType: 'audio/wav',
+    size: 1024,
+    ...overrides,
+  };
+}
+
+const fakeAudioReader = (mapping: Record<string, string | null> = {}) => {
+  return async (ref: AttachmentRef): Promise<string | null> => {
+    if (ref.path in mapping) return mapping[ref.path];
+    return `data:${ref.mimeType};base64,AUDIO_${ref.path}`;
+  };
+};
+
 const fakeReader = (mapping: Record<string, string | null> = {}) => {
   return async (ref: AttachmentRef): Promise<string | null> => {
     if (ref.path in mapping) return mapping[ref.path];
@@ -157,4 +175,30 @@ test('readImageAsDataUrl 读盘失败 → 返 null（不抛）', async () => {
 test('readImageAsDataUrl 正常路径 → data URL', async () => {
   const url = await readImageAsDataUrl(WORKSPACE, imageRef(), async () => Buffer.from([0x89, 0x50, 0x4e, 0x47]));
   assert.match(url ?? '', /^data:image\/png;base64,iVBORw==$/);
+});
+
+test('buildAgentInput audioReader 缺省 → 不内联音频，content 仍是纯文本', async () => {
+  const r = await buildAgentInput([msg('user', '听这个', [audioRef()])]);
+  const u = r.items[0] as { role: string; content: string };
+  assert.equal(typeof u.content, 'string');
+  assert.equal(u.content, '听这个');
+});
+
+test('buildAgentInput audioReader 提供 → 内联成 input_audio block（Xiaomi 单 data 字段）', async () => {
+  const r = await buildAgentInput([msg('user', '请听', [audioRef()])], { audioReader: fakeAudioReader() });
+  const u = r.items[0] as { role: string; content: Array<{ type: string; input_audio?: { data: string } }> };
+  assert.ok(Array.isArray(u.content));
+  // 至少应有一个 text + 一个 input_audio block
+  const audioBlock = u.content.find((c) => c.type === 'input_audio');
+  assert.ok(audioBlock, '应该出现 input_audio block');
+  assert.match(audioBlock?.input_audio?.data ?? '', /^data:audio\/wav;base64,/);
+});
+
+test('buildAgentInput audioReader 全部读失败 → 退化为纯字符串（不留空 array）', async () => {
+  const r = await buildAgentInput([msg('user', '音频', [audioRef()])], {
+    audioReader: async () => null,
+  });
+  const u = r.items[0] as { role: string; content: string };
+  assert.equal(typeof u.content, 'string', '无音频可用时退化回字符串，避免空 content array');
+  assert.equal(u.content, '音频');
 });

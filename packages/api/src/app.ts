@@ -1,21 +1,6 @@
-import {
-  assertTemplateResumeData,
-  displayToMicro,
-  insufficientBalanceError,
-  isJsonTemplateId,
-  isTemplateLang,
-  JD_FETCH_COST,
-  PDF_RENDER_COST,
-  type TemplateLang,
-  type TemplateResumeData,
-} from '@muicv/shared';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
-import { toErrorMessage } from './lib/error-message.ts';
-import { FetchJdError, fetchJd } from './lib/fetch-jd.ts';
-import { renderPdf, type RenderPdfInput } from './lib/render-pdf.ts';
-import { charge, ensureBalance } from './lib/wallet.ts';
 import { optionalApiKey, requireApiKey } from './middleware/api-key.ts';
 import {
   handleChangelog,
@@ -25,6 +10,7 @@ import {
   handleSkillsCatalog,
 } from './routes/content.ts';
 import { handleComment, handleRate } from './routes/feedback.ts';
+import { handleJobsFetch } from './routes/jobs.ts';
 import { handleLlmProxy } from './routes/llm.ts';
 import { handleMe } from './routes/me.ts';
 import {
@@ -37,7 +23,7 @@ import {
   handlePreviewShareMode,
   handlePreviewTemplate,
 } from './routes/preview.ts';
-import { handlePhotoHistory, handleUploadPhoto } from './routes/upload-photo.ts';
+import { handleRender } from './routes/render.ts';
 import {
   handleResumeBlobHistoryList,
   handleResumeSnapshotBlobDelete,
@@ -53,6 +39,7 @@ import {
   handleResumeSync,
 } from './routes/resume-sync.ts';
 import { handleTranscribe } from './routes/transcribe.ts';
+import { handlePhotoHistory, handleUploadPhoto } from './routes/upload-photo.ts';
 import { handleWaitlist } from './routes/waitlist.ts';
 
 type AppBindings = {
@@ -174,107 +161,9 @@ app.post('/feedback/comment', requireApiKey, handleComment);
 app.post('/waitlist', handleWaitlist);
 
 /**
- * POST /render
- *
- * 两种 payload 形态（互斥）：
- *   - markdown 路径（向下兼容，老 skill）：`{ markdown: string, template?: 'default' }`
- *   - JSON 路径（新模板）：`{ resumeJson: TemplateResumeData, template: 't1-classic'..'t6-academic', lang?: 'zh'|'en' }`
- *
- * 响应：200 application/pdf + PDF bytes / 402 余额不足 / 502 渲染异常。
- *
- * 计费：成功才扣 PDF_RENDER_COST tokens；渲染失败 502 但不扣账（避免反复重试被反复扣）。
- *
- * 实现：写一次性 token 进 MUICV_KV，puppeteer.goto packages/website 的
- * /r/render/[token]，等字体加载完，page.pdf 出 A4。详见 src/lib/render-pdf.ts。
+ * POST /render —— 渲染简历 PDF。详见 src/routes/render.ts。
  */
-app.post('/render', requireApiKey, async (c) => {
-  const contentType = c.req.header('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-
-  let payload: Record<string, unknown>;
-  try {
-    payload = (await c.req.json()) as Record<string, unknown>;
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
-
-  let renderInput: RenderPdfInput;
-  let templateForLog: string;
-
-  if (payload.resumeJson != null) {
-    if (typeof payload.template !== 'string' || !isJsonTemplateId(payload.template)) {
-      return c.json(
-        {
-          error:
-            'JSON 路径下 `template` 必填且必须是 t1-classic / t2-minimal / t3-sidebar / t4-tech / t5-timeline / t6-academic 之一',
-        },
-        400,
-      );
-    }
-    try {
-      assertTemplateResumeData(payload.resumeJson);
-    } catch (error) {
-      return c.json(
-        {
-          error: 'resumeJson 不符合 TemplateResumeData schema',
-          detail: toErrorMessage(error),
-        },
-        400,
-      );
-    }
-    const lang: TemplateLang = isTemplateLang(payload.lang) ? payload.lang : 'zh';
-    templateForLog = payload.template;
-    renderInput = {
-      kind: 'json',
-      resume: payload.resumeJson as TemplateResumeData,
-      template: payload.template,
-      lang,
-      ...(typeof payload.accent === 'string' ? { accent: payload.accent } : {}),
-    };
-  } else {
-    if (typeof payload.markdown !== 'string' || payload.markdown.trim().length === 0) {
-      return c.json({ error: '字段 `markdown` 必须是非空字符串（或改用 `resumeJson`）' }, 400);
-    }
-    const template = typeof payload.template === 'string' ? payload.template : 'default';
-    templateForLog = template;
-    renderInput = { kind: 'markdown', markdown: payload.markdown, template };
-  }
-
-  const userId = c.get('userId') as string;
-  const pdfCostMicro = displayToMicro(PDF_RENDER_COST);
-  const wallet = await ensureBalance(c.env, userId);
-  if (wallet.balance < pdfCostMicro) {
-    return c.json(insufficientBalanceError(wallet.balance), 402);
-  }
-
-  let pdf: Uint8Array;
-  try {
-    pdf = await renderPdf(renderInput, c.env);
-  } catch (error) {
-    return c.json(
-      {
-        error: 'PDF 渲染失败',
-        detail: toErrorMessage(error),
-      },
-      502,
-    );
-  }
-
-  // 成功才扣账（异步，不阻塞 PDF 返回）
-  c.executionCtx.waitUntil(
-    charge(c.env, userId, pdfCostMicro, 'pdf_render', { template: templateForLog }).catch(() => {}),
-  );
-
-  return new Response(pdf, {
-    status: 200,
-    headers: {
-      'content-type': 'application/pdf',
-      'content-disposition': 'attachment; filename="resume.pdf"',
-    },
-  });
-});
+app.post('/render', requireApiKey, handleRender);
 
 /**
  * /preview/* —— 在线预览页 + PDF 下载。
@@ -306,67 +195,9 @@ app.post('/upload/photo', requireApiKey, handleUploadPhoto);
 app.get('/upload/photo/history', requireApiKey, handlePhotoHistory);
 
 /**
- * POST /jobs/fetch
- *
- * Body: { url: string }  —— 目标 JD 的公开可访问 URL
- *
- * 响应：
- *   200 application/json —— { markdown, meta: { title, company, source_url, fetched_at, description } }
- *   400 —— 参数错误
- *   402 —— 余额不足
- *   502 —— 抓取失败（登录墙 / 反爬 / 页面异常）
- *
- * 计费：成功才扣 JD_FETCH_COST tokens；抓取失败 502 但不扣账。
- *
- * 限制（MVP）：
- *   - 不绕过登录墙
- *   - 不对抗 Cloudflare Turnstile / Captcha
- *   - 不伪装 UA 规避 ToS
- *   - 单次请求 20s 超时（在 container 侧）
+ * POST /jobs/fetch —— 用 Browser Rendering 抓 JD 转 markdown。详见 src/routes/jobs.ts。
  */
-app.post('/jobs/fetch', requireApiKey, async (c) => {
-  const contentType = c.req.header('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-
-  let payload: { url?: unknown };
-  try {
-    payload = await c.req.json();
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
-
-  if (typeof payload.url !== 'string' || !/^https?:\/\//i.test(payload.url)) {
-    return c.json({ error: '字段 `url` 必须是合法 http/https URL' }, 400);
-  }
-  const url = payload.url;
-
-  const userId = c.get('userId') as string;
-  const jdCostMicro = displayToMicro(JD_FETCH_COST);
-  const wallet = await ensureBalance(c.env, userId);
-  if (wallet.balance < jdCostMicro) {
-    return c.json(insufficientBalanceError(wallet.balance), 402);
-  }
-
-  try {
-    const result = await fetchJd({ url }, c.env);
-    c.executionCtx.waitUntil(charge(c.env, userId, jdCostMicro, 'jd_fetch', { url }).catch(() => {}));
-    return c.json(result);
-  } catch (error) {
-    if (error instanceof FetchJdError) {
-      return c.json(error.detail, error.status);
-    }
-    return c.json(
-      {
-        error: 'fetch 失败',
-        detail: toErrorMessage(error),
-        url,
-      },
-      502,
-    );
-  }
-});
+app.post('/jobs/fetch', requireApiKey, handleJobsFetch);
 
 /**
  * POST /audio/transcribe —— STT 转写（issue #1 M1）。

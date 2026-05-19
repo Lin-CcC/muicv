@@ -6,6 +6,7 @@ import {
 } from '@muicv/shared';
 import type { Context } from 'hono';
 
+import { readJsonBody } from '../lib/json-body.ts';
 import type { AppEnv } from '../middleware/api-key.ts';
 
 type ActiveSnapshotRow = {
@@ -33,17 +34,9 @@ export async function handleResumeSync(c: Context<AppEnv>): Promise<Response> {
   const userId = c.get('userId');
   if (!userId) return c.json({ error: 'unauthorized' }, 401);
 
-  const ct = c.req.header('content-type') ?? '';
-  if (!ct.includes('application/json')) {
-    return c.json({ error: 'Content-Type 必须是 application/json' }, 400);
-  }
-
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: '请求体不是合法 JSON' }, 400);
-  }
+  const parsed = await readJsonBody<unknown>(c);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
 
   const validation = validateResumeSyncPayload(body);
   if (!validation.ok) {

@@ -19,8 +19,13 @@
 - **CMS importMap 要提交**：Payload 插件的客户端组件（例如 R2 的 `R2ClientUploadHandler`）必须在 `app/(payload)/admin/importMap.js` 里注册；空 importMap 会让 admin 页面 200 但前端空白。修改 Payload config / 插件 / 自定义 admin 组件后运行 `pnpm --filter @muicv/cms generate:importmap` 并提交生成文件。
 - **CMS 不启用 `sharp`**：Cloudflare Worker 不能可靠运行 native `sharp`，OpenNext 二次打包也会遇到 `sharp-<hash>` 虚拟 require 解析失败；当前 media collection 只做 R2 存储，不做服务端裁图。
 - **CMS migration 流程**：本地生成 migration 用 `pnpm --filter @muicv/cms migrate:create <name> --skip-empty`，脚本会注入一次性本地 `PAYLOAD_SECRET` 和 `NEXT_PHASE='phase-production-build'`；应用到生产 D1 用 `pnpm --filter @muicv/cms migrate`，内部会读取 `payload_migrations`，只把 pending migration 转成 SQL 并通过 `wrangler d1 execute muicv --remote --file` 执行。
-- **CMS MCP 只做本地 stdio 入口**：`packages/cms/mcp/server.ts` 通过现有 `cms.muicv.com/api/*` 写 posts / skillExtensions，不新增 Worker，也不要求新的 D1/R2。鉴权优先用 Payload Users 里生成的 `MUICV_CMS_API_KEY`，MCP client 会发 `Authorization: users API-Key <key>`；`MUICV_CMS_TOKEN` 和邮箱密码只作为兜底。
+- **CMS MCP 只做本地 stdio 入口**：`packages/cms/mcp/server.ts` 通过现有 `cms.muicv.com/api/*` 写 posts / skillExtensions / changelog，不新增 Worker，也不要求新的 D1/R2。鉴权优先用 Payload Users 里生成的 `MUICV_CMS_API_KEY`，MCP client 会发 `Authorization: users API-Key <key>`；`MUICV_CMS_TOKEN` 和邮箱密码只作为兜底。
+- **CMS MCP 工具集（三类内容各一组）**：每类内容都给 `create_*` / `upsert_*` / `get_*` 三个工具，slug 作主键（post 用 `${section}/${slug}` 复合键，避免不同 section 同名）。**写之前必查重**：`create_*` slug 存在直接报错，`upsert_*` 默认更新。Payload mutation 返回结构包到 `result.doc` 里，client 解析时若假设是裸 doc 会报 cannot read properties of undefined；统一在 `payload-client.ts` 兜底解构。changelog 还有专门的 `changelog-input.ts` 做 markdown → blocks 的转换 + 校验，留单测保护。
 - **CMS 公开内容 read access 必须限 published**：`posts` / `skillExtensions` / `changelog` 的公开 REST 只返回 `status='published'`，登录用户仍可读全部。website 通过 `@muicv/shared` 的 `fetchCms*` helpers 读 Payload REST；CMS 不可用时返回空内容，不再 fallback 到 seed。
+- **`.prose-mui` 列表 marker 必须显式声明**：Tailwind preflight 把 `ul / ol` 的
+  `list-style` reset 成 `none`。CMS 渲染的 markdown 内容用 `.prose-mui` 作 wrapper，里面要
+  显式 `list-style: disc / decimal outside` + `li::marker` 上品牌色加粗，否则文章详情页的
+  bullet / 编号会全部消失。改 `.prose-mui` 时把 ul / ol / li / marker 同时校一遍。
 - **SEO 路径约定**：求职博文从 `/posts/jobs` 起步；更细分类先用 tags / keywords，不提前拆更多 route。
 
 ## 简历模板 + 在线预览（新）
@@ -132,11 +137,37 @@
 - **artifact source 二分**：agent 工具调用 emit 的 artifact 分 `read`（参考资料）/
   `write`（产物）。read 类折叠到操作组里不打扰，write 类显眼卡片**自动开右栏**
   让用户看到结果。判断完全靠 `source` 字段，不靠 path 推断。
-- **设置页结构**：`settings-view.tsx` 是壳（账号头部 + 4 张卡 + footer），具体卡片
-  全部拆到 `components/settings/` 子目录：`plan-card.tsx`（会员档位 + 余额 + 同步）/
-  `model-card.tsx`（4 model 选择 + BYOK 降级）/ `muirouter-card.tsx`（绑定 / 余额 / fallback）/
-  `custom-llm-card.tsx`（折叠的 BYOK 配置 + Field 子件）。`bits.tsx` 放 Avatar /
-  ExternalButton + DASHBOARD_URL / MUIROUTER_URL 常量。改设置页时按卡定位文件，不要回写整个壳。
+- **设置页三分组**：`settings-view.tsx` 是壳，左侧 nav 三分组（通用 / 模型 / Skill）+ 右
+  侧分组面板，由 `activeSection` state 切。具体卡片仍在 `components/settings/` 子目录：
+  - 通用：`plan-card`（会员档位 + 余额）/ `theme-card`（三态主题）/ footer 版本检查
+  - 模型：`model-card`（4 model 选择）/ `muirouter-card`（绑定 / 余额 / fallback）/
+    `custom-llm-card`（折叠 BYOK 配置 + Field 子件）/ `whisper-engine-card`（本地转写）
+  - Skill：`skill-market-card`（内置能力 + 外部来源）
+  - 公用：`bits.tsx`（Avatar / ExternalButton + DASHBOARD_URL / MUIROUTER_URL 常量）
+  改设置页按卡定位文件，不要回写整个壳；加新分类记得同步 `SettingsSectionId` 联合类型和
+  `SETTINGS_SECTIONS` 描述数组。
+
+## 三态主题切换（light / auto / dark，website + app 共享）
+
+> 2026-05 后接入。`globals.css` 同时提供 `:root`（light）/ `[data-theme="dark"]`（暗
+> 色）/ `[data-theme="auto"]` 配 `@media (prefers-color-scheme: dark)` 三套 token。
+
+- **同款 hook**：website `app/_theme/use-theme.ts` 和 electron `lib/use-theme.ts` 都用
+  localStorage key `muicv-theme`，值是 `'light' | 'auto' | 'dark'`；不写表示 light，避免
+  老用户 / 新装首次进来就有非空值。
+- **避免 FOUC**：两端都在 React hydrate 之前同步写 `data-theme`——website 是 root layout
+  里内联 `<script>`（`theme-init-script.tsx`），electron 是 `main.tsx` 的 `createRoot`
+  前 `bootstrapTheme()`。**新增 theme 入口必须沿用这套同步初始化**，不能放进 effect 里。
+- **暗色对比 guard**：暗色模式下 `--color-ink` / `--color-ink-soft` / `--color-mute` 都
+  翻成浅色，但 `.bg-yellow` / `.bg-corgi` / `.bg-tongue` 这些亮底色不变，子节点继承翻转
+  后的浅色 → 字糊掉。**用后代选择器** `.bg-yellow .text-ink` 而非同元素选择器
+  `.bg-yellow.text-ink` 强制重写为固定深色（`--color-on-yellow*`、`--color-on-corgi*`、
+  `--color-on-tongue*` 三套），覆盖 ink / ink-soft / mute 三档。父元素自身也要 force
+  dark text 兜底，防子节点不带 `text-*` 直接继承。
+- **toggle 挂载点**：website marketing header 桌面端 + dashboard 侧边栏底部各一份
+  （dashboard 看不见 marketing header）；electron 在 settings → 通用 → `ThemeCard`。
+- **token 修改成本**：暗色版只在两个 `globals.css` 维护——新增 token 时务必同时给出
+  暗色覆盖，否则在 dark 下会撞回浅色 fallback。
 
 ## packages/app 内置 PDF 预览（muicv-pdf:// custom protocol）
 
@@ -173,6 +204,17 @@
   没这三件套发 dmg 上线后用户会"按了说话没声音"且控制台无报错。
 - **MiMo ASR（小米开源中文 ASR）已调研排除**：8B PyTorch + CUDA-only，桌面端不可行；
   中文方言识别强但只能做云端 provider（待用户量上来再考虑接，P2）。
+- **mimo-v2.5 跳过 STT，wav 直传 input_audio**（commit 3c1df06，2026-05）：Xiaomi MiMo
+  支持音频理解。检测到 `supportsAudioInput(defaultModel)`（目前只 `mimo-*` 全模态版命
+  中）时，录音不走 transcribe，而是 `data:audio/wav;base64,...` 灌进 chat_completions 的
+  `input_audio` content part，**少一轮 Whisper 往返 + 模型直接听原音**。注意 Xiaomi 的
+  字段格式是单 `data` 字段（含 `data:` 前缀），跟 OpenAI 双字段（`data` + `format`）写
+  法不同；history.ts 的 `audioReader` 分支按 200 token/条估算预算。`AttachmentKind` 加
+  `'audio'`，main/attachments classifier 接受 mp3/wav/flac/m4a/ogg。
+  - 验证脚本：`scripts/verify-mimo-audio.ts`，`MIMO_API_KEY` 在手时一行 curl 验上游格
+    式，避免悄悄回归。
+  - 新增支持音频的 model：扩 `supportsAudioInput()` 白名单，UI 的 `ChatInputBar` 会自
+    动按 `defaultModel` 切「能听」/「不能听」footer 文案。
 
 ## Agent 运行时上下文管理（packages/app/src/main/agent）
 
@@ -321,10 +363,16 @@
   和 `outputRate`（同口径，给 completion）。新公式
   `ceil((prompt × inputRate + completion × outputRate) × 1.1 × TOKEN_PRECISION)` 直接返 μtoken，
   取整在 μ 层（4 位精度），上面那个溢扣问题彻底没了。
-- **支持 4 个 model**：`gpt-5.5` / `gpt-5.4` / `mimo-v2.5-pro` / `mimo-v2.5`。
+- **当前支持 model**：`gpt-5.4` / `mimo-v2.5-pro`（默认）/ `mimo-v2.5`。
   锚点 1 显示 token = $1e-5（从 Pro 套餐 500k/$4.99 反推）。Xiaomi 价以 ¥7/USD 折算到
-  USD 后再算 rate。表外 model（含老的 `gpt-4o-mini`）一律 400 `unsupported_model`，
+  USD 后再算 rate。表外 model（含老的 `gpt-5.5` / `gpt-4o-mini`）一律 400 `unsupported_model`，
   让客户端显式升级 `defaultModel`——不用 fallback rate 是为了避免悄悄按错价格扣。
+- **下架 model 客户端静默回退**：app `main/store.ts:getConfig` 在 `customLlmBase` 为空
+  （走平台路径）时用 `normalizeModel(storedModel)` 兜底，已下架的 id（如 `gpt-5.5`）回退
+  到 `DEFAULT_LLM_MODEL`（当前 `mimo-v2.5-pro`），**不弹窗 / 不打断用户**；自带 BYOK
+  endpoint 时不 normalize，用户可以填任意 model id。下架一个 model 的 checklist：
+  `LLM_PRICING` / `LLM_DISPLAY_META` 删条目 → 调 `DEFAULT_LLM_MODEL` / `isDefault` →
+  顺手扫 `routes.test.ts` / `pricing.test.ts` 里硬编码的旧 id → 文案里旧 id 提示。
 - **平台第二上游**：`packages/api/src/routes/llm.ts` 在余额 > 0 路径里按 `model.startsWith('mimo-')`
   分流：`mimo-*` 走 Xiaomi（`https://token-plan-sgp.xiaomimimo.com`，`MIMO_API_KEY`），
   其它走 OpenAI（`https://api.openai.com`，`OPENAI_API_KEY`）。muirouter fallback 路径
