@@ -1,9 +1,11 @@
-import { type BillingInterval, type Currency, SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
+import { type BillingInterval, type Currency, CN_PACKS, SUBSCRIPTION_PLANS, TOPUP_PACKS } from '@muicv/shared';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
+import { CnPackButton } from '@/components/cn-pack-button';
 import { CurrencyToggle } from '@/components/currency-toggle';
 import { getAuth } from '@/lib/auth';
+import { getCnPackCooldownEnd } from '@/lib/cn-pack';
 import { getRequestCurrency } from '@/lib/region';
 import { getActiveSubscription } from '@/lib/subscription';
 
@@ -108,6 +110,16 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
   const interval: BillingInterval = params.interval === 'yearly' ? 'yearly' : 'monthly';
   const currency = getRequestCurrency({ headers: requestHeaders });
 
+  // CN 视图订阅卡走「月包/年包」一次性 SKU；server 端查 cooldown，client 受控显示锁定状态。
+  // 未登录用户不查（也不展示购买按钮，走 sign-up 流程），cooldownEnd 保留 null。
+  const cnPackCooldown: Record<BillingInterval, Date | null> = { monthly: null, yearly: null };
+  if (currency === 'cny' && session?.user) {
+    [cnPackCooldown.monthly, cnPackCooldown.yearly] = await Promise.all([
+      getCnPackCooldownEnd(session.user.id, 'monthly'),
+      getCnPackCooldownEnd(session.user.id, 'yearly'),
+    ]);
+  }
+
   return (
     <div className="relative">
       <Header isLoggedIn={isLoggedIn} />
@@ -145,6 +157,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
                 tier={tier}
                 interval={interval}
                 currency={currency}
+                cnPackCooldownEnd={cnPackCooldown[interval]}
                 isLoggedIn={isLoggedIn}
                 hasActiveSub={hasActiveSub}
               />
@@ -288,17 +301,22 @@ function SubscriptionCard({
   tier,
   interval,
   currency,
+  cnPackCooldownEnd,
   isLoggedIn,
   hasActiveSub,
 }: {
   tier: SubTier;
   interval: BillingInterval;
   currency: Currency;
+  cnPackCooldownEnd: Date | null;
   isLoggedIn: boolean;
   hasActiveSub: boolean;
 }) {
   const plan = SUBSCRIPTION_PLANS[tier.key];
   const cycle = plan[interval];
+  // CN 视图：用一次性 CN 包替代订阅 SKU。key 形如 'pro-monthly'。
+  const cnPackKey = `${tier.key}-${interval}` as const;
+  const cnPack = CN_PACKS[cnPackKey];
 
   return (
     <article
@@ -351,7 +369,20 @@ function SubscriptionCard({
         </a>
       )}
       {isLoggedIn && hasActiveSub && <BuyButton kind="portal" label="管理订阅" primary={!!tier.highlight} />}
-      {isLoggedIn && !hasActiveSub && (
+      {isLoggedIn && !hasActiveSub && currency === 'cny' && (
+        <>
+          <CnPackButton
+            pack={cnPackKey}
+            label={`购买 ${cnPack.label}`}
+            cooldownEnd={cnPackCooldownEnd}
+            primary={!!tier.highlight}
+          />
+          <p className="mt-2 text-center text-[12px] leading-snug text-mute">
+            国内一次性付费 · 同周期 {cnPack.cooldownDays} 天内每位用户限购一次 · token 永不过期
+          </p>
+        </>
+      )}
+      {isLoggedIn && !hasActiveSub && currency !== 'cny' && (
         <BuyButton
           kind="subscription"
           plan={tier.key}

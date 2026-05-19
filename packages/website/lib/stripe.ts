@@ -1,8 +1,10 @@
 import {
   type BillingInterval,
+  type CnPackKey,
   type Currency,
   type SubscriptionPlanKey,
   type TopupPackKey,
+  CN_PACKS,
   SUBSCRIPTION_PLANS,
   TOPUP_PACKS,
 } from '@muicv/shared';
@@ -12,6 +14,8 @@ import Stripe from 'stripe';
 
 import { getDb, schema } from './db';
 import {
+  CN_PACK_PRICE_META,
+  STRIPE_CN_PACK_PRICES,
   STRIPE_SUBSCRIPTION_PRICES,
   STRIPE_TOPUP_PRICES,
   SUBSCRIPTION_PRICE_META,
@@ -80,6 +84,23 @@ export function priceIdToTopupTokens(priceId: string): number | null {
   const meta = TOPUP_PRICE_META.get(priceId);
   if (!meta) return null;
   return TOPUP_PACKS[meta.pack].tokens;
+}
+
+/** CN 月包/年包 key → Stripe price id（live one-time CNY）。 */
+export function cnPackToPriceId(pack: CnPackKey): string {
+  return STRIPE_CN_PACK_PRICES[pack];
+}
+
+/** Stripe price id → CnPackKey；不在表里返 null（用于 webhook 反查）。 */
+export function priceIdToCnPack(priceId: string): CnPackKey | null {
+  return CN_PACK_PRICE_META.get(priceId)?.pack ?? null;
+}
+
+/** CN 月包/年包 price id → token 数（同档对应 SUBSCRIPTION_PLANS 的 cycle tokens）。 */
+export function priceIdToCnPackTokens(priceId: string): number | null {
+  const pack = priceIdToCnPack(priceId);
+  if (!pack) return null;
+  return CN_PACKS[pack].tokens;
 }
 
 /**

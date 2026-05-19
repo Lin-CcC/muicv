@@ -5,11 +5,13 @@ import {
   type Currency,
   type SubscriptionPlanKey,
   type TopupPackKey,
+  CN_PACKS,
   SUBSCRIPTION_PLANS,
   TOPUP_PACKS,
 } from '@muicv/shared';
 import { useState } from 'react';
 
+import { CnPackButton } from '@/components/cn-pack-button';
 import { CurrencyToggle } from '@/components/currency-toggle';
 
 /**
@@ -28,9 +30,13 @@ import { CurrencyToggle } from '@/components/currency-toggle';
 export function BillingActions({
   hasActiveSubscription,
   currency,
+  cnPackMonthlyCooldownEnd,
+  cnPackYearlyCooldownEnd,
 }: {
   hasActiveSubscription: boolean;
   currency: Currency;
+  cnPackMonthlyCooldownEnd: Date | null;
+  cnPackYearlyCooldownEnd: Date | null;
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +111,34 @@ export function BillingActions({
           {(['pro', 'max'] as SubscriptionPlanKey[]).map((key) => {
             const plan = SUBSCRIPTION_PLANS[key];
             const cycle = plan[interval];
+            // CN 视图：订阅档以 CN「月包/年包」一次性 SKU 形式出售（绕开 alipay 不能 subscription）。
+            if (currency === 'cny') {
+              const cnPackKey = `${key}-${interval}` as const;
+              const cnPack = CN_PACKS[cnPackKey];
+              const cooldownEnd = interval === 'monthly' ? cnPackMonthlyCooldownEnd : cnPackYearlyCooldownEnd;
+              return (
+                <div
+                  key={key}
+                  className="flex flex-col gap-2 rounded-xl border-2 border-ink bg-cream px-4 py-3 disabled:opacity-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <span>
+                      <span className="block text-[14px] font-extrabold text-ink">{plan.label}</span>
+                      <span className="block font-mono text-[12px] text-mute">
+                        {cycle.tokens.toLocaleString()} tokens / {interval === 'yearly' ? '年' : '月'}
+                      </span>
+                    </span>
+                    <span className="font-mono text-[14px] font-bold tabular-nums text-yellow-deep">
+                      {cycle.display.cny}
+                    </span>
+                  </div>
+                  <CnPackButton pack={cnPackKey} label={`购买 ${cnPack.label}`} cooldownEnd={cooldownEnd} />
+                  <p className="text-[11px] leading-snug text-mute">
+                    国内一次性付费 · 同周期 {cnPack.cooldownDays} 天内限购一次
+                  </p>
+                </div>
+              );
+            }
             return (
               <button
                 key={key}

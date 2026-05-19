@@ -1,4 +1,4 @@
-import type { BillingInterval, Currency, SubscriptionPlanKey, TopupPackKey } from '@muicv/shared';
+import type { BillingInterval, CnPackKey, Currency, SubscriptionPlanKey, TopupPackKey } from '@muicv/shared';
 
 /**
  * Stripe Price ID 注册表。
@@ -50,6 +50,22 @@ export const STRIPE_TOPUP_PRICES: Record<TopupPackKey, Record<Currency, string>>
 };
 
 /**
+ * CN「月包/年包」一次性 SKU price IDs。
+ *
+ * 与 STRIPE_SUBSCRIPTION_PRICES.*.cny 是两套不同对象：
+ *   - 那一套是 recurring price（已建但实际不可用，alipay 进不了 subscription mode）
+ *   - 本套是 one-time price，挂在同一个 Pro / Max Product 上，走 mode=payment 三方支付
+ *
+ * 占位 price_REPLACE_*_CN_PACK 由 stripe CLI 跑完替换。
+ */
+export const STRIPE_CN_PACK_PRICES: Record<CnPackKey, string> = {
+  'pro-monthly': 'price_1TYoWTEpkXm2vxXTZeEj6thA',
+  'pro-yearly': 'price_1TYoWUEpkXm2vxXTDhrUkeQR',
+  'max-monthly': 'price_1TYoWUEpkXm2vxXTQYKrCfNA',
+  'max-yearly': 'price_1TYoWVEpkXm2vxXTr98RTTWm',
+};
+
+/**
  * 反查表：priceId → 订阅档位元信息。webhook 处理 invoice.paid /
  * customer.subscription.* 时 O(1) 反查 tokens / plan / interval。
  *
@@ -58,6 +74,8 @@ export const STRIPE_TOPUP_PRICES: Record<TopupPackKey, Record<Currency, string>>
 export const SUBSCRIPTION_PRICE_META = buildSubscriptionReverseMap();
 
 export const TOPUP_PRICE_META = buildTopupReverseMap();
+
+export const CN_PACK_PRICE_META = buildCnPackReverseMap();
 
 export interface SubscriptionPriceMeta {
   plan: SubscriptionPlanKey;
@@ -68,6 +86,10 @@ export interface SubscriptionPriceMeta {
 export interface TopupPriceMeta {
   pack: TopupPackKey;
   currency: Currency;
+}
+
+export interface CnPackPriceMeta {
+  pack: CnPackKey;
 }
 
 function buildSubscriptionReverseMap(): Map<string, SubscriptionPriceMeta> {
@@ -88,6 +110,14 @@ function buildTopupReverseMap(): Map<string, TopupPriceMeta> {
     for (const currency of Object.keys(STRIPE_TOPUP_PRICES[pack]) as Currency[]) {
       map.set(STRIPE_TOPUP_PRICES[pack][currency], { pack, currency });
     }
+  }
+  return map;
+}
+
+function buildCnPackReverseMap(): Map<string, CnPackPriceMeta> {
+  const map = new Map<string, CnPackPriceMeta>();
+  for (const pack of Object.keys(STRIPE_CN_PACK_PRICES) as CnPackKey[]) {
+    map.set(STRIPE_CN_PACK_PRICES[pack], { pack });
   }
   return map;
 }

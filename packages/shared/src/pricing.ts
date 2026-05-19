@@ -335,10 +335,61 @@ export const TOPUP_PACKS = {
 
 export type TopupPackKey = keyof typeof TOPUP_PACKS;
 
+/**
+ * CN 用户的「月包 / 年包」一次性 SKU。
+ *
+ * 为什么存在：WeChat Pay 不支持 recurring（Stripe 全平台限制），Alipay 在本账户也被
+ * Stripe 拒绝进 subscription mode。所以把 Pro/Max × 月/年 4 个订阅档做成一次性付款，
+ * 走 topup 路径（mode=payment）+ WeChat/Alipay/Card 三方支付，靠 cooldownDays 闸门
+ * 实现「一个周期只能买一次」的订阅感。
+ *
+ * token 量 = 对应订阅档（SUBSCRIPTION_PLANS.pro.monthly.tokens 等）。永不过期，立即到账。
+ * cooldownDays = 「周期」长度；同周期全锁（详见 lib/cn-pack.ts 的 getCnPackCooldownEnd）：
+ *   买任意月包 → 30 天内不能再买任何月包（但能买年包）
+ *   买任意年包 → 365 天内不能再买任何年包
+ *
+ * 没有自动续费 / 到期提醒（不是订阅）。退款不退 token（与 USD topup 现状一致）。
+ */
+export const CN_PACKS = {
+  'pro-monthly': {
+    tokens: SUBSCRIPTION_PLANS.pro.monthly.tokens,
+    cooldownDays: 30,
+    label: 'Pro 月包',
+    display: { cny: '¥33.88' },
+  },
+  'pro-yearly': {
+    tokens: SUBSCRIPTION_PLANS.pro.yearly.tokens,
+    cooldownDays: 365,
+    label: 'Pro 年包',
+    display: { cny: '¥332.88' },
+  },
+  'max-monthly': {
+    tokens: SUBSCRIPTION_PLANS.max.monthly.tokens,
+    cooldownDays: 30,
+    label: 'Max 月包',
+    display: { cny: '¥107.88' },
+  },
+  'max-yearly': {
+    tokens: SUBSCRIPTION_PLANS.max.yearly.tokens,
+    cooldownDays: 365,
+    label: 'Max 年包',
+    display: { cny: '¥1080.88' },
+  },
+} as const;
+
+export type CnPackKey = keyof typeof CN_PACKS;
+export type CnPackPeriod = 'monthly' | 'yearly';
+
+/** CN 包的 period（同周期全锁需要据此判定）。key 命名形如 '<tier>-<period>'。 */
+export function cnPackPeriod(k: CnPackKey): CnPackPeriod {
+  return k.endsWith('-monthly') ? 'monthly' : 'yearly';
+}
+
 export type LedgerType =
   | 'signup_bonus'
   | 'subscription'
   | 'topup'
+  | 'cn_pack'
   | 'llm'
   | 'pdf_render'
   | 'jd_fetch'

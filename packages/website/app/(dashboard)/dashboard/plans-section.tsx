@@ -2,6 +2,7 @@ import { microToDisplay } from '@muicv/shared';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 
+import { getCnPackCooldownEnd } from '@/lib/cn-pack';
 import { getDb, schema } from '@/lib/db';
 import { getRequestCurrency } from '@/lib/region';
 import { getCurrentSession } from '@/lib/session';
@@ -78,6 +79,11 @@ export async function PlansSection() {
 
   const ledger = await listLedger(userId, { limit: 15 });
   const currency = getRequestCurrency({ headers: await headers() });
+  // CN 视图：订阅卡走「月包/年包」，server 端预查 cooldown 后透传给 client。
+  const [cnPackMonthlyCooldown, cnPackYearlyCooldown] =
+    currency === 'cny'
+      ? await Promise.all([getCnPackCooldownEnd(userId, 'monthly'), getCnPackCooldownEnd(userId, 'yearly')])
+      : [null, null];
 
   return (
     <section className="rounded-xl border-2 border-ink bg-cream p-6 shadow-[0_4px_0_0_var(--color-ink-line)]">
@@ -116,7 +122,12 @@ export async function PlansSection() {
       )}
 
       <div className="mt-6">
-        <BillingActions hasActiveSubscription={hasActive} currency={currency} />
+        <BillingActions
+          hasActiveSubscription={hasActive}
+          currency={currency}
+          cnPackMonthlyCooldownEnd={cnPackMonthlyCooldown}
+          cnPackYearlyCooldownEnd={cnPackYearlyCooldown}
+        />
       </div>
 
       <div className="mt-8 border-t border-rule pt-6">
