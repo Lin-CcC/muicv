@@ -208,10 +208,10 @@ function ReleasePanel({ release }: { release: GhRelease }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Platform title="macOS · Apple Silicon" subtitle="M1 / M2 / M3 / M4" assets={macArm64} />
-        <Platform title="macOS · Intel" subtitle="x64 旧机型" assets={macX64} />
-        <Platform title="Windows" subtitle="x64 · NSIS 安装包" assets={win} />
-        <Platform title="Linux" subtitle="x86_64 · AppImage" assets={linux} />
+        <Platform title="macOS · Apple Silicon" subtitle="M1 / M2 / M3 / M4" assets={macArm64} tag={release.tag_name} />
+        <Platform title="macOS · Intel" subtitle="x64 旧机型" assets={macX64} tag={release.tag_name} />
+        <Platform title="Windows" subtitle="x64 · NSIS 安装包" assets={win} tag={release.tag_name} />
+        <Platform title="Linux" subtitle="x86_64 · AppImage" assets={linux} tag={release.tag_name} />
       </div>
 
       <div className="rounded-xl border border-rule bg-paper px-4 py-3 text-[12px] text-mute">
@@ -221,7 +221,17 @@ function ReleasePanel({ release }: { release: GhRelease }) {
   );
 }
 
-function Platform({ title, subtitle, assets }: { title: string; subtitle: string; assets: ParsedAsset[] }) {
+function Platform({
+  title,
+  subtitle,
+  assets,
+  tag,
+}: {
+  title: string;
+  subtitle: string;
+  assets: ParsedAsset[];
+  tag: string;
+}) {
   return (
     <div className="rounded-xl border-2 border-ink bg-cream p-5 shadow-[0_4px_0_0_var(--color-ink)]">
       <div>
@@ -234,9 +244,10 @@ function Platform({ title, subtitle, assets }: { title: string; subtitle: string
           <p className="text-[12px] text-mute">本版本未提供该架构产物</p>
         ) : (
           assets.map((a) => (
+            // 走 /api/download 代理端点：CN 用户由 Worker 流式代理 + 边缘缓存，非 CN 302 直连 GitHub。
             <a
               key={a.url}
-              href={a.url}
+              href={`/api/download/${encodeURIComponent(tag)}/${encodeURIComponent(a.name)}`}
               className="press flex items-center justify-between rounded-lg bg-yellow px-3.5 py-2 text-[14px] font-bold text-ink transition"
             >
               <span className="inline-flex items-center gap-2">

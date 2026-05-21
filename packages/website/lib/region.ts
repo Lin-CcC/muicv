@@ -25,3 +25,12 @@ export function getRequestCurrency(request: Request | { headers: Headers }): Cur
   if (country === 'CN') return 'cny';
   return 'usd';
 }
+
+/**
+ * 用户网络是否在中国大陆。只看 Cloudflare 注入的真实地理位置 `cf-ipcountry`，
+ * 不读币种 cookie——下载路由要的是网络位置，与账单偏好解耦：海外华人即使把币种切到 ¥，
+ * GitHub 直连通常更快，不该被强行代理。
+ */
+export function isMainlandChina(request: Request | { headers: Headers }): boolean {
+  return request.headers.get('cf-ipcountry')?.toUpperCase() === 'CN';
+}
