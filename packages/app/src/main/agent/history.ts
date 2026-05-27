@@ -16,17 +16,23 @@ import type { AgentInputItem } from '@openai/agents';
 import type { AttachmentRef, ChatMessage } from '../../shared/types.ts';
 
 /**
- * 模型 context window 上限（显示 token）。当前给所有模型走同一个保守值
- * 256k——主流模型都 >= 200k（gpt-5.x、mimo-v2.5-pro 等）。
+ * 默认模型 context window 上限（显示 token）。GPT 及未知模型走这个保守值
+ * 256k——主流模型都 >= 200k。
  *
- * 不做 per-model 表，因为：
- *   - muicv 后端可能随时加新模型，硬编码表会过期；
- *   - 保守值在所有情况下都安全，代价是大 context 模型不能完全榨干。
+ * 不做完整 per-model 表，因为 muicv 后端可能随时加新模型，硬编码表会过期；
+ * 只对确有大 context 的系列（mimo）按前缀单独放开，见 getModelBudget。
  */
-const MODEL_CONTEXT_LIMIT = 256_000;
+const DEFAULT_CONTEXT_LIMIT = 256_000;
 
 /**
- * 触发自动压缩（裁剪）的阈值，占 MODEL_CONTEXT_LIMIT 的比例。
+ * mimo 系列 context window 上限。Xiaomi v2.5 降价后取消了 256K 阶梯计价，
+ * 全 context（最高 1M）统一价，所以让 mimo 吃满 1M。
+ * 见 https://platform.xiaomimimo.com/docs/zh-CN/news/v2.5-price-update
+ */
+const MIMO_CONTEXT_LIMIT = 1_000_000;
+
+/**
+ * 触发自动压缩（裁剪）的阈值，占 context 上限的比例。
  * 留 20% 给 system prompt + tool schema + 模型本轮输出。
  * 历史 token 一旦超过 limit * threshold，就开始丢最早的非必要消息。
  */
@@ -51,9 +57,10 @@ export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 2.5);
 }
 
-/** 给定模型 id 的 token 预算 = context 上限 × 触发阈值。所有模型走同一保守值。 */
-export function getModelBudget(_modelId: string): number {
-  return Math.floor(MODEL_CONTEXT_LIMIT * COMPACT_THRESHOLD);
+/** 给定模型 id 的 token 预算 = context 上限 × 触发阈值。mimo 系列走 1M，其余走 256K。 */
+export function getModelBudget(modelId: string): number {
+  const limit = modelId.startsWith('mimo-') ? MIMO_CONTEXT_LIMIT : DEFAULT_CONTEXT_LIMIT;
+  return Math.floor(limit * COMPACT_THRESHOLD);
 }
 
 export type ImageReader = (ref: AttachmentRef) => Promise<string | null>;
@@ -123,7 +130,7 @@ export async function buildAgentInput(
   messages: ChatMessage[],
   opts?: { budgetTokens?: number; imageReader?: ImageReader; audioReader?: AudioReader },
 ): Promise<BuildAgentInputResult> {
-  const budget = opts?.budgetTokens ?? Math.floor(MODEL_CONTEXT_LIMIT * COMPACT_THRESHOLD);
+  const budget = opts?.budgetTokens ?? Math.floor(DEFAULT_CONTEXT_LIMIT * COMPACT_THRESHOLD);
   if (messages.length === 0) {
     return { items: [], droppedCount: 0, estimatedTokens: 0 };
   }

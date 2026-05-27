@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildAgentInput, estimateTokens } from '../src/main/agent/history.ts';
+import { buildAgentInput, estimateTokens, getModelBudget } from '../src/main/agent/history.ts';
 import type { ChatMessage } from '../src/shared/types.ts';
 
 let counter = 0;
@@ -15,6 +15,16 @@ test('estimateTokens 大致随长度上升', () => {
   assert.ok(estimateTokens('a'.repeat(10)) < estimateTokens('a'.repeat(100)));
   assert.ok(estimateTokens('a'.repeat(100)) < estimateTokens('a'.repeat(1000)));
   assert.equal(estimateTokens(''), 0);
+});
+
+test('getModelBudget mimo 系列走 1M context（800k 预算）', () => {
+  assert.equal(getModelBudget('mimo-v2.5'), 800_000);
+  assert.equal(getModelBudget('mimo-v2.5-pro'), 800_000);
+});
+
+test('getModelBudget GPT 与未知模型走 256K context（204800 预算）', () => {
+  assert.equal(getModelBudget('gpt-5.4'), 204_800);
+  assert.equal(getModelBudget('foo'), 204_800);
 });
 
 test('buildAgentInput 空数组 → 空 items', async () => {
