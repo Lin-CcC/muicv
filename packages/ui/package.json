@@ -8,17 +8,17 @@
     "./styles.css": "./src/styles.css"
   },
   "dependencies": {
-    "@base-ui/react": "^1.0.0",
+    "@base-ui/react": "^1.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.1"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0"
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3"
   }
 }
