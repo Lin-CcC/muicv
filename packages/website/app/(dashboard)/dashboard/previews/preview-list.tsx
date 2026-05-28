@@ -293,7 +293,10 @@ export function PhotoHistoryList({ items }: { items: PhotoUploadItem[] }) {
           <img
             src={p.url}
             alt={p.originalName ?? '证件照'}
+            width={200}
+            height={266}
             loading="lazy"
+            decoding="async"
             className="h-20 w-16 shrink-0 rounded-md object-cover"
           />
           <div className="min-w-0 flex-1">

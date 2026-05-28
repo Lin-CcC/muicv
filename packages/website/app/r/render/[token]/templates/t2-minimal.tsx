@@ -40,7 +40,7 @@ export default function T2Minimal({ resume, lang, accent, slots }: T2Props) {
       <header className={styles.t2__top}>
         {d.photoUrl ? (
           <div className={styles.t2__photo} data-photo-slot>
-            <img src={d.photoUrl} alt="" />
+            <img src={d.photoUrl} alt="" width={200} height={266} decoding="async" />
             {slots?.photo}
           </div>
         ) : slots?.photo ? (

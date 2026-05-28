@@ -24,7 +24,7 @@ export default function T1Classic({ resume, lang, accent, slots }: T1Props) {
       <header className={styles.t1__head}>
         {d.photoUrl ? (
           <div className={styles.t1__photo} data-photo-slot>
-            <img src={d.photoUrl} alt="" />
+            <img src={d.photoUrl} alt="" width={200} height={266} decoding="async" />
             {slots?.photo}
           </div>
         ) : slots?.photo ? (

@@ -36,7 +36,7 @@ export default function T6Academic({ resume, lang, accent, slots }: T6Props) {
         </div>
         {d.photoUrl ? (
           <div className={styles.t6__photo} data-photo-slot>
-            <img src={d.photoUrl} alt="" />
+            <img src={d.photoUrl} alt="" width={200} height={266} decoding="async" />
             {slots?.photo}
           </div>
         ) : slots?.photo ? (

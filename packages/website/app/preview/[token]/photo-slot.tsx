@@ -209,7 +209,7 @@ export function PhotoSlotButton({ token, hasPhoto }: Props) {
                           title={it.originalName ?? it.r2Key}
                         >
                           {/* biome-ignore lint/performance/noImgElement: 简单缩略图，next/image 在 cf workers 反而要额外配置 */}
-                          <img src={it.url} alt="" />
+                          <img src={it.url} alt="" width={200} height={266} loading="lazy" decoding="async" />
                         </button>
                         <button
                           type="button"

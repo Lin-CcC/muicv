@@ -46,7 +46,7 @@ export default function T5Timeline({ resume, lang, accent, slots }: T5Props) {
         </div>
         {d.photoUrl ? (
           <div className={styles.t5__photo} data-photo-slot>
-            <img src={d.photoUrl} alt="" />
+            <img src={d.photoUrl} alt="" width={200} height={266} decoding="async" />
             {slots?.photo}
           </div>
         ) : slots?.photo ? (

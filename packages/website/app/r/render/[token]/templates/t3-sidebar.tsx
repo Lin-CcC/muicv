@@ -24,7 +24,7 @@ export default function T3Sidebar({ resume, lang, accent, slots }: T3Props) {
       <aside className={styles.t3__side}>
         {d.photoUrl ? (
           <div className={styles.t3__photo} data-photo-slot>
-            <img src={d.photoUrl} alt="" />
+            <img src={d.photoUrl} alt="" width={200} height={266} decoding="async" />
             {slots?.photo}
           </div>
         ) : slots?.photo ? (

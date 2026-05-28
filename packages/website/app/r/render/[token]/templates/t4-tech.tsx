@@ -24,7 +24,7 @@ export default function T4Tech({ resume, lang, accent, slots }: T4Props) {
       <header className={styles.t4__head}>
         {d.photoUrl ? (
           <div className={styles.t4__photo} data-photo-slot>
-            <img src={d.photoUrl} alt="" />
+            <img src={d.photoUrl} alt="" width={200} height={266} decoding="async" />
             {slots?.photo}
           </div>
         ) : slots?.photo ? (
