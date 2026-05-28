@@ -6,6 +6,9 @@ dist
 out
 *.tsbuildinfo
 
+# Next.js 自动生成，每次 next build / dev 都会覆盖，不入版本控制
+next-env.d.ts
+
 .open-next
 
 # electron-builder 产物

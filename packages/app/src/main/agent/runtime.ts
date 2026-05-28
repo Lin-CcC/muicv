@@ -251,9 +251,9 @@ export async function runAgent(opts: RunOpts): Promise<void> {
         ? '本次对话历史超出模型上下文长度。已尝试自动裁剪，仍超出的话请新开一个对话。'
         : isMaxTurnsError(rawMsg)
           ? `本次任务的 agent 工具调用超过 ${AGENT_MAX_TURNS} 轮，已自动停止。建议把任务拆小一点，或检查是否有某个工具在反复失败重试。`
-        : isReasoningContentError(error, rawMsg)
-          ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.4）。`
-          : rawMsg;
+          : isReasoningContentError(error, rawMsg)
+            ? `当前模型「${config.defaultModel}」是带 thinking mode 的推理模型，多轮工具调用时要求回传 reasoning_content 字段，与 OpenAI Agents SDK 不兼容。请到设置切换到 GPT 系列（gpt-5.4）。`
+            : rawMsg;
       send({ type: 'error', message: msg });
       send({ type: 'finish', reason: 'error' });
     }
