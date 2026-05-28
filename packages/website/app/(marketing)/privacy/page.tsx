@@ -118,12 +118,29 @@ export default function PrivacyPage() {
             <Li>
               <strong>支付处理</strong>：付费档位通过第三方支付服务商完成，我们不接触你的完整卡号信息。
             </Li>
+            <Li>
+              <strong>站点分析</strong>：我们使用 Google Analytics 4（gtag.js）做匿名站点分析，
+              统计页面访问、来源、停留时长等聚合指标，并采集 LCP / CLS / INP 等 Web Vitals 性能指标。 我们开启 IP
+              匿名化，不上传可识别个人的内容。
+            </Li>
           </UL>
           <P>上述服务商均有自己的隐私政策与合规义务。我们会持续审核合作方，确保数据处理符合本政策与适用法律。</P>
 
           <H2>6. Cookie 与类似技术</H2>
-          <P>我们使用必要的 Cookie 维持登录状态、记录用户偏好。我们不使用追踪类广告 Cookie。</P>
-          <P>你可以通过浏览器设置禁用或清除 Cookie，但这可能导致部分功能（如保持登录）无法正常工作。</P>
+          <P>我们使用以下几类 Cookie / 本地存储：</P>
+          <UL>
+            <Li>
+              <strong>必要 Cookie</strong>：维持登录状态、记录主题与语言等用户偏好。
+            </Li>
+            <Li>
+              <strong>分析 Cookie</strong>：Google Analytics 4 写入的 <code>_ga</code>、<code>_ga_*</code> 等 Cookie，
+              用于区分访客、聚合访问数据。这些 Cookie 已开启 IP 匿名化，不与你的账户信息关联，也不用于跨站追踪或广告。
+            </Li>
+          </UL>
+          <P>
+            我们不使用追踪类广告 Cookie。你可以通过浏览器设置禁用或清除
+            Cookie，但这可能导致部分功能（如保持登录）无法正常工作。
+          </P>
 
           <H2>7. 你的权利</H2>
           <P>关于我们处理的与你相关的个人信息，你享有以下权利：</P>
