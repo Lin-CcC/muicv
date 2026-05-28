@@ -4,8 +4,8 @@ import { getWebsitePublishedChangelog, getWebsitePublishedPosts, getWebsitePubli
 
 const BASE = 'https://muicv.com';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// sitemap 走 ISR：1 小时刷一次。爬虫不会每秒访问，不需要 force-dynamic 让 D1 每次硬扛。
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const generatedAt = new Date();
