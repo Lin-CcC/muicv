@@ -55,6 +55,32 @@
   跑 `pnpm --filter @muicv/website cf-typegen` 重新生成即可。
 - 本地开发两套：`pnpm dev` 是纯 Next.js，最快；`pnpm dev:cf` 走 Wrangler，更贴近生产 Worker 行为。
 
+## SEO / OG / 安全 headers（packages/website）
+
+> SEO 基础设施 2026-05 一次性补齐：JSON-LD（Organization / WebSite / Article /
+> BreadcrumbList）、metadata API、动态 OG 图、GA4 + Web Vitals 上报、HTTP 安全 headers。
+> 这里只记关键决策和踩坑，常规 Next.js metadata API 不重复。
+
+- **首页禁 `force-dynamic`，走 ISR**：登录态徽章拆到 `<Header>` 客户端 `useSession`，主体内容静态化，命中 OpenNext R2 ISR 缓存。改造前 force-dynamic 让所有访问都打 D1 + Better Auth，TTFB 拉爆。`sitemap.ts` 同步 `revalidate = 3600`。
+- **动态 OG（per-post / per-skill）—— Satori 在 edge runtime 的字体踩坑**：
+  - Satori（next/og 内部）只认 **TTF / OTF / WOFF**，**不认 WOFF2**：WOFF2 需要 brotli 解压，Satori 没带；用 WOFF2 渲染时抛异常 → CF Worker 直接 1101。
+  - Google Fonts CSS2 API 按 User-Agent 返回不同格式：现代 Chrome UA → woff2；不传 UA / CF Worker 默认 UA / curl 默认 → truetype；老 Firefox UA → woff。
+  - **正确做法：fetch CSS 时不传 User-Agent**，让 CF Worker 默认 UA 拿到 truetype，Satori 直接吃。代码见 `packages/website/lib/og-font.ts`。
+  - CJK 标题按文本子集化：CSS2 API 加 `text=` 参数只下载需要的字符，一张 OG ~30-50 KB。
+- **ImageResponse 必须 eager render 才能 try/catch**：`new ImageResponse(...)` 返回的是 lazy stream，Satori 实际在 Worker 消费 body 时才跑——这时函数已经 return，外层 try/catch 接不住，Satori 抛错就是 1101。模式：
+  ```ts
+  try {
+    const res = renderImage(...);          // 拿到 lazy Response
+    const buf = await res.arrayBuffer();    // 这里把 Satori 拉跑完，能 catch
+    return new Response(buf, { headers: ... });
+  } catch { return fallbackImage(); }
+  ```
+- **fallback OG 必须是 ASCII**：兜底图用 `fontFamily: 'sans-serif'`、只渲染 `MuiCV` / `AI Job Search Platform` 这种 ASCII 文字，**绝不能塞 CJK**——一旦走兜底就意味着没字体可用，再渲染中文会再次抛错。
+- **markdown heading 层级**：CMS 文章用 `##` 起算章节，页面外壳已经有 h1（post.title）。`markdown.tsx` 里 `new Marked()` 自定义 renderer 把 heading depth `Math.max(depth, 2)` 兜底到 h2，防止 markdown 出第二个 h1 / h1→h3 跳级。**不要做 +1 bump**——会把 `##` 推到 h3，反而制造 h1→h3 跳级。
+- **HTTP 安全 headers 在 `next.config.ts` 的 `async headers()`**：OpenNext 透传到 Cloudflare Worker 响应。设了 HSTS / nosniff / Referrer / Permissions / X-XSS=0。**没设 CSP**——SSR + GA + 多源动态 OG，CSP 容易把自己锁出去，等专门文档再加。
+- **GA4 + Web Vitals 上报**：客户端 `<Analytics>` 组件用 `next/script strategy="afterInteractive"` 异步加载 gtag；`useReportWebVitals` 把 TTFB / FCP / LCP / CLS / INP 作为自定义 event 发到 GA4。`anonymize_ip: true`。生产没有 CrUX 数据时，RUM 替代。
+- **GSC / Bing 验证 token 走 env**：root layout `metadata.verification.google` / `other.msvalidate.01` 读 `NEXT_PUBLIC_GSC_VERIFICATION` / `NEXT_PUBLIC_BING_VERIFICATION`，没设就跳过。预留位置，不强制现在做。
+
 ## Cloudflare Browser Rendering（packages/api）
 
 > 历史：原本是 Cloudflare Container（Node + Chromium + Puppeteer）+ Durable Object 单

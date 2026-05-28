@@ -41,7 +41,7 @@
   --color-paper-deep: #ede2c5; /* 三级表面 / 选中行 */
   --color-ink: #3a2e23; /* 主字色 — 暖深棕，不要纯黑 */
   --color-ink-soft: #5a4938; /* 正文 / 弱化标题 */
-  --color-mute: #8a7660; /* 提示文字 / 元信息 */
+  --color-mute: #766852; /* 提示文字 / 元信息 — cream 底 ~5.1:1，满足 WCAG AA 4.5:1 */
   --color-rule: #e0d3b8; /* 细分隔线 */
   --color-rule-strong: #c9b790; /* 卡片描边 */
   --color-ink-line: #3a2e23; /* "粗描边"风格的 2px 边框色 */

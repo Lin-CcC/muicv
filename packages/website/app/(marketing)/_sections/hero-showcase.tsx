@@ -56,7 +56,10 @@ export function HeroShowcase() {
                 key={slide.key}
                 type="button"
                 role="tab"
+                id={`hero-tab-${slide.key}`}
                 aria-selected={isActive}
+                aria-controls={`hero-panel-${slide.key}`}
+                tabIndex={isActive ? 0 : -1}
                 onClick={() => setActive(slide.key)}
                 className={
                   isActive
@@ -71,13 +74,13 @@ export function HeroShowcase() {
         </div>
 
         <div className="relative aspect-[4/3.1] w-full">
-          <Slide active={active === 'import'}>
+          <Slide active={active === 'import'} slideKey="import">
             <ImportSlide />
           </Slide>
-          <Slide active={active === 'library'}>
+          <Slide active={active === 'library'} slideKey="library">
             <LibrarySlide />
           </Slide>
-          <Slide active={active === 'resume'}>
+          <Slide active={active === 'resume'} slideKey="resume">
             <ResumeSlide />
           </Slide>
         </div>
@@ -91,9 +94,12 @@ export function HeroShowcase() {
   );
 }
 
-function Slide({ active, children }: { active: boolean; children: React.ReactNode }) {
+function Slide({ active, slideKey, children }: { active: boolean; slideKey: SlideKey; children: React.ReactNode }) {
   return (
     <div
+      role="tabpanel"
+      id={`hero-panel-${slideKey}`}
+      aria-labelledby={`hero-tab-${slideKey}`}
       aria-hidden={!active}
       className={
         active
