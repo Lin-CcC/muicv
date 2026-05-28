@@ -1,7 +1,4 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-
-import { getAuth } from '@/lib/auth';
 
 import { H2, Lead, Li, P, UL } from '../_legal-typography';
 import { Footer } from '../_sections/footer';
@@ -13,18 +10,14 @@ export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const EFFECTIVE_DATE = '2026-04-30';
 
-export default async function TermsPage() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: await headers() });
-  const isLoggedIn = !!session?.user;
-
+export default function TermsPage() {
   return (
     <div className="relative">
-      <Header isLoggedIn={isLoggedIn} />
+      <Header />
 
       <section className="relative overflow-hidden border-b border-rule">
         <div className="absolute inset-0 bg-sun" aria-hidden />

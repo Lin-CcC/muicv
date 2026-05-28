@@ -1,10 +1,8 @@
 import { ArrowUpRight, Highlight, PawIcon, Sparkle } from '../_icons';
+import { AccountLink } from './account-link';
 import { HeroShowcase } from './hero-showcase';
 
-export function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
-  const accountHref = isLoggedIn ? '/dashboard' : '/sign-up';
-  const accountLabel = isLoggedIn ? '进入个人中心' : '创建账号';
-
+export function Hero() {
   return (
     <section className="relative overflow-hidden border-b border-rule">
       <div className="absolute inset-0 bg-sun" aria-hidden />
@@ -50,12 +48,7 @@ export function Hero({ isLoggedIn }: { isLoggedIn: boolean }) {
               看 3 步怎么开始
               <ArrowUpRight />
             </a>
-            <a
-              href={accountHref}
-              className="ml-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink-soft underline decoration-rule decoration-2 underline-offset-4 transition hover:text-ink hover:decoration-yellow"
-            >
-              {accountLabel}
-            </a>
+            <AccountLink className="ml-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink-soft underline decoration-rule decoration-2 underline-offset-4 transition hover:text-ink hover:decoration-yellow" />
           </div>
 
           <p className="mt-10 max-w-lg border-t-2 border-dotted border-rule-strong pt-5 text-[14px] leading-[1.7] text-mute">

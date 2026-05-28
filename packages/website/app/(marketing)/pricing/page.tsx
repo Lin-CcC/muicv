@@ -122,7 +122,7 @@ export default async function PricingPage(props: { searchParams: Promise<{ inter
 
   return (
     <div className="relative">
-      <Header isLoggedIn={isLoggedIn} />
+      <Header />
 
       <section className="relative overflow-hidden border-b border-rule">
         <div className="absolute inset-0 bg-sun" aria-hidden />

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 
 import { CorgiMascot } from '@/components/corgi-mascot';
-import { getAuth } from '@/lib/auth';
 
+import { AccountLink } from '../_sections/account-link';
 import { Footer } from '../_sections/footer';
 import { Header } from '../_sections/header';
 import { ArrowUpRight, Highlight, PawIcon } from '../_icons';
@@ -14,16 +13,12 @@ export const metadata: Metadata = {
   alternates: { canonical: '/about' },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
-export default async function AboutPage() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: await headers() });
-  const isLoggedIn = !!session?.user;
-
+export default function AboutPage() {
   return (
     <div className="relative">
-      <Header isLoggedIn={isLoggedIn} />
+      <Header />
 
       <section className="relative overflow-hidden border-b border-rule">
         <div className="absolute inset-0 bg-sun" aria-hidden />
@@ -133,13 +128,13 @@ export default async function AboutPage() {
             找到下一份工作，从这里开始。
           </h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href={isLoggedIn ? '/dashboard' : '/sign-up'}
+            <AccountLink
               className="press inline-flex items-center gap-2 rounded-xl bg-yellow px-5 py-3 text-[16px] font-bold text-ink"
+              signedInLabel="进入控制台"
+              signedOutLabel="免费开始"
             >
-              {isLoggedIn ? '进入控制台' : '免费开始'}
               <ArrowUpRight />
-            </a>
+            </AccountLink>
             <a
               href="/contact"
               className="press-ink inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-cream px-5 py-3 text-[16px] font-bold text-ink"

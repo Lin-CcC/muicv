@@ -7,7 +7,7 @@ import { MarketingShell } from '../../_content/marketing-shell';
 import { MarkdownBody } from '../../_content/markdown';
 import { ArrowUpRight } from '../../_icons';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 type Params = { slug: string };
 

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/changelog' },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function ChangelogPage() {
   const items = await getWebsitePublishedChangelog();

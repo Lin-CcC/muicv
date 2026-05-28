@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/posts' },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 export default async function PostsIndexPage() {
   const posts = await getWebsitePublishedPosts();

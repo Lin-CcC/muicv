@@ -7,7 +7,7 @@ import { ContentCard } from '../../_content/content-card';
 import { MarketingShell } from '../../_content/marketing-shell';
 import { Highlight } from '../../_icons';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 type Params = { section: string };
 

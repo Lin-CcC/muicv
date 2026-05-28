@@ -1,7 +1,3 @@
-import { headers } from 'next/headers';
-
-import { getAuth } from '@/lib/auth';
-
 import { DesktopApp } from './_sections/desktop-app';
 import { FaqAndWaitlist } from './_sections/faq';
 import { KeyFeatures } from './_sections/features';
@@ -11,19 +7,15 @@ import { Hero } from './_sections/hero';
 import { Install } from './_sections/install';
 import { Workflow } from './_sections/workflow';
 
-// 顶部 nav 要根据登录态切显"登录"或"控制台"，所以页面跑 SSR（不要 SSG），
-// 否则 build 时 prerender 会失败：Cloudflare D1 在 build context 拿不到。
-export const dynamic = 'force-dynamic';
+// 首页改 ISR：HTML 由 OpenNext R2 缓存兜底，登录态走 <Header>/<AccountLink> 客户端
+// useSession 在水合后补齐。1 小时刷一次足够营销文案的更新节奏。
+export const revalidate = 3600;
 
-export default async function WebsiteHomePage() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: await headers() });
-  const isLoggedIn = !!session?.user;
-
+export default function WebsiteHomePage() {
   return (
     <div className="relative">
-      <Header isLoggedIn={isLoggedIn} />
-      <Hero isLoggedIn={isLoggedIn} />
+      <Header />
+      <Hero />
       <KeyFeatures />
       <Workflow />
       <DesktopApp />

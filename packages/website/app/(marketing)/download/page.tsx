@@ -1,8 +1,5 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import Link from 'next/link';
-
-import { getAuth } from '@/lib/auth';
 
 import { Footer } from '../_sections/footer';
 import { Header } from '../_sections/header';
@@ -13,8 +10,9 @@ export const metadata: Metadata = {
   alternates: { canonical: '/download' },
 };
 
-// 与其它营销页对齐：Header 需要 session，必须 dynamic。GitHub fetch 自带 5 分钟数据缓存，rate-limit 压力不变。
-export const dynamic = 'force-dynamic';
+// Header 客户端读 session 之后页面可走 ISR。GitHub fetch 内部 revalidate 300 决定数据新鲜度，
+// 这里再加一层页面级 revalidate 让 OpenNext R2 兜底 HTML 缓存。
+export const revalidate = 300;
 
 const REPO = 'meathill/muicv';
 
@@ -132,16 +130,11 @@ function formatDate(iso: string): string {
 }
 
 export default async function DownloadPage() {
-  const auth = await getAuth();
-  const [session, release] = await Promise.all([
-    auth.api.getSession({ headers: await headers() }),
-    fetchLatestRelease(),
-  ]);
-  const isLoggedIn = !!session?.user;
+  const release = await fetchLatestRelease();
 
   return (
     <div className="relative">
-      <Header isLoggedIn={isLoggedIn} />
+      <Header />
 
       <main className="mx-auto max-w-3xl px-5 py-14 md:px-8 md:py-20">
         <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 app</p>

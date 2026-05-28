@@ -1,7 +1,4 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
-
-import { getAuth } from '@/lib/auth';
 
 import { Footer } from '../_sections/footer';
 import { Header } from '../_sections/header';
@@ -13,7 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/contact' },
 };
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
 
 const CONTACTS: { label: string; tag: string; email: string; desc: string }[] = [
   {
@@ -36,14 +33,10 @@ const CONTACTS: { label: string; tag: string; email: string; desc: string }[] = 
   },
 ];
 
-export default async function ContactPage() {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: await headers() });
-  const isLoggedIn = !!session?.user;
-
+export default function ContactPage() {
   return (
     <div className="relative">
-      <Header isLoggedIn={isLoggedIn} />
+      <Header />
 
       <section className="relative overflow-hidden border-b border-rule">
         <div className="absolute inset-0 bg-sun" aria-hidden />
