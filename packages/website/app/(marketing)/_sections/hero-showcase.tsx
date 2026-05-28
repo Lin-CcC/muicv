@@ -118,7 +118,7 @@ function ImportSlide() {
         <span className="font-mono text-[12px] uppercase tracking-wider text-mute">Mui简历 · 第一步</span>
       </div>
       <div className="p-5">
-        <h4 className="text-[18px] font-extrabold text-ink">先放进来一份真实材料</h4>
+        <p className="text-[18px] font-extrabold text-ink">先放进来一份真实材料</p>
         <p className="mt-2 text-[14px] leading-[1.65] text-ink-soft">
           上传简历、粘贴经历，或者直接说“我想从零整理”。Mui 会从你已经有的内容开始。
         </p>
@@ -167,7 +167,7 @@ function LibrarySlide() {
           </ul>
         </aside>
         <div className="p-4">
-          <h4 className="text-[14px] font-extrabold text-ink">可复用素材</h4>
+          <p className="text-[14px] font-extrabold text-ink">可复用素材</p>
           <ul className="mt-3 space-y-2">
             {[
               { title: '负责会员增长实验平台', match: '已量化' },
