@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { JsonLd } from '@/components/json-ld';
 import { getWebsitePublishedSkills, getWebsiteSkillBySlug } from '@/lib/cms-content';
 
 import { MarketingShell } from '../../_content/marketing-shell';
 import { MarkdownBody } from '../../_content/markdown';
 import { ArrowUpRight } from '../../_icons';
+
+const SITE_URL = 'https://muicv.com';
 
 export const revalidate = 3600;
 
@@ -61,8 +64,37 @@ export default async function SkillDetailPage({ params }: { params: Promise<Para
   const guideHref =
     skill.slug === 'tencent-campus-recruiting' ? '/posts/jobs/third-party-skills-tencent-campus-recruiting' : null;
 
+  const skillUrl = `${SITE_URL}/skills/${skill.slug}`;
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    mainEntityOfPage: { '@type': 'WebPage', '@id': skillUrl },
+    headline: skill.title,
+    description: skill.summary,
+    datePublished: skill.publishedAt,
+    dateModified: skill.updatedAt,
+    author: { '@type': 'Organization', name: skill.publisher },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Mui简历',
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/mui-logo.png` },
+    },
+    keywords: skill.keywords,
+  };
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '首页', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Skill 目录', item: `${SITE_URL}/skills` },
+      { '@type': 'ListItem', position: 3, name: skill.title, item: skillUrl },
+    ],
+  };
+
   return (
     <MarketingShell>
+      <JsonLd data={articleSchema} />
+      <JsonLd data={breadcrumbSchema} />
       <article>
         <header className="relative overflow-hidden border-b border-rule">
           <div className="absolute inset-0 bg-sun" aria-hidden />

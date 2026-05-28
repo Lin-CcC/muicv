@@ -2,11 +2,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { POST_SECTION_META, type PostSection } from '@muicv/shared';
+import { JsonLd } from '@/components/json-ld';
 import { getWebsitePostBySlug, getWebsitePublishedPosts } from '@/lib/cms-content';
 
 import { MarketingShell } from '../../../_content/marketing-shell';
 import { MarkdownBody } from '../../../_content/markdown';
 import { ArrowUpRight } from '../../../_icons';
+
+const SITE_URL = 'https://muicv.com';
 
 export const revalidate = 3600;
 
@@ -49,9 +52,38 @@ export default async function PostDetailPage({ params }: { params: Promise<Param
   if (!post) notFound();
 
   const sectionMeta = POST_SECTION_META[post.section];
+  const postUrl = `${SITE_URL}/posts/${post.section}/${post.slug}`;
+  const articleSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    mainEntityOfPage: { '@type': 'WebPage', '@id': postUrl },
+    headline: post.title,
+    description: post.summary,
+    datePublished: post.publishedAt,
+    dateModified: post.updatedAt,
+    author: { '@type': 'Person', name: post.author },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Mui简历',
+      logo: { '@type': 'ImageObject', url: `${SITE_URL}/brand/mui-logo.png` },
+    },
+    keywords: post.keywords,
+  };
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '首页', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: '文章', item: `${SITE_URL}/posts` },
+      { '@type': 'ListItem', position: 3, name: sectionMeta.label, item: `${SITE_URL}${sectionMeta.path}` },
+      { '@type': 'ListItem', position: 4, name: post.title, item: postUrl },
+    ],
+  };
 
   return (
     <MarketingShell>
+      <JsonLd data={articleSchema} />
+      <JsonLd data={breadcrumbSchema} />
       <article>
         <header className="border-b border-rule bg-paper/55">
           <div className="mx-auto max-w-3xl px-5 py-14 md:px-8 md:py-16">
