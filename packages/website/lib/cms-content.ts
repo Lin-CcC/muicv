@@ -7,9 +7,11 @@ import {
   type PostSection,
 } from '@muicv/shared';
 
+const WEBSITE_CMS_CACHE = 'force-cache' as const;
+
 function getCmsOptions() {
   const baseUrl = process.env.MUICV_CMS_URL;
-  return baseUrl ? { baseUrl } : {};
+  return baseUrl ? { baseUrl, cache: WEBSITE_CMS_CACHE } : { cache: WEBSITE_CMS_CACHE };
 }
 
 export function getWebsitePublishedPosts(section?: PostSection) {

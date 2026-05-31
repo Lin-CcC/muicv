@@ -62,6 +62,7 @@
 > 这里只记关键决策和踩坑，常规 Next.js metadata API 不重复。
 
 - **首页禁 `force-dynamic`，走 ISR**：登录态徽章拆到 `<Header>` 客户端 `useSession`，主体内容静态化，命中 OpenNext R2 ISR 缓存。改造前 force-dynamic 让所有访问都打 D1 + Better Auth，TTFB 拉爆。`sitemap.ts` 同步 `revalidate = 3600`。
+- **website 读 CMS 内容走 `force-cache`**：`packages/website/lib/cms-content.ts` 给 shared CMS helper 传缓存模式，让首页 / 文章 / skill / changelog 按各自 `revalidate` 刷新。API 内容端点不传该选项，继续沿用 shared 默认 `no-store`，避免公开 API 返回旧内容。
 - **动态 OG（per-post / per-skill）—— Satori 在 edge runtime 的字体踩坑**：
   - Satori（next/og 内部）只认 **TTF / OTF / WOFF**，**不认 WOFF2**：WOFF2 需要 brotli 解压，Satori 没带；用 WOFF2 渲染时抛异常 → CF Worker 直接 1101。
   - Google Fonts CSS2 API 按 User-Agent 返回不同格式：现代 Chrome UA → woff2；不传 UA / CF Worker 默认 UA / curl 默认 → truetype；老 Firefox UA → woff。

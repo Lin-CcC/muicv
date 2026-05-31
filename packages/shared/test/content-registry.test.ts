@@ -44,6 +44,21 @@ test('cms content fetch maps Payload posts into registry shape', async () => {
   assert.deepEqual(cmsPost.tags, ['校招']);
 });
 
+test('cms content fetch allows caller to choose cache mode', async () => {
+  let cacheMode: unknown;
+
+  await fetchCmsPublishedPosts(undefined, {
+    baseUrl: 'https://cms.example.com',
+    cache: 'force-cache',
+    fetchImpl: async (_url, init) => {
+      cacheMode = init?.cache;
+      return Response.json({ docs: [] });
+    },
+  });
+
+  assert.equal(cacheMode, 'force-cache');
+});
+
 test('cms content fetch maps Payload skills into registry shape', async () => {
   const skills = await fetchCmsPublishedSkills({
     baseUrl: 'https://cms.example.com',

@@ -12,9 +12,12 @@ import {
 const DEFAULT_CMS_BASE_URL = 'https://cms.muicv.com';
 const FETCH_LIMIT = '100';
 
+type CmsCacheMode = 'default' | 'force-cache' | 'no-cache' | 'no-store' | 'only-if-cached' | 'reload';
+
 type CmsContentOptions = {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
+  cache?: CmsCacheMode;
 };
 
 type PayloadListResponse = {
@@ -123,7 +126,7 @@ async function fetchPayloadDocs(
   try {
     const response = await fetchImpl(`${baseUrl}/api/${collection}?${params.toString()}`, {
       headers: { Accept: 'application/json' },
-      cache: 'no-store',
+      cache: options.cache ?? 'no-store',
     });
 
     if (!response.ok) {

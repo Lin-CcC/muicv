@@ -1,9 +1,14 @@
-import { CorgiMascot } from '@/components/corgi-mascot';
+import Link from 'next/link';
+import { POST_SECTION_META, type ContentPost } from '@muicv/shared';
 
 import { FAQ_ITEMS } from '../_data';
 import { ArrowUpRight, Highlight } from '../_icons';
 
-export function FaqAndWaitlist() {
+type FaqAndArticlesProps = {
+  recentPosts: ContentPost[];
+};
+
+export function FaqAndArticles({ recentPosts }: FaqAndArticlesProps) {
   return (
     <section className="border-b border-rule">
       <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-24 lg:grid-cols-12 lg:gap-16">
@@ -41,44 +46,84 @@ export function FaqAndWaitlist() {
         </div>
 
         <aside className="space-y-6 lg:col-span-5 lg:sticky lg:top-24 lg:self-start">
-          <a
-            href="/download"
-            className="group relative block overflow-hidden rounded-xl border-2 border-ink bg-corgi/30 p-7 shadow-press-yellow-lg transition-transform hover:-translate-y-1"
-          >
-            <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-yellow/30 blur-2xl" aria-hidden />
-            <div className="absolute right-3 top-3">
-              <CorgiMascot className="h-10 w-10" />
-            </div>
+          <div className="relative overflow-hidden rounded-xl border-2 border-ink bg-cream p-6 shadow-press-ink">
+            <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-corgi/30 blur-2xl" aria-hidden />
             <div className="relative">
-              <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 桌面 App</p>
-              <h3 className="mt-3 max-w-[260px] text-2xl font-extrabold leading-tight text-ink">
-                桌面 app <span className="text-yellow-deep">已上线</span>。
-              </h3>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 求职文章</p>
+                  <h3 className="mt-3 text-[24px] font-extrabold leading-tight text-ink">
+                    简历、面试和 offer，遇到问题时翻一篇。
+                  </h3>
+                </div>
+              </div>
               <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">
-                macOS / Windows / Linux 全平台可用。 不想装 skill 也能用上同一套云端能力。
+                这里整理找工作时常见的卡点：怎么改简历、怎么准备面试、怎么判断机会值不值得去。
               </p>
-              <span className="mt-5 inline-flex items-center gap-2 rounded-xl bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]">
-                下载桌面 app
-                <ArrowUpRight />
-              </span>
-            </div>
-          </a>
 
-          <a
-            href="/pricing"
-            className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-xl border-2 border-ink bg-cream p-5 shadow-press-ink transition-transform hover:-translate-y-1"
-          >
-            <div>
-              <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 定价</p>
-              <p className="mt-1.5 text-[16px] font-extrabold text-ink">查看价格方案</p>
-              <p className="mt-1 text-[12px] text-ink-soft">Free / Pro / Max + BYOK 四档可选</p>
+              {recentPosts.length > 0 ? (
+                <div className="mt-5 divide-y divide-rule">
+                  {recentPosts.map((post) => (
+                    <ArticleListItem key={`${post.section}/${post.slug}`} post={post} />
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-lg border border-rule bg-paper/60 p-4 text-[14px] leading-[1.7] text-ink-soft">
+                  文章还在准备中。你可以先去内容中心看看已经开放的栏目。
+                </div>
+              )}
+
+              <Link
+                href="/posts"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)] transition-transform hover:-translate-y-0.5"
+              >
+                去内容中心
+                <ArrowUpRight />
+              </Link>
             </div>
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]">
-              <ArrowUpRight />
-            </span>
-          </a>
+          </div>
         </aside>
       </div>
     </section>
   );
+}
+
+function ArticleListItem({ post }: { post: ContentPost }) {
+  return (
+    <Link
+      href={`/posts/${post.section}/${post.slug}`}
+      className="group block py-4 outline-none transition-colors first:pt-0 last:pb-0 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-yellow"
+    >
+      <div className="flex flex-wrap items-center gap-2 font-mono text-[12px] font-bold uppercase tracking-[0.12em] text-mute">
+        <span>{formatPostDate(post.publishedAt)}</span>
+        <span aria-hidden>·</span>
+        <span>{POST_SECTION_META[post.section].label}</span>
+      </div>
+      <p className="mt-2 text-[16px] font-extrabold leading-snug text-ink transition-colors group-hover:text-yellow-deep">
+        {post.title}
+      </p>
+      <p className="mt-1 text-[14px] leading-[1.6] text-ink-soft">{compactSummary(post.summary)}</p>
+      {post.tags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {post.tags.slice(0, 2).map((tag) => (
+            <span key={tag} className="rounded-full bg-fluff px-2 py-1 text-[12px] font-bold text-yellow-deep">
+              {tag}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </Link>
+  );
+}
+
+function formatPostDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-');
+  if (!year || !month || !day) {
+    return value;
+  }
+  return `${month}.${day}`;
+}
+
+function compactSummary(value: string) {
+  return value.length > 64 ? `${value.slice(0, 64)}…` : value;
 }
