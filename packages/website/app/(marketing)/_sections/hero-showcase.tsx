@@ -4,19 +4,17 @@ import { useEffect, useRef, useState } from 'react';
 
 import { CorgiMascot } from '@/components/corgi-mascot';
 
+import type { Dictionary } from '../_i18n/types';
 import { DocIcon } from '../_icons';
 
-const SLIDES = [
-  { key: 'import', label: '导入素材' },
-  { key: 'library', label: '素材库' },
-  { key: 'resume', label: '定制简历' },
-] as const;
+type Showcase = Dictionary['heroShowcase'];
 
-type SlideKey = (typeof SLIDES)[number]['key'];
+const SLIDE_KEYS = ['import', 'library', 'resume'] as const;
+type SlideKey = (typeof SLIDE_KEYS)[number];
 
 const ROTATE_MS = 6000;
 
-export function HeroShowcase() {
+export function HeroShowcase({ showcase }: { showcase: Showcase }) {
   const [active, setActive] = useState<SlideKey>('import');
   const pausedRef = useRef(false);
 
@@ -24,9 +22,9 @@ export function HeroShowcase() {
     const id = window.setInterval(() => {
       if (pausedRef.current) return;
       setActive((cur) => {
-        const idx = SLIDES.findIndex((s) => s.key === cur);
-        const next = SLIDES[(idx + 1) % SLIDES.length];
-        return next ? next.key : cur;
+        const idx = SLIDE_KEYS.indexOf(cur);
+        const next = SLIDE_KEYS[(idx + 1) % SLIDE_KEYS.length];
+        return next ?? cur;
       });
     }, ROTATE_MS);
     return () => window.clearInterval(id);
@@ -48,26 +46,26 @@ export function HeroShowcase() {
       <div className="absolute -inset-x-1 -inset-y-1 rounded-xl bg-yellow/15 blur-md" aria-hidden />
 
       <div className="relative">
-        <div role="tablist" aria-label="演示切换" className="mb-3 flex flex-wrap gap-1.5">
-          {SLIDES.map((slide) => {
-            const isActive = active === slide.key;
+        <div role="tablist" aria-label={showcase.tabsAria} className="mb-3 flex flex-wrap gap-1.5">
+          {SLIDE_KEYS.map((key) => {
+            const isActive = active === key;
             return (
               <button
-                key={slide.key}
+                key={key}
                 type="button"
                 role="tab"
-                id={`hero-tab-${slide.key}`}
+                id={`hero-tab-${key}`}
                 aria-selected={isActive}
-                aria-controls={`hero-panel-${slide.key}`}
+                aria-controls={`hero-panel-${key}`}
                 tabIndex={isActive ? 0 : -1}
-                onClick={() => setActive(slide.key)}
+                onClick={() => setActive(key)}
                 className={
                   isActive
                     ? 'rounded-full border-2 border-ink bg-yellow px-3 py-1 text-[12px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)]'
                     : 'rounded-full border-2 border-rule bg-cream px-3 py-1 text-[12px] font-semibold text-ink-soft transition-colors hover:border-corgi hover:text-ink'
                 }
               >
-                {slide.label}
+                {showcase.slides[key]}
               </button>
             );
           })}
@@ -75,10 +73,10 @@ export function HeroShowcase() {
 
         <div className="relative aspect-[4/3.1] w-full">
           <Slide active={active === 'import'} slideKey="import">
-            <ImportSlide />
+            <ImportSlide s={showcase} />
           </Slide>
           <Slide active={active === 'library'} slideKey="library">
-            <LibrarySlide />
+            <LibrarySlide s={showcase} />
           </Slide>
           <Slide active={active === 'resume'} slideKey="resume">
             <ResumeSlide />
@@ -87,7 +85,7 @@ export function HeroShowcase() {
 
         <div className="mt-3 flex items-center gap-2 font-mono text-[12px] text-mute">
           <span className="inline-block h-2 w-2 rounded-full bg-yellow" />
-          先整理，再针对岗位迭代
+          {showcase.caption}
         </div>
       </div>
     </div>
@@ -112,7 +110,7 @@ function Slide({ active, slideKey, children }: { active: boolean; slideKey: Slid
   );
 }
 
-function ImportSlide() {
+function ImportSlide({ s }: { s: Showcase }) {
   return (
     <div className="relative h-full overflow-hidden rounded-xl border-2 border-ink bg-cream shadow-press-ink-lg">
       <div className="flex items-center justify-between border-b-2 border-rule bg-paper px-4 py-2.5">
@@ -121,19 +119,13 @@ function ImportSlide() {
           <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
         </div>
-        <span className="font-mono text-[12px] uppercase tracking-wider text-mute">Mui简历 · 第一步</span>
+        <span className="font-mono text-[12px] uppercase tracking-wider text-mute">{s.importHeader}</span>
       </div>
       <div className="p-5">
-        <p className="text-[18px] font-extrabold text-ink">先放进来一份真实材料</p>
-        <p className="mt-2 text-[14px] leading-[1.65] text-ink-soft">
-          上传简历、粘贴经历，或者直接说“我想从零整理”。Mui 会从你已经有的内容开始。
-        </p>
+        <p className="text-[18px] font-extrabold text-ink">{s.importTitle}</p>
+        <p className="mt-2 text-[14px] leading-[1.65] text-ink-soft">{s.importDesc}</p>
         <div className="mt-5 grid gap-3">
-          {[
-            { title: '现有简历.pdf', desc: '解析成可编辑素材' },
-            { title: '一段项目经历', desc: '补齐背景、动作、结果' },
-            { title: '目标岗位链接', desc: '之后用来生成版本' },
-          ].map((item) => (
+          {s.importItems.map((item) => (
             <div
               key={item.title}
               className="flex items-center gap-3 rounded-xl border-2 border-rule bg-paper/70 px-4 py-3"
@@ -153,33 +145,35 @@ function ImportSlide() {
   );
 }
 
-function LibrarySlide() {
+function LibrarySlide({ s }: { s: Showcase }) {
   return (
     <div className="relative h-full overflow-hidden rounded-xl border-2 border-ink bg-cream shadow-press-ink-lg">
       <div className="flex items-center gap-2 border-b-2 border-rule bg-paper px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-tongue/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-yellow/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-corgi/80" />
-        <span className="ml-3 font-mono text-[12px] uppercase tracking-wider text-mute">职业素材库</span>
+        <span className="ml-3 font-mono text-[12px] uppercase tracking-wider text-mute">{s.libraryHeader}</span>
       </div>
       <div className="grid h-[calc(100%-2.6rem)] grid-cols-[7.5rem_1fr]">
         <aside className="border-r border-rule bg-paper/50 p-3 text-[12px]">
-          <p className="font-mono text-[12px] font-bold uppercase tracking-wider text-yellow-deep">导航</p>
+          <p className="font-mono text-[12px] font-bold uppercase tracking-wider text-yellow-deep">
+            {s.libraryNavLabel}
+          </p>
           <ul className="mt-2 space-y-1.5 text-ink-soft">
-            <li className="rounded-md bg-yellow/30 px-2 py-1 font-semibold text-ink">经历</li>
-            <li className="px-2 py-1">项目</li>
-            <li className="px-2 py-1">技能</li>
-            <li className="px-2 py-1">岗位</li>
+            {s.libraryNav.map((label, idx) => (
+              <li
+                key={label}
+                className={idx === 0 ? 'rounded-md bg-yellow/30 px-2 py-1 font-semibold text-ink' : 'px-2 py-1'}
+              >
+                {label}
+              </li>
+            ))}
           </ul>
         </aside>
         <div className="p-4">
-          <p className="text-[14px] font-extrabold text-ink">可复用素材</p>
+          <p className="text-[14px] font-extrabold text-ink">{s.libraryListLabel}</p>
           <ul className="mt-3 space-y-2">
-            {[
-              { title: '负责会员增长实验平台', match: '已量化' },
-              { title: '重构前端发布链路', match: '可投递' },
-              { title: '跨团队推进埋点规范', match: '待补充' },
-            ].map((item) => (
+            {s.libraryItems.map((item) => (
               <li
                 key={item.title}
                 className="flex items-center justify-between rounded-lg border border-rule bg-cream px-3 py-2"
@@ -206,12 +200,12 @@ function ResumeSlide() {
           <div className="h-3 w-2/3 rounded bg-ink/85" />
           <div className="mt-1.5 h-2 w-2/5 rounded bg-mute/40" />
           <div className="mt-3 flex gap-1.5">
-            {['React', 'TypeScript', 'Node.js'].map((s) => (
+            {['React', 'TypeScript', 'Node.js'].map((skill) => (
               <span
-                key={s}
+                key={skill}
                 className="rounded-full bg-fluff px-1.5 py-[1px] font-mono text-[12px] font-bold uppercase tracking-wider text-yellow-deep"
               >
-                {s}
+                {skill}
               </span>
             ))}
           </div>

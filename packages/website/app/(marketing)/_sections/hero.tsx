@@ -1,8 +1,12 @@
+import { type Locale, localizedHref } from '../_i18n/locale';
+import type { Dictionary } from '../_i18n/types';
+import { zh } from '../_i18n/zh';
 import { ArrowUpRight, Highlight, PawIcon, Sparkle } from '../_icons';
 import { AccountLink } from './account-link';
 import { HeroShowcase } from './hero-showcase';
 
-export function Hero() {
+export function Hero({ dict = zh, locale = 'zh' }: { dict?: Dictionary; locale?: Locale } = {}) {
+  const t = dict.hero;
   return (
     <section className="relative overflow-hidden border-b border-rule">
       <div className="absolute inset-0 bg-sun" aria-hidden />
@@ -19,45 +23,47 @@ export function Hero() {
         <div className="lg:col-span-7">
           <div className="inline-flex items-center gap-2 rounded-full border-2 border-corgi/60 bg-fluff px-3 py-1 text-[12px] font-semibold text-yellow-deep">
             <Sparkle />
-            <span>桌面 app 已上线，先从一份素材开始</span>
+            <span>{t.badge}</span>
           </div>
 
           <h1 className="mt-7 text-[clamp(2.5rem,7vw,5.25rem)] font-extrabold leading-[1.05] tracking-tight text-ink">
-            把简历和经历
+            {t.titleA}
             <br />
-            <Highlight>交给 Mui 整理</Highlight>。
+            <Highlight>{t.titleHighlight}</Highlight>
+            {t.titleEnd}
           </h1>
 
-          <p className="mt-7 max-w-xl text-[18px] leading-[1.7] text-ink-soft">
-            下载桌面 app，导入现有简历或粘贴一段经历。Mui 会先帮你整理成可复用的职业素材库，
-            再针对不同岗位生成、评审和导出简历。
-          </p>
+          <p className="mt-7 max-w-xl text-[18px] leading-[1.7] text-ink-soft">{t.lede}</p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <a
-              href="/download"
+              href={localizedHref(locale, '/download')}
               className="press inline-flex items-center gap-2 rounded-md border-2 border-ink bg-yellow px-5 py-3 text-[16px] font-bold text-ink"
             >
-              下载桌面 app
+              {t.ctaDownload}
               <ArrowUpRight />
             </a>
             <a
               href="#workflow"
               className="press-ink inline-flex items-center gap-2 rounded-md border-2 border-ink bg-cream px-5 py-3 text-[16px] font-bold text-ink"
             >
-              看 3 步怎么开始
+              {t.ctaSteps}
               <ArrowUpRight />
             </a>
-            <AccountLink className="ml-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink-soft underline decoration-rule decoration-2 underline-offset-4 transition hover:text-ink hover:decoration-yellow" />
+            <AccountLink
+              signedInLabel={t.accountSignedIn}
+              signedOutLabel={t.accountSignedOut}
+              className="ml-1 inline-flex items-center gap-1.5 text-[14px] font-semibold text-ink-soft underline decoration-rule decoration-2 underline-offset-4 transition hover:text-ink hover:decoration-yellow"
+            />
           </div>
 
           <p className="mt-10 max-w-lg border-t-2 border-dotted border-rule-strong pt-5 text-[14px] leading-[1.7] text-mute">
-            已经熟悉 Claude Code、Codex 或 Cursor？首页后面保留 skill 安装方式，可以继续走你习惯的工具链。
+            {t.agentNote}
           </p>
         </div>
 
         <div className="lg:col-span-5">
-          <HeroShowcase />
+          <HeroShowcase showcase={dict.heroShowcase} />
         </div>
       </div>
     </section>

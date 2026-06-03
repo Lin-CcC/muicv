@@ -1,25 +1,32 @@
+import { type ContentPost, POST_SECTION_META } from '@muicv/shared';
 import Link from 'next/link';
-import { POST_SECTION_META, type ContentPost } from '@muicv/shared';
 
-import { FAQ_ITEMS } from '../_data';
+import { type Locale, localizedHref } from '../_i18n/locale';
+import type { Dictionary } from '../_i18n/types';
+import { zh } from '../_i18n/zh';
 import { ArrowUpRight, Highlight } from '../_icons';
 
 type FaqAndArticlesProps = {
   recentPosts: ContentPost[];
+  dict?: Dictionary;
+  locale?: Locale;
 };
 
-export function FaqAndArticles({ recentPosts }: FaqAndArticlesProps) {
+export function FaqAndArticles({ recentPosts, dict = zh, locale = 'zh' }: FaqAndArticlesProps) {
+  const t = dict.faq;
   return (
     <section className="border-b border-rule">
       <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 md:px-8 md:py-24 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
-          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 常见问题</p>
+          <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— {t.eyebrow}</p>
           <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
-            想问的<Highlight>大概率</Highlight>在这里。
+            {t.titleA}
+            <Highlight>{t.titleHighlight}</Highlight>
+            {t.titleEnd}
           </h2>
 
           <div className="mt-10 space-y-3">
-            {FAQ_ITEMS.map((item, idx) => (
+            {t.items.map((item, idx) => (
               <details
                 key={item.q}
                 className="group rounded-lg border-2 border-rule-strong bg-cream transition-colors hover:border-corgi"
@@ -51,15 +58,13 @@ export function FaqAndArticles({ recentPosts }: FaqAndArticlesProps) {
             <div className="relative">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 求职文章</p>
-                  <h3 className="mt-3 text-[24px] font-extrabold leading-tight text-ink">
-                    简历、面试和 offer，遇到问题时翻一篇。
-                  </h3>
+                  <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">
+                    — {t.articlesEyebrow}
+                  </p>
+                  <h3 className="mt-3 text-[24px] font-extrabold leading-tight text-ink">{t.articlesTitle}</h3>
                 </div>
               </div>
-              <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">
-                这里整理找工作时常见的卡点：怎么改简历、怎么准备面试、怎么判断机会值不值得去。
-              </p>
+              <p className="mt-3 text-[14px] leading-[1.7] text-ink-soft">{t.articlesLede}</p>
 
               {recentPosts.length > 0 ? (
                 <div className="mt-5 divide-y divide-rule">
@@ -69,15 +74,15 @@ export function FaqAndArticles({ recentPosts }: FaqAndArticlesProps) {
                 </div>
               ) : (
                 <div className="mt-5 rounded-lg border border-rule bg-paper/60 p-4 text-[14px] leading-[1.7] text-ink-soft">
-                  文章还在准备中。你可以先去内容中心看看已经开放的栏目。
+                  {t.articlesEmpty}
                 </div>
               )}
 
               <Link
-                href="/posts"
+                href={localizedHref(locale, '/posts')}
                 className="mt-5 inline-flex items-center gap-2 rounded-lg bg-yellow px-4 py-2.5 text-[14px] font-bold text-ink shadow-[0_2px_0_0_var(--color-yellow-shadow)] transition-transform hover:-translate-y-0.5"
               >
-                去内容中心
+                {t.articlesCta}
                 <ArrowUpRight />
               </Link>
             </div>

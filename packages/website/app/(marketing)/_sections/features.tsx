@@ -1,34 +1,36 @@
-import { KEY_FEATURES, type KeyFeature } from '../_data';
+import type { Dictionary, KeyFeature } from '../_i18n/types';
+import { zh } from '../_i18n/zh';
 import { ChatIcon, CompassIcon, DocIcon, Highlight, TargetIcon } from '../_icons';
 
-const ICON_BY_TITLE: Record<string, React.ComponentType<{ className?: string }>> = {
-  整理职业素材: DocIcon,
-  针对岗位生成: TargetIcon,
-  评审与导出: ChatIcon,
-  继续练习求职: CompassIcon,
+// 图标按稳定 id 映射，与文案语言无关。
+const ICON_BY_ID: Record<KeyFeature['id'], React.ComponentType<{ className?: string }>> = {
+  organize: DocIcon,
+  generate: TargetIcon,
+  review: ChatIcon,
+  practice: CompassIcon,
 };
 
-export function KeyFeatures() {
+export function KeyFeatures({ dict = zh }: { dict?: Dictionary } = {}) {
+  const t = dict.features;
   return (
     <section id="features" className="border-b border-rule">
       <div className="mx-auto max-w-6xl px-5 py-20 md:px-8 md:py-24">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
           <div className="lg:col-span-4">
-            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— 能做什么</p>
+            <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-yellow-deep">— {t.eyebrow}</p>
             <h2 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-extrabold leading-[1.05] tracking-tight">
-              先把素材理顺，
+              {t.titleA}
               <br />
-              <Highlight>再处理投递</Highlight>。
+              <Highlight>{t.titleHighlight}</Highlight>
+              {t.titleEnd}
             </h2>
-            <p className="mt-5 max-w-sm text-[16px] leading-[1.7] text-ink-soft">
-              Mui 的核心不是替你编故事，而是把真实经历整理成可复用素材，再根据不同岗位调整表达。
-            </p>
+            <p className="mt-5 max-w-sm text-[16px] leading-[1.7] text-ink-soft">{t.lede}</p>
           </div>
 
           <div className="lg:col-span-8">
             <div className="grid gap-5 sm:grid-cols-2">
-              {KEY_FEATURES.map((feature) => (
-                <FeatureCard key={feature.title} feature={feature} />
+              {t.items.map((feature) => (
+                <FeatureCard key={feature.id} feature={feature} statusLive={t.statusLive} statusSoon={t.statusSoon} />
               ))}
             </div>
           </div>
@@ -38,8 +40,16 @@ export function KeyFeatures() {
   );
 }
 
-function FeatureCard({ feature }: { feature: KeyFeature }) {
-  const Icon = ICON_BY_TITLE[feature.title] ?? DocIcon;
+function FeatureCard({
+  feature,
+  statusLive,
+  statusSoon,
+}: {
+  feature: KeyFeature;
+  statusLive: string;
+  statusSoon: string;
+}) {
+  const Icon = ICON_BY_ID[feature.id] ?? DocIcon;
   const isLive = feature.status === 'live';
   return (
     <article className="group relative flex flex-col rounded-xl border-2 border-ink bg-cream p-5 transition-transform hover:-translate-y-1">
@@ -61,7 +71,7 @@ function FeatureCard({ feature }: { feature: KeyFeature }) {
                 : 'inline-block h-1.5 w-1.5 rounded-full bg-mute/60'
             }
           />
-          {isLive ? '已上线' : '即将推出'}
+          {isLive ? statusLive : statusSoon}
         </span>
       </div>
       <h3 className="mt-4 text-[18px] font-extrabold leading-snug text-ink">{feature.title}</h3>

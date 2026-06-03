@@ -1,65 +1,42 @@
 import { CorgiMascot } from '@/components/corgi-mascot';
 
 import { FooterCol } from '../_footer-col';
+import { type Locale, localizedHref } from '../_i18n/locale';
+import type { Dictionary } from '../_i18n/types';
+import { zh } from '../_i18n/zh';
 import { PawIcon } from '../_icons';
 
-export function Footer() {
+export function Footer({ dict = zh, locale = 'zh' }: { dict?: Dictionary; locale?: Locale } = {}) {
+  const t = dict.footer;
   return (
     <footer className="bg-paper">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:px-8 lg:grid-cols-12">
         <div className="lg:col-span-5">
-          <a href="/" className="flex items-center gap-2.5 text-ink no-underline">
+          <a href={localizedHref(locale, '/')} className="flex items-center gap-2.5 text-ink no-underline">
             <CorgiMascot className="h-9 w-9" />
-            <span className="text-[18px] font-bold tracking-tight">Mui简历</span>
+            <span className="text-[18px] font-bold tracking-tight">{dict.brand.name}</span>
           </a>
-          <p className="mt-4 max-w-xs text-[14px] leading-[1.65] text-ink-soft">
-            一站式 AI 求职平台。简历、找岗位、模拟面试、就业辅导——帮你拿到更好的 offer。
-          </p>
+          <p className="mt-4 max-w-xs text-[14px] leading-[1.65] text-ink-soft">{t.tagline}</p>
           <p className="mt-3 inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-wider text-yellow-deep">
             <PawIcon className="h-3.5 w-3.5" />
-            由柯基 Mui 监修
+            {t.curatedBy}
           </p>
         </div>
 
         <div className="grid grid-cols-2 gap-8 text-[14px] sm:grid-cols-4 lg:col-span-7">
-          <FooterCol
-            label="产品"
-            links={[
-              ['重点特性', '/#features'],
-              ['定价', '/pricing'],
-              ['桌面 app', '/download'],
-              ['Skill 目录', '/skills'],
-              ['控制台', '/dashboard'],
-            ]}
-          />
-          <FooterCol
-            label="内容"
-            links={[
-              ['求职博文', '/posts/jobs'],
-              ['全部文章', '/posts'],
-              ['更新日志', '/changelog'],
-            ]}
-          />
-          <FooterCol
-            label="公司"
-            links={[
-              ['关于我们', '/about'],
-              ['联系我们', '/contact'],
-            ]}
-          />
-          <FooterCol
-            label="法律"
-            links={[
-              ['服务条款', '/terms'],
-              ['隐私政策', '/privacy'],
-            ]}
-          />
+          {t.cols.map((col) => (
+            <FooterCol
+              key={col.label}
+              label={col.label}
+              links={col.links.map((link) => [link.label, localizedHref(locale, link.href)] as [string, string])}
+            />
+          ))}
         </div>
       </div>
       <div className="border-t border-rule">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-6 text-[12px] text-mute md:flex-row md:items-center md:justify-between md:px-8">
-          <span>© 2026 Meathill LLC · Mui简历 · 保留所有权利</span>
-          <span className="font-mono text-[12px] uppercase tracking-wider">Made with 🐾 in 中国</span>
+          <span>{t.copyright}</span>
+          <span className="font-mono text-[12px] uppercase tracking-wider">{t.madeIn}</span>
         </div>
       </div>
     </footer>
