@@ -7,6 +7,9 @@ const BASE = 'https://muicv.com';
 // 双语页对的 hreflang（sitemap 里必须用绝对 URL）。加英文页就往这里加对应映射。
 const HOME_ALT = { languages: { 'zh-CN': `${BASE}/`, en: `${BASE}/en` } };
 const DOWNLOAD_ALT = { languages: { 'zh-CN': `${BASE}/download`, en: `${BASE}/en/download` } };
+const PRICING_ALT = { languages: { 'zh-CN': `${BASE}/pricing`, en: `${BASE}/en/pricing` } };
+const ABOUT_ALT = { languages: { 'zh-CN': `${BASE}/about`, en: `${BASE}/en/about` } };
+const CONTACT_ALT = { languages: { 'zh-CN': `${BASE}/contact`, en: `${BASE}/en/contact` } };
 
 // sitemap 走 ISR：1 小时刷一次。爬虫不会每秒访问，不需要 force-dynamic 让 D1 每次硬扛。
 export const revalidate = 3600;
@@ -24,13 +27,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
   const pages: StaticSitemapPage[] = [
     { path: '/', priority: 1, changeFrequency: 'weekly', alternates: HOME_ALT },
-    { path: '/pricing', priority: 0.9, changeFrequency: 'monthly' },
-    { path: '/about', priority: 0.6, changeFrequency: 'monthly' },
-    { path: '/contact', priority: 0.5, changeFrequency: 'monthly' },
+    { path: '/pricing', priority: 0.9, changeFrequency: 'monthly', alternates: PRICING_ALT },
+    { path: '/about', priority: 0.6, changeFrequency: 'monthly', alternates: ABOUT_ALT },
+    { path: '/contact', priority: 0.5, changeFrequency: 'monthly', alternates: CONTACT_ALT },
     { path: '/download', priority: 0.7, changeFrequency: 'weekly', alternates: DOWNLOAD_ALT },
     // 英文营销页（增量加页时往这里补，并给对应中文页加 alternates）
     { path: '/en', priority: 1, changeFrequency: 'weekly', alternates: HOME_ALT },
     { path: '/en/download', priority: 0.7, changeFrequency: 'weekly', alternates: DOWNLOAD_ALT },
+    { path: '/en/pricing', priority: 0.9, changeFrequency: 'monthly', alternates: PRICING_ALT },
+    { path: '/en/about', priority: 0.6, changeFrequency: 'monthly', alternates: ABOUT_ALT },
+    { path: '/en/contact', priority: 0.5, changeFrequency: 'monthly', alternates: CONTACT_ALT },
     { path: '/posts', priority: 0.7, changeFrequency: 'weekly' },
     ...Object.values(POST_SECTION_META).map((section) => ({
       path: section.path,
